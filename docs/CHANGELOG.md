@@ -5,6 +5,14 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-12 · Phase 0 complete: live on trutiai.in
+
+**Deployed**
+- Workers Builds connected to github.com/akhil6174/blog; first successful deploy after (1) regenerating the lock file, (2) renaming the Worker to `trutiai`, (3) deleting GoDaddy's parking A and www CNAME records so the custom domains could be created.
+
+**Verified (live)**
+- 14 routes return 200 on both `trutiai.in` and `www`, unknown path 404, `/api/health` all true, static pages served from Cloudflare cache.
+
 ### 2026-11-12 · Phase 1: foundation site
 
 **Added**

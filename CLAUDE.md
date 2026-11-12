@@ -53,4 +53,4 @@ npx wrangler deploy    # manual deploy (normally Workers Builds deploys on git p
 
 ## Current phase
 
-Phase 1 (foundation site): code complete, waiting on the live domain and owner inputs. See `docs/PROGRESS.md`.
+Phase 1 (foundation site) is live at https://trutiai.in. Waiting on owner inputs (bio, photo, topics, Email Routing, Resend/Turnstile/analytics keys); Phase 3 can start behind the flag. See `docs/PROGRESS.md`.

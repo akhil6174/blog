@@ -1,11 +1,11 @@
 # Progress tracker
 
-**Current phase: 1 — Foundation site (code complete 2026-11-12; waiting for the domain to go live and owner inputs).**
+**Current phase: 1 — Foundation site live at https://trutiai.in (2026-11-12); owner inputs pending, then Phase 2 writing and Phase 3 build.**
 Phases, goals and "done when" criteria come from `../Tech Blog Build Plan v2.md` (Part 3). Tick a box only when the item is verified, not just written.
 
 | Phase | Goal | Status |
 |---|---|---|
-| 0 | Accounts, domain, Astro project | In progress (code done, owner tasks pending) |
+| 0 | Accounts, domain, Astro project | **Complete** (2026-11-12, site live at https://trutiai.in) |
 | 1 | Foundation site: layout, legal pages, SEO plumbing, search, analytics | Code done; owner inputs and live checks pending |
 | 2 | 25 to 30 original posts, indexed | Not started |
 | 3 | AdSense application + community features behind a flag | Not started |
@@ -30,21 +30,21 @@ Phases, goals and "done when" criteria come from `../Tech Blog Build Plan v2.md`
 Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md).
 - [ ] Create accounts: Cloudflare, GitHub, Google (the Gmail you will keep for AdSense), OpenAI, Resend, Sentry
 - [x] Buy the domain: **trutiai.in** bought at GoDaddy (2026-11-12). Nameservers active on Cloudflare (anton/zelda.ns.cloudflare.com) since 2026-11-12 evening
-- [ ] First deploy: `npx wrangler deploy` run by the owner (Claude's auto mode cannot run production deploys). `wrangler.jsonc` now declares `trutiai.in` and `www` as custom domains, so the deploy attaches them
+- [x] First deploy via Workers Builds (2026-11-12 23:15 IST) after deleting GoDaddy's parking A/CNAME records; custom domains attached by `wrangler.jsonc` routes
 - [x] Run `npx wrangler login` once on this PC (done 2026-11-11)
 - [x] Create resources and paste the ids into `wrangler.jsonc` (D1 `tech-blog-db` and KV `CACHE` created 2026-11-11; ids pasted and `ADMIN_EMAILS` set 2026-11-12)
   - R2 bucket: deferred to Phase 3 (needs a card on file; see D-013)
 - [ ] Create a Google Cloud project and an OAuth client (Web application); keep the id and secret in a password manager (used in Phase 3)
 - [x] GitHub repository created: https://github.com/akhil6174/blog (pushed 2026-11-12)
-- [ ] Connect it in Cloudflare → Workers & Pages → Create → Import a repository (Workers Builds). Build command `npm run build`, deploy command `npx wrangler deploy`
-- [ ] Add the custom domain to the Worker (Settings → Domains & Routes) once the zone is Active. `SITE_URL=https://trutiai.in` is already set in `wrangler.jsonc`; set the same build variable in Workers Builds
+- [x] Connect it in Cloudflare → Workers & Pages → Create → Import a repository (Workers Builds). Build command `npm run build`, deploy command `npx wrangler deploy`
+- [x] Custom domains `trutiai.in` and `www` attached; `SITE_URL` set
 - [ ] Create the Search Console property for the domain (DNS verification)
 - [ ] Exclude `tech-blog/node_modules`, `dist`, `.wrangler` from OneDrive sync, or move the repo to a non-synced folder (see D-012)
 
 ### Phase 0 done when
 - [ ] `https://yourdomain.com/` shows the placeholder home with a valid HTTPS padlock
 - [ ] `https://yourdomain.com/api/health` returns `"ok": true` with every check `true`
-- [ ] A `git push` to `main` triggers a Workers Builds deploy
+- [x] Push to `main` triggers a Workers Builds deploy
 
 ## Phase 1
 
@@ -86,3 +86,4 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 | 2026-11-11 | `npm run preview` → `GET /api/health` | `{"d1":true,"kv":true,"r2":true,"workflow":true,"ai":false}`. AI was false only because the binding was temporarily removed for an unauthenticated local run (it proxies to Cloudflare and needs `wrangler login`). Binding restored afterwards. Expect `ai: true` after login. |
 | 2026-11-11 | `GET /robots.txt`, `GET /sitemap-index.xml` | 200, 200 |
 | 2026-11-12 | `npm run preview` → `GET /api/health` with Wrangler logged in and real ids | `{"ok":true,"checks":{"d1":true,"kv":true,"ai":true,"workflow":true}}` |
+| 2026-11-12 | Live: 14 routes on https://trutiai.in and https://www.trutiai.in | All 200, unknown path 404, health all true, CF-Cache-Status HIT on home, canonical + robots correct on the article |

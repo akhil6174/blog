@@ -94,6 +94,8 @@ Choosing the name: short, pronounceable, no hyphens or numbers, says "tech" or y
 2. Cloudflare dashboard → Add a site (or Onboard a domain) → enter the domain → Free plan → Continue.
 3. Cloudflare shows two nameservers (for example `ada.ns.cloudflare.com` and `bob.ns.cloudflare.com`). At the registrar, replace the default nameservers with these two. Propagation takes minutes to a day; Cloudflare emails when active.
 
+**Before the first deploy:** in Cloudflare DNS delete any A or CNAME record for the root (`@`) and `www` that the registrar imported (GoDaddy parking addresses). A Worker custom domain cannot be created while they exist; the deploy fails with code 100117.
+
 **Connect the domain to the Worker (after the first deploy):** Workers & Pages → `tech-blog` → Settings → Domains & Routes → Add → Custom domain → `yourdomain.com`; add `www.yourdomain.com` too. Cloudflare creates the DNS records and the certificate. Then set `SITE_URL` in `wrangler.jsonc` and in Workers Builds.
 
 ## 4. GitHub (10 minutes)
