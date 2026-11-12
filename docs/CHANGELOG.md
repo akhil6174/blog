@@ -28,6 +28,7 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 **Fixed**
 - Share image route renamed to `[...slug].ts`: `astro-og-canvas` appends `.png` itself, so the earlier name produced `.png.png`.
 - First Workers Builds run failed with `npm ci` "Missing: @emnapi/core ... from lock file": the lock file generated incrementally on Windows lacked the nested dependencies of the wasm fallback packages (sharp, rolldown, Tailwind oxide). Regenerated `package-lock.json` from scratch with `--include=optional`; `npm ci --dry-run` now passes. If this recurs after adding packages on Windows, run `rm -rf node_modules package-lock.json && npm install --include=optional`.
+- Worker renamed from `tech-blog` to `trutiai` in `wrangler.jsonc` to match the Workers Builds project name; Workers Builds rejects deploys when the two differ.
 
 
 ### 2026-11-12 · Phase 0: real Cloudflare resources wired

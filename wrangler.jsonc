@@ -2,7 +2,7 @@
   // Cloudflare Workers configuration for the tech blog.
   // Everything here is on the Workers FREE plan. See docs/ARCHITECTURE.md for what each binding is for.
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "tech-blog",
+  "name": "trutiai",
   "compatibility_date": "2026-11-03",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 
