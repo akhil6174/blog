@@ -95,3 +95,17 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** Enabling R2 requires a payment method on file even though the 10 GB allowance is free. R2 is used only for community image uploads, which arrive in Phase 3. The owner prefers not to add a card yet.
 - **Decision:** Remove the `MEDIA` binding and its health check until Phase 3. Editorial images stay in the repo and are optimised at build time. Re-add the binding when community uploads are built.
 - **Consequences:** Phases 0 to 2 need no card anywhere. Phase 3 starts with a 5-minute R2 enablement step. If the owner still declines a card then, the fallback is an outside free image host (Cloudinary free tier) behind the same upload route.
+
+## D-014 · Public contact address on the domain, forwarded to Gmail
+
+- **Date:** 2026-11-12 · **Status:** accepted
+- **Context:** AdSense reviewers expect visible, working contact details. Putting the owner's personal Gmail on every page invites spam and ties the site to a personal account.
+- **Decision:** Show `hello@trutiai.in` on the site; forward it to the owner's Gmail with Cloudflare Email Routing (free). The contact form delivers to `CONTACT_TO` (the Gmail) through Resend.
+- **Consequences:** One 5-minute owner task (SETUP-GUIDE §13). Until it is done, mail to the public address bounces, so the task is on the Phase 1 checklist.
+
+## D-015 · Ad units render nothing until approval
+
+- **Date:** 2026-11-12 · **Status:** accepted
+- **Context:** Placeholder ad boxes before approval are a known rejection trigger, yet layouts must reserve space to avoid layout shift later.
+- **Decision:** `AdSlot` is placed in the article template now but outputs no HTML unless `ADS_ENABLED=true` and `ADSENSE_CLIENT` are set. The verification meta tag is likewise emitted only when `ADSENSE_CLIENT` is set.
+- **Consequences:** Phase 4 is a config change plus slot ids, not a template change.

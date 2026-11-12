@@ -1,0 +1,114 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<PageLayout
+  title="Privacy policy"
+  description={`How ${SITE.name} collects, uses and protects personal data, including cookies, analytics, advertising (Google AdSense) and your rights.`}
+  updated={SITE.legalUpdated}
+>
+  <p>
+    This policy explains what information {SITE.name} ("we", "us") collects when you visit <strong>{SITE.domain}</strong>,
+    how we use it, and the choices you have. We keep data collection to the minimum needed to run the site.
+  </p>
+
+  <h2>Who is responsible</h2>
+  <p>{SITE.name} is operated by {SITE.author.name}, India. Contact: <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.</p>
+
+  <h2>What we collect and why</h2>
+  <h3>Reading the site</h3>
+  <p>
+    You can read every article without an account. Our hosting provider (Cloudflare) processes your IP address and
+    request headers to deliver pages and to block attacks; Cloudflare keeps standard server logs for a limited time.
+  </p>
+  <h3>Analytics</h3>
+  <p>
+    We use Cloudflare Web Analytics, which does not use cookies and does not track you across sites. It gives us
+    aggregate numbers such as page views and country. We may also use Google Analytics in future; if we do, this policy
+    will be updated and consent will be requested where the law requires it.
+  </p>
+  <h3>Contact form</h3>
+  <p>
+    When you use the contact form we receive the name, email address and message you type, plus your IP address for
+    abuse prevention. The message is delivered by our email provider (Resend) to our inbox and kept only as long as
+    needed to reply and keep a record of the conversation.
+  </p>
+  <h3>Accounts for community writers and commenters</h3>
+  <p>
+    If you sign in with Google to write or comment, we receive your Google account's name, email address and profile
+    picture, and we store them with the content you publish. We do not receive your Google password. You can delete
+    your account at any time from your profile page; published articles can be deleted with it or kept under an
+    anonymised byline, at your choice.
+  </p>
+  <h3>Content moderation</h3>
+  <p>
+    Community submissions are checked automatically for spam and harmful content before publication. The text and
+    images you submit may be sent to automated moderation services (OpenAI's moderation API and Cloudflare Workers AI)
+    for that purpose only. We keep a log of moderation decisions to review and improve them.
+  </p>
+  <h3>Bot protection</h3>
+  <p>
+    Forms are protected by Cloudflare Turnstile, which analyses browser signals to tell people from bots. Turnstile does
+    not show tracking ads and does not build a profile of you.
+  </p>
+
+  <h2>Advertising and cookies</h2>
+  <p>We intend to display advertising served by Google AdSense. The following disclosures apply once ads are shown:</p>
+  <ul>
+    <li>
+      Third-party vendors, including Google, use cookies to serve ads based on a user's prior visits to this website or
+      other websites.
+    </li>
+    <li>
+      Google's use of advertising cookies enables it and its partners to serve ads to you based on your visit to this
+      site and/or other sites on the Internet.
+    </li>
+    <li>
+      You may opt out of personalised advertising by visiting
+      <a href="https://www.google.com/settings/ads" rel="noopener" target="_blank">Google Ads Settings</a>. You can also
+      opt out of some third-party vendors' use of cookies for personalised advertising at
+      <a href="https://www.aboutads.info/choices/" rel="noopener" target="_blank">www.aboutads.info</a>.
+    </li>
+    <li>
+      Other third-party ad networks, if any, may also use cookies; their privacy policies govern that use. We will list
+      them here.
+    </li>
+  </ul>
+  <p>
+    Visitors from the European Economic Area, the United Kingdom and Switzerland are shown a consent message before any
+    personalised advertising cookies are set, and can change their choice at any time through the "Privacy settings"
+    link in the footer (shown in those regions).
+  </p>
+  <p>
+    Cookies we set ourselves: a session cookie when you sign in, and a preference cookie if you choose settings such as
+    a theme. We do not set cookies for visitors who only read.
+  </p>
+
+  <h2>Legal basis and retention</h2>
+  <p>
+    We process data to provide the site (contract and legitimate interest), to keep it secure (legitimate interest), and
+    for advertising with your consent where required. Server and moderation logs are kept for up to 90 days, contact
+    messages for up to 2 years, and account data until you delete your account.
+  </p>
+
+  <h2>Sharing</h2>
+  <p>
+    We do not sell personal data. We share it only with the service providers named above (Cloudflare, Google, Resend,
+    OpenAI, Sentry for error reports), each bound by its own privacy terms, and when the law requires it.
+  </p>
+
+  <h2>Your rights</h2>
+  <p>
+    You can ask us what data we hold about you, ask for it to be corrected or deleted, or object to its processing.
+    Email <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>. We answer within 30 days. Residents of
+    India have rights under the Digital Personal Data Protection Act, 2023; residents of the EEA and UK under the GDPR;
+    residents of California under the CCPA.
+  </p>
+
+  <h2>Children</h2>
+  <p>The site is not directed at children under 13 (under 16 in the EEA). We do not knowingly collect their data.</p>
+
+  <h2>Changes</h2>
+  <p>We will post any changes on this page and update the date at the top. Significant changes will be announced on the home page.</p>
+</PageLayout>

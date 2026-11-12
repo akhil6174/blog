@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { getPublishedPosts } from '../lib/posts';
+const latest = (await getPublishedPosts()).slice(0, 3);
+---
+
+<BaseLayout title="Page not found" description="That page does not exist. Search the site or start from the latest articles." noindex>
+  <div class="mx-auto max-w-measure">
+    <p class="font-sans text-xs font-semibold uppercase tracking-wide text-accent">404</p>
+    <h1 class="mt-2 font-sans text-3xl font-bold tracking-tight md:text-4xl">We could not find that page</h1>
+    <p class="mt-4 font-serif text-lg text-muted">The link may be old or mistyped. Try a search, or go back to the <a href="/" class="underline">home page</a>.</p>
+    <form action="/search/" method="get" class="mt-6 flex gap-2 font-sans">
+      <label for="q" class="sr-only">Search</label>
+      <input id="q" name="q" type="search" placeholder="Search articles" class="w-full rounded border border-line bg-surface px-3 py-2" />
+      <button type="submit" class="rounded bg-accent px-4 py-2 font-semibold text-white hover:bg-accent-strong">Search</button>
+    </form>
+  </div>
+  {latest.length > 0 && (
+    <section class="mt-16">
+      <h2 class="mb-6 font-sans text-xs font-semibold uppercase tracking-wide text-muted">Latest articles</h2>
+      <div class="grid gap-10 md:grid-cols-3">{latest.map((p) => <PostCard post={p} />)}</div>
+    </section>
+  )}
+</BaseLayout>

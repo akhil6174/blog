@@ -1,0 +1,52 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<PageLayout
+  title="Community guidelines"
+  description={`What community writers and commenters can publish on ${SITE.name}, how submissions are checked, and how to appeal a decision.`}
+  updated={SITE.legalUpdated}
+>
+  <p>
+    {SITE.name} welcomes articles and comments from anyone who builds software. These guidelines keep the site useful
+    and safe. Submissions that break them are declined, and repeat offenders lose access.
+  </p>
+
+  <h2>What we publish</h2>
+  <ul>
+    <li>Original articles about software, hardware, developer tools, data, security, cloud, AI for developers, and careers in tech.</li>
+    <li>Tutorials, comparisons, explainers, post-mortems, opinion grounded in experience.</li>
+    <li>At least 300 words; most good articles are 800 or more. Up to five outside links.</li>
+  </ul>
+
+  <h2>What we decline</h2>
+  <ul>
+    <li><strong>Spam and advertising:</strong> articles that exist to promote a product, service or link; affiliate link dumps; keyword stuffing.</li>
+    <li><strong>Copied content:</strong> text taken from documentation, other blogs or books, including lightly rewritten or machine-spun versions. AI-generated text that the author has not substantially rewritten and verified.</li>
+    <li><strong>Off-topic:</strong> anything that is not about technology or building things.</li>
+    <li><strong>Harmful content:</strong> hate, harassment, threats, sexual content, graphic violence, self-harm, illegal activity, malware or instructions that enable harm.</li>
+    <li><strong>Misleading content:</strong> fabricated results, undisclosed sponsorship, impersonation.</li>
+  </ul>
+
+  <h2>How submissions are checked</h2>
+  <ol>
+    <li>Automatic checks for length, links and posting limits.</li>
+    <li>An automated screen for harmful content.</li>
+    <li>An automated quality and topic review. Clear articles publish within minutes; borderline ones go to a human editor, usually within two days.</li>
+    <li>After publishing, readers can report an article; three reports hide it until an editor reviews it.</li>
+  </ol>
+  <p>Links in community articles carry <code>rel="ugc nofollow"</code>. New accounts can publish one article a day; established writers more.</p>
+
+  <h2>Comments</h2>
+  <p>Be specific, be kind, stay on topic. Disagree with ideas, not people. No self-promotion beyond a relevant link. The same harmful-content rules apply.</p>
+
+  <h2>Appeals</h2>
+  <p>
+    If your submission was declined and you believe the decision was wrong, reply to the notification email or use the
+    <a href="/contact/">contact form</a> with the article title. A person will look at it within a few days.
+  </p>
+
+  <h2>Your rights and responsibilities</h2>
+  <p>You keep the rights to what you write (see the <a href="/terms/">terms of use</a>). You are responsible for its accuracy and originality. You can unpublish your articles at any time.</p>
+</PageLayout>

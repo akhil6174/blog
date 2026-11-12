@@ -1,0 +1,11 @@
+{
+  "name": "Akhil D",
+  "handle": "akhil",
+  "role": "Founder and editor, TrutiAI",
+  "bio": "PLACEHOLDER BIO (owner input needed): two or three sentences about who you are, what you build, and why you write. Google's reviewers read this, so make it specific and honest.",
+  "avatar": "../../assets/images/avatar-akhil.png",
+  "avatarAlt": "Portrait of Akhil D",
+  "links": {
+    "github": "https://github.com/akhil6174"
+  }
+}

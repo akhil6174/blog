@@ -1,0 +1,25 @@
+---
+interface Props {
+  current: number;
+  total: number;
+  /** Builds the URL for page n (page 1 may have a different URL). */
+  url: (n: number) => string;
+}
+const { current, total, url } = Astro.props;
+---
+
+{total > 1 && (
+  <nav aria-label="Pagination" class="mt-12 flex items-center justify-between font-sans text-sm">
+    {current > 1 ? (
+      <a href={url(current - 1)} rel="prev" class="rounded border border-line bg-surface px-4 py-2 hover:bg-page">← Newer</a>
+    ) : (
+      <span />
+    )}
+    <span class="text-muted">Page {current} of {total}</span>
+    {current < total ? (
+      <a href={url(current + 1)} rel="next" class="rounded border border-line bg-surface px-4 py-2 hover:bg-page">Older →</a>
+    ) : (
+      <span />
+    )}
+  </nav>
+)}

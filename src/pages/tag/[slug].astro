@@ -1,0 +1,36 @@
+---
+/**
+ * Tag page. Indexable only once it lists 3+ posts (SEO checklist: no thin pages).
+ */
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getPublishedPosts, tagSlug, tagSummaries } from '../../lib/posts';
+import { breadcrumbJsonLd } from '../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const posts = await getPublishedPosts();
+  return tagSummaries(posts).map((t) => ({
+    params: { slug: t.slug },
+    props: { tag: t.tag, posts: posts.filter((p) => p.data.tags.some((x) => tagSlug(x) === t.slug)) },
+  }));
+}) satisfies GetStaticPaths;
+
+const { tag, posts } = Astro.props;
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const noindex = posts.length < 3;
+---
+
+<BaseLayout
+  title={`${tag}: articles`}
+  description={`All ${posts.length} TrutiAI ${posts.length === 1 ? 'article' : 'articles'} about ${tag}: tutorials, comparisons and explainers.`}
+  noindex={noindex}
+  jsonLd={[breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: 'Topics', url: `${siteUrl}topics/` }, { name: tag, url: new URL(Astro.url.pathname, siteUrl).href }])]}
+>
+  <p class="font-sans text-xs font-semibold uppercase tracking-wide text-muted"><a href="/topics/" class="hover:underline">Topics</a> / {tag}</p>
+  <h1 class="mt-2 font-sans text-3xl font-bold tracking-tight md:text-4xl">{tag}</h1>
+  <p class="mt-2 font-sans text-sm text-muted">{posts.length} {posts.length === 1 ? 'article' : 'articles'}</p>
+  <div class="mt-8 grid gap-10 md:grid-cols-2">
+    {posts.map((p) => <PostCard post={p} />)}
+  </div>
+</BaseLayout>

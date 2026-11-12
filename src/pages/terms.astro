@@ -1,0 +1,66 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<PageLayout
+  title="Terms of use"
+  description={`The rules for reading, commenting on and writing for ${SITE.name}, including the licence writers grant us and how content can be removed.`}
+  updated={SITE.legalUpdated}
+>
+  <p>By using <strong>{SITE.domain}</strong> you agree to these terms. If you do not agree, please do not use the site.</p>
+
+  <h2>1. Using the site</h2>
+  <p>
+    You may read, link to and share our articles. You may quote short excerpts with attribution and a link. You may
+    not copy whole articles, scrape the site, or use its content to train commercial models without written permission.
+  </p>
+
+  <h2>2. Accounts</h2>
+  <p>
+    Writing and commenting require signing in with Google. You must be at least 13 years old (16 in the EEA) and
+    provide accurate information. You are responsible for activity under your account. We may suspend accounts that
+    break these terms or the <a href="/community-guidelines/">community guidelines</a>.
+  </p>
+
+  <h2>3. Your content</h2>
+  <p>
+    You keep ownership of articles and comments you publish. By publishing on {SITE.name} you grant us a worldwide,
+    non-exclusive, royalty-free licence to host, display, format, excerpt and promote that content on the site, in our
+    feeds and on our social channels, for as long as it remains published. You can unpublish your content at any time
+    from your profile; cached copies and quotations may persist.
+  </p>
+  <p>You confirm that your content is your own original work (or that you have the rights to it), is accurate to the best of your knowledge, and does not infringe anyone's rights.</p>
+
+  <h2>4. Moderation and removal</h2>
+  <p>
+    All community submissions are checked before publication, automatically and, where needed, by a person. We may
+    decline, edit for formatting, unpublish or remove any content at our discretion, and we will tell you why where we
+    can. Reports from readers are reviewed within a few days.
+  </p>
+
+  <h2>5. Copyright complaints</h2>
+  <p>
+    If you believe content on this site infringes your copyright, email <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>
+    with the URL, a description of the work, your contact details and a statement that you own the rights. We act on
+    valid notices promptly.
+  </p>
+
+  <h2>6. Advertising and links</h2>
+  <p>
+    The site shows advertising and may contain affiliate links; see the <a href="/disclaimer/">disclaimer</a>. Links to
+    other sites are provided for convenience; we are not responsible for their content.
+  </p>
+
+  <h2>7. No warranty</h2>
+  <p>
+    Articles are provided "as is" for general information. Software changes quickly; test anything before using it in
+    production. To the extent permitted by law, we are not liable for loss or damage arising from use of the site.
+  </p>
+
+  <h2>8. Changes and governing law</h2>
+  <p>We may update these terms; the date above shows the latest version. These terms are governed by the laws of India, and disputes are subject to the courts of India.</p>
+
+  <h2>Contact</h2>
+  <p><a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a></p>
+</PageLayout>

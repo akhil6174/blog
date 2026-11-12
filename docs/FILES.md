@@ -24,22 +24,60 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 
 | File | What it does |
 |---|---|
-| `src/worker.ts` | Worker entry: `fetch` delegates to Astro; `scheduled` handles the hourly cron; exports the `ModeratePost` Workflow class (stub in Phase 0) |
-| `src/env.d.ts` | Tells TypeScript that `Astro.locals.runtime.env` has the `Env` bindings |
-| `src/lib/site.ts` | Site constants: name, tagline, description, author, locale. Change here, applies everywhere |
-| `src/layouts/BaseLayout.astro` | The single `<head>` owner: title template, description, robots, icons, theme colour. Phase 1 adds canonical, Open Graph, JSON-LD, AdSense meta and consent |
-| `src/pages/index.astro` | Home page (static). Phase 0 placeholder built on the design tokens |
-| `src/pages/api/health.ts` | `GET /api/health` (on-demand): checks D1, KV, R2, AI and Workflow bindings; returns JSON with `ok` and per-service status |
-| `src/styles/global.css` | Tailwind v4 entry, Typography plugin, design tokens under `@theme`, base styles, `prose-article` utility |
+| `src/worker.ts` | Worker entry: `fetch` delegates to Astro; `scheduled` handles the hourly cron; exports the `ModeratePost` Workflow class (stub) |
+| `src/env.d.ts` | Notes that bindings are read with `import { env } from 'cloudflare:workers'` |
+| `src/content.config.ts` | Content collections: `posts` (Markdown, strict schema) and `authors` (JSON) |
+| `src/content/posts/*.md` | Editorial articles. `draft: true` keeps a post out of production. Files starting with `_` are ignored |
+| `src/content/authors/*.json` | Author profiles (name, role, bio, avatar, links) |
+| `src/assets/images/` | Images imported by content and components (optimised at build): default cover, author avatar |
+| `src/lib/site.ts` | Site constants: name, domain, tagline, description, contact addresses, topics, author, legal date |
+| `src/lib/posts.ts` | Post helpers: published list, author lookup, reading time, word count, tag slugs/summaries, related posts, dates, URLs |
+| `src/lib/seo.ts` | JSON-LD builders: WebSite, Person, Article, BreadcrumbList |
+| `src/layouts/BaseLayout.astro` | The single `<head>` owner (SEO tags, JSON-LD, AdSense meta, analytics) plus header, main and footer shell |
+| `src/layouts/PageLayout.astro` | Text-page layout (title, intro, "last updated", prose body) used by About and the legal pages |
+| `src/components/Header.astro` | Sticky top bar: logo, Home/Topics/About/Contact, search icon |
+| `src/components/Footer.astro` | Legal links, RSS, contact address |
+| `src/components/PostCard.astro` | Article card (cover, tags, title, description, byline) with a featured variant |
+| `src/components/AuthorCard.astro` | Author byline (compact) or author box (full) |
+| `src/components/AdSlot.astro` | Reserved-height ad container; renders nothing until `ADS_ENABLED=true` |
+| `src/components/TableOfContents.astro` | "In this article" list from H2/H3 headings |
+| `src/components/Pagination.astro` | Newer/Older links |
+| `src/pages/index.astro` | Home: tagline, topic chips, featured post, latest posts, pagination |
+| `src/pages/page/[page].astro` | Older posts, pages 2+ |
+| `src/pages/blog/[slug].astro` | Article page: byline, cover, TOC, body, ad slot, author box, prev/next, related; Article + Breadcrumb JSON-LD |
+| `src/pages/topics/index.astro` | All tags with counts |
+| `src/pages/tag/[slug].astro` | Posts for one tag; noindex until 3 posts |
+| `src/pages/author/[handle].astro` | Author profile and their posts; noindex with 0 posts; Person JSON-LD |
+| `src/pages/search.astro` | Pagefind search UI (noindex) |
+| `src/pages/404.astro` | Not-found page with search box and latest posts |
+| `src/pages/about.astro` | About page: mission, topics, author box, how we work, contact |
+| `src/pages/contact.astro` | Contact page with email address and the form (Turnstile when configured) |
+| `src/pages/privacy.astro` | Privacy policy incl. Google's required advertising-cookie disclosures |
+| `src/pages/terms.astro` | Terms of use incl. the licence community writers grant and copyright complaints |
+| `src/pages/disclaimer.astro` | Information-only, advertising, affiliate and sponsored-content disclosures |
+| `src/pages/editorial-policy.astro` | Research, testing, AI-use disclosure, corrections, independence |
+| `src/pages/community-guidelines.astro` | What is accepted, how submissions are checked, appeals |
+| `src/pages/rss.xml.ts` | RSS feed |
+| `src/pages/og/[...slug].ts` | Build-time 1200×630 share images at `/og/<slug>.png` (astro-og-canvas appends `.png`) |
+| `src/pages/api/health.ts` | `GET /api/health`: D1, KV, AI, Workflow checks |
+| `src/pages/api/contact.ts` | `POST /api/contact`: honeypot, Turnstile, Resend delivery |
+| `src/styles/global.css` | Tailwind v4 entry, Typography plugin, design tokens, base styles, `prose-article` utility |
 
-Planned folders (created in later phases): `src/components/` (static UI), `src/islands/` (Preact: Editor, RaiseButton, CommentForm, ReportButton), `src/content/` (editorial Markdown), `src/lib/db/` (Drizzle schema), `src/lib/moderation/` (pipeline steps), `src/workflows/` (full Workflow), `src/cron/` (hourly jobs), `drizzle/` (migrations), `tests/`.
+Planned (later phases): `src/islands/` (Preact: Editor, RaiseButton, CommentForm, ReportButton), `src/lib/db/` (Drizzle schema), `src/lib/moderation/`, `src/workflows/`, `src/cron/`, `drizzle/`, `tests/`.
+
+## `scripts/`
+
+| File | What it does |
+|---|---|
+| `scripts/check-content.mjs` | `npm run check:content`: word counts, missing description/alt, heading order, internal links, thin tags; fails on blocking problems in published posts |
 
 ## `public/` (copied to the site root as-is)
 
 | File | What it does |
 |---|---|
-| `public/robots.txt` | Allows all crawlers incl. `Mediapartners-Google`; blocks `/api`, `/admin`, `/write`, `/drafts`, `/search`. Phase 1 adds the `Sitemap:` line |
-| `public/favicon.svg`, `public/favicon.ico` | Placeholder icons from the Astro template; replace with the brand mark in Phase 1 |
+| `public/robots.txt` | Allows all crawlers incl. `Mediapartners-Google`; blocks `/api`, `/admin`, `/write`, `/drafts`, `/search`; sitemap line |
+| `public/og-default.png` | Branded fallback share image |
+| `public/favicon.svg`, `public/favicon.ico` | Placeholder icons from the Astro template; replace with the brand mark |
 | `public/ads.txt` (Phase 4) | Added after AdSense approval with the line Google provides |
 
 ## `docs/`
@@ -57,7 +95,7 @@ Planned folders (created in later phases): `src/components/` (static UI), `src/i
 
 | Path | What it is |
 |---|---|
-| `dist/client/` | Built static site: pre-rendered HTML, `_astro/` hashed assets, `_headers`, sitemap |
+| `dist/client/` | Built static site: pre-rendered HTML, `_astro/` hashed assets, `_headers`, sitemap, `og/` share images, `pagefind/` search index |
 | `dist/server/` | Built Worker bundle (`entry.mjs`) and the generated `wrangler.json` used for deploy |
 | `.astro/` | Astro's generated types and cache |
 | `.wrangler/` | Local state for D1, KV, R2 and Workflows emulation |

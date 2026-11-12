@@ -25,7 +25,12 @@
     "ADMIN_EMAILS": "akhil6174dwivedi@gmail.com",
     // Public keys (safe to commit). Their secret counterparts live in .dev.vars / wrangler secret.
     "TURNSTILE_SITE_KEY": "",
-    "CF_WEB_ANALYTICS_TOKEN": ""
+    "CF_WEB_ANALYTICS_TOKEN": "",
+    // Phase 3/4: AdSense publisher id (ca-pub-...) for the verification meta tag; ADS_ENABLED flips ad units on after approval.
+    "ADSENSE_CLIENT": "",
+    "ADS_ENABLED": "false",
+    // Where contact-form submissions are delivered.
+    "CONTACT_TO": "akhil6174dwivedi@gmail.com"
   },
 
   // D1: users, posts, comments, stats, moderation log. Create with: npx wrangler d1 create tech-blog-db

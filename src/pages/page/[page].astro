@@ -1,0 +1,32 @@
+---
+/**
+ * /page/2/, /page/3/ ... : older posts (the home page is page 1).
+ */
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getPublishedPosts, POSTS_PER_PAGE } from '../../lib/posts';
+
+export const getStaticPaths = (async () => {
+  const posts = await getPublishedPosts();
+  const featured = posts.find((p) => p.data.featured) ?? posts[0];
+  const rest = posts.filter((p) => p.id !== featured?.id);
+  const total = Math.max(1, Math.ceil(rest.length / POSTS_PER_PAGE));
+  const paths = [];
+  for (let n = 2; n <= total; n++) {
+    paths.push({ params: { page: String(n) }, props: { items: rest.slice((n - 1) * POSTS_PER_PAGE, n * POSTS_PER_PAGE), current: n, total } });
+  }
+  return paths;
+}) satisfies GetStaticPaths;
+
+const { items, current, total } = Astro.props;
+---
+
+<BaseLayout title={`Articles, page ${current}`} description={`Older articles from TrutiAI, page ${current} of ${total}.`}>
+  <h1 class="mb-8 font-sans text-3xl font-bold tracking-tight">Articles <span class="text-muted">· page {current}</span></h1>
+  <div class="grid gap-10 md:grid-cols-2">
+    {items.map((p) => <PostCard post={p} />)}
+  </div>
+  <Pagination current={current} total={total} url={(n) => (n === 1 ? '/' : `/page/${n}/`)} />
+</BaseLayout>

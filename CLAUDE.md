@@ -53,4 +53,4 @@ npx wrangler deploy    # manual deploy (normally Workers Builds deploys on git p
 
 ## Current phase
 
-Phase 0 (project setup). See `docs/PROGRESS.md` for the live checklist.
+Phase 1 (foundation site): code complete, waiting on the live domain and owner inputs. See `docs/PROGRESS.md`.

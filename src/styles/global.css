@@ -14,7 +14,7 @@
   --color-accent: #1a8917;
   --color-accent-strong: #156f13;
 
-  /* Self-hosted Source Serif 4 and Inter arrive in Phase 1; these fallbacks render well everywhere. */
+  /* Self-hosted Source Serif 4 and Inter can be added later; these fallbacks render well everywhere. */
   --font-serif: "Source Serif 4", Charter, "Iowan Old Style", Georgia, serif;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, Consolas, "SFMono-Regular", monospace;
@@ -28,6 +28,7 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
   }
   ::selection {
     background: color-mix(in srgb, var(--color-accent) 20%, transparent);
@@ -37,15 +38,43 @@
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 }
 
-/* Article body: serif, 20px/1.65 on desktop, 18px on mobile, 680px measure. */
+/* Article body: serif, 20px/1.65 on desktop, 18px on mobile, 680px measure, Typography plugin colours mapped to tokens. */
 @utility prose-article {
+  --tw-prose-body: var(--color-ink);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-lead: var(--color-muted);
+  --tw-prose-links: var(--color-ink);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-counters: var(--color-muted);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-hr: var(--color-line);
+  --tw-prose-quotes: var(--color-ink);
+  --tw-prose-quote-borders: var(--color-accent);
+  --tw-prose-captions: var(--color-muted);
+  --tw-prose-code: var(--color-ink);
+  --tw-prose-pre-code: #e6e6e6;
+  --tw-prose-pre-bg: #1f1f1f;
+  --tw-prose-th-borders: var(--color-line);
+  --tw-prose-td-borders: var(--color-line);
   font-family: var(--font-serif);
   font-size: 1.125rem;
   line-height: 1.65;
   max-width: var(--spacing-measure);
   @media (min-width: 768px) { font-size: 1.25rem; }
+
+  & h2, & h3, & h4 { font-family: var(--font-sans); letter-spacing: -0.01em; scroll-margin-top: 5rem; }
+  & h2 { margin-top: 2em; }
+  & a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  & a:hover { color: var(--color-accent); }
+  & img { border-radius: 0.5rem; }
+  & pre { font-family: var(--font-mono); font-size: 0.85em; border-radius: 0.5rem; }
+  & code:not(pre code) { font-family: var(--font-mono); font-size: 0.9em; background: #f0f0f0; padding: 0.1em 0.35em; border-radius: 0.3em; font-weight: 500; }
+  & code:not(pre code)::before, & code:not(pre code)::after { content: none; }
+  & table { font-family: var(--font-sans); font-size: 0.85em; }
+  & tbody tr:nth-child(even) { background: var(--color-surface); }
 }

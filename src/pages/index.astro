@@ -1,50 +1,52 @@
 ---
 /**
- * Home page (pre-rendered static file, free and unlimited to serve).
- * Phase 0 placeholder: proves the design tokens and the deploy pipeline. Phase 1 replaces it with the real home.
+ * Home page (static). Featured post + latest posts, with pagination to /page/2/ and beyond.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import Pagination from '../components/Pagination.astro';
 import { SITE } from '../lib/site';
+import { getPublishedPosts, POSTS_PER_PAGE, tagSummaries } from '../lib/posts';
+import { websiteJsonLd } from '../lib/seo';
+
+const posts = await getPublishedPosts();
+const featured = posts.find((p) => p.data.featured) ?? posts[0];
+const rest = posts.filter((p) => p.id !== featured?.id);
+const pageItems = rest.slice(0, POSTS_PER_PAGE);
+const totalPages = Math.max(1, Math.ceil(rest.length / POSTS_PER_PAGE));
+const topics = tagSummaries(posts).slice(0, 8);
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
 ---
 
-<BaseLayout>
-  <header class="border-b border-line bg-surface">
-    <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-      <a href="/" class="font-sans text-xl font-bold tracking-tight">{SITE.name}</a>
-      <nav aria-label="Primary" class="flex gap-6 font-sans text-sm text-muted">
-        <a href="/" class="hover:text-ink">Home</a>
-        <a href="/api/health" class="hover:text-ink">Status</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="mx-auto max-w-5xl px-4 py-16">
-    <section class="mx-auto max-w-measure">
-      <p class="font-sans text-sm font-semibold uppercase tracking-wide text-accent">Phase 0 · Foundation</p>
-      <h1 class="mt-3 font-sans text-4xl font-bold leading-tight tracking-tight md:text-5xl">
-        {SITE.tagline}
-      </h1>
-      <div class="prose-article mt-8 text-ink">
-        <p>
-          {SITE.description} The site runs on Cloudflare's free plan with Astro: editorial pages are served as static
-          files, and only community features run code.
-        </p>
-        <p class="mt-4 text-muted">
-          First articles arrive in Phase 2. Until then this page exists to prove the build, the design tokens and the
-          deploy pipeline.
-        </p>
-      </div>
-      <p class="mt-10 font-sans text-sm text-muted">
-        Written by {SITE.author.name}. Open <a class="underline hover:text-ink" href="/api/health">/api/health</a> to see
-        which Cloudflare services are connected.
+<BaseLayout jsonLd={[websiteJsonLd(siteUrl)]}>
+  <section class="mb-12 border-b border-line pb-10">
+    <h1 class="font-sans text-4xl font-bold leading-tight tracking-tight md:text-5xl">{SITE.tagline}</h1>
+    <p class="mt-4 max-w-2xl font-serif text-lg text-muted">{SITE.description}</p>
+    {topics.length > 0 && (
+      <p class="mt-5 flex flex-wrap gap-2 font-sans text-sm">
+        {topics.map((t) => (
+          <a href={`/tag/${t.slug}/`} class="rounded-full border border-line bg-surface px-3 py-1 text-muted hover:border-accent hover:text-ink">{t.tag}</a>
+        ))}
       </p>
-    </section>
-  </main>
+    )}
+  </section>
 
-  <footer class="mt-24 border-t border-line">
-    <div class="mx-auto flex max-w-5xl flex-wrap gap-x-6 gap-y-2 px-4 py-8 font-sans text-sm text-muted">
-      <span>© {new Date().getFullYear()} {SITE.name}</span>
-      <span>Legal pages (About, Contact, Privacy, Terms) are added in Phase 1.</span>
-    </div>
-  </footer>
+  {featured && (
+    <section aria-labelledby="featured-title" class="mb-14">
+      <h2 id="featured-title" class="mb-5 font-sans text-xs font-semibold uppercase tracking-wide text-muted">Featured</h2>
+      <PostCard post={featured} featured />
+    </section>
+  )}
+
+  <section aria-labelledby="latest-title">
+    <h2 id="latest-title" class="mb-6 font-sans text-xs font-semibold uppercase tracking-wide text-muted">Latest articles</h2>
+    {pageItems.length === 0 ? (
+      <p class="font-serif text-muted">More articles are on the way. Subscribe to the <a href="/rss.xml" class="underline">RSS feed</a> to be first.</p>
+    ) : (
+      <div class="grid gap-10 md:grid-cols-2">
+        {pageItems.map((p) => <PostCard post={p} />)}
+      </div>
+    )}
+    <Pagination current={1} total={totalPages} url={(n) => (n === 1 ? '/' : `/page/${n}/`)} />
+  </section>
 </BaseLayout>

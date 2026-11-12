@@ -1,0 +1,28 @@
+---
+/**
+ * Site search with Pagefind: a static index built after `astro build` (see package.json "postbuild").
+ * The page is noindex (search results must not be indexed). In `npm run dev` the index does not exist yet.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Search" description="Search every article on TrutiAI." noindex>
+  <h1 class="font-sans text-3xl font-bold tracking-tight md:text-4xl">Search</h1>
+  <p class="mt-2 font-serif text-muted">Type a few words; results update as you type.</p>
+  <div id="search" class="mt-6"></div>
+  <p id="search-missing" class="mt-4 hidden font-sans text-sm text-muted">Search is available on the published site (the index is built at deploy time).</p>
+
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+  <script is:inline src="/pagefind/pagefind-ui.js" onerror="document.getElementById('search-missing').classList.remove('hidden')"></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!window.PagefindUI) return;
+      const ui = new window.PagefindUI({ element: '#search', showSubResults: true, showImages: false, resetStyles: false });
+      const q = new URLSearchParams(location.search).get('q');
+      if (q) ui.triggerSearch(q);
+    });
+  </script>
+  <style is:global>
+    :root { --pagefind-ui-primary: var(--color-ink); --pagefind-ui-text: var(--color-ink); --pagefind-ui-background: var(--color-surface); --pagefind-ui-border: var(--color-line); --pagefind-ui-tag: var(--color-page); --pagefind-ui-font: var(--font-sans); --pagefind-ui-border-radius: 8px; }
+  </style>
+</BaseLayout>

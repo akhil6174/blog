@@ -1,0 +1,49 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<PageLayout
+  title="Editorial policy"
+  description={`How ${SITE.name} researches, writes, reviews, corrects and updates articles, including how AI tools are used and disclosed.`}
+  updated={SITE.legalUpdated}
+>
+  <h2>Our standard</h2>
+  <p>
+    An article earns its place here when a reader can finish it and do the thing. That means working code, commands that
+    were actually run, screenshots from our own machines, and numbers checked against primary sources on a stated date.
+  </p>
+
+  <h2>Research and testing</h2>
+  <ul>
+    <li>Tutorials are run end to end on a clean environment before publishing. The versions used are stated.</li>
+    <li>Comparisons install and use every tool compared, on their free tiers where those exist, and say what was not tested.</li>
+    <li>Prices, limits and quotas are quoted from official pricing pages with the date checked.</li>
+  </ul>
+
+  <h2>Use of AI tools</h2>
+  <p>
+    Authors may use AI assistants for outlining, drafting passages, generating diagrams or reviewing code. Every article
+    is written, rewritten and verified by its named human author, who is responsible for its accuracy. Articles that
+    used AI assistance in a substantial way say so in a note at the end. We do not publish unedited AI output.
+  </p>
+
+  <h2>Bylines and authorship</h2>
+  <p>Every article has a named author with a real profile. Community writers' articles are labelled as such and pass the same checks.</p>
+
+  <h2>Corrections and updates</h2>
+  <ul>
+    <li>Factual errors are corrected in place as soon as we confirm them, with an "Updated" date on the article and, for significant changes, a note explaining what changed.</li>
+    <li>Articles about fast-moving tools are reviewed at least once a year; outdated articles are updated or marked as archived.</li>
+    <li>To report an error, use the <a href="/contact/">contact form</a> and choose "Correction to an article".</li>
+  </ul>
+
+  <h2>Independence</h2>
+  <p>
+    Advertising and affiliate relationships never shape what we cover or what we conclude. Any commercial relationship
+    relevant to an article is disclosed at the top of it. See the <a href="/disclaimer/">disclaimer</a>.
+  </p>
+
+  <h2>Sources and attribution</h2>
+  <p>We link to primary sources. Quotations are short and attributed. We do not reproduce other publications' articles, images or code without permission or a compatible licence.</p>
+</PageLayout>

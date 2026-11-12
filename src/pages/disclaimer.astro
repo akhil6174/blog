@@ -1,0 +1,44 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<PageLayout
+  title="Disclaimer"
+  description={`${SITE.name} publishes general technical information. This page explains the limits of that information and how advertising and affiliate links are handled.`}
+  updated={SITE.legalUpdated}
+>
+  <h2>Information only</h2>
+  <p>
+    Everything on {SITE.name} is published for general information and education. We test what we write, but software,
+    prices and free-tier limits change often. Verify details against official documentation before relying on them,
+    especially for production systems, security and billing decisions.
+  </p>
+
+  <h2>No professional advice</h2>
+  <p>Nothing here is legal, financial, security or career advice for your specific situation. Consult a qualified professional where it matters.</p>
+
+  <h2>Advertising</h2>
+  <p>
+    The site displays advertisements served by Google AdSense and possibly other networks. Advertisers do not influence
+    our editorial content, and the presence of an advertisement is not an endorsement.
+  </p>
+
+  <h2>Affiliate links</h2>
+  <p>
+    Some articles may contain affiliate links. If you buy through such a link we may earn a commission at no extra cost
+    to you. Articles that contain affiliate links say so near the top. We only link to products we have used or tested.
+  </p>
+
+  <h2>Sponsored content</h2>
+  <p>We do not currently publish sponsored articles. If we ever do, they will be clearly labelled "Sponsored" at the top.</p>
+
+  <h2>Community content</h2>
+  <p>Articles and comments by community writers express their authors' views, not ours. They pass our moderation checks but we cannot guarantee their accuracy.</p>
+
+  <h2>External links</h2>
+  <p>We link to other sites for reference. We do not control them and are not responsible for their content or practices.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this page: <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.</p>
+</PageLayout>

@@ -1,0 +1,44 @@
+---
+/**
+ * Author page. noindex until the author has at least one published post (plan: no empty profiles in the index).
+ */
+import type { GetStaticPaths } from 'astro';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AuthorCard from '../../components/AuthorCard.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getPublishedPosts } from '../../lib/posts';
+import { breadcrumbJsonLd, personJsonLd } from '../../lib/seo';
+
+export const getStaticPaths = (async () => {
+  const authors = await getCollection('authors');
+  const posts = await getPublishedPosts();
+  return authors.map((author) => ({
+    params: { handle: author.data.handle },
+    props: { author, posts: posts.filter((p) => p.data.author.id === author.id) },
+  }));
+}) satisfies GetStaticPaths;
+
+const { author, posts } = Astro.props;
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const a = author.data;
+const jsonLd = [
+  personJsonLd(siteUrl, { name: a.name, handle: a.handle, bio: a.bio, avatarUrl: new URL(a.avatar.src, siteUrl).href, links: a.links }),
+  breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: a.name, url: new URL(Astro.url.pathname, siteUrl).href }]),
+];
+---
+
+<BaseLayout title={a.name} description={`${a.name}, ${a.role}. ${a.bio}`.slice(0, 158)} noindex={posts.length === 0} jsonLd={jsonLd} image={a.avatar.src} imageAlt={a.avatarAlt}>
+  <div class="mx-auto max-w-measure">
+    <h1 class="sr-only">{a.name}</h1>
+    <AuthorCard author={author} />
+  </div>
+  <section class="mx-auto mt-12 max-w-5xl">
+    <h2 class="mb-6 font-sans text-xs font-semibold uppercase tracking-wide text-muted">Articles by {a.name}</h2>
+    {posts.length === 0 ? (
+      <p class="font-serif text-muted">No articles yet.</p>
+    ) : (
+      <div class="grid gap-10 md:grid-cols-2">{posts.map((p) => <PostCard post={p} />)}</div>
+    )}
+  </section>
+</BaseLayout>

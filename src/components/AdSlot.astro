@@ -1,0 +1,24 @@
+---
+/**
+ * AdSlot reserves a fixed-height box so ads never shift content (CLS), and renders the AdSense unit
+ * only when ads are enabled (Phase 4: ADS_ENABLED=true and ADSENSE_CLIENT set in wrangler.jsonc vars).
+ * Before approval it renders nothing at all: AdSense reviewers must not see placeholder ad boxes.
+ */
+interface Props {
+  /** AdSense ad unit id (data-ad-slot), set per placement in Phase 4. */
+  slot?: string;
+  /** Reserved height in px. */
+  height?: number;
+  class?: string;
+}
+const { slot = '', height = 280, class: cls = '' } = Astro.props;
+const enabled = process.env.ADS_ENABLED === 'true' && !!process.env.ADSENSE_CLIENT && !!slot;
+const client = process.env.ADSENSE_CLIENT ?? '';
+---
+
+{enabled && (
+  <div class:list={['my-8 w-full overflow-hidden', cls]} style={`min-height:${height}px`} aria-label="Advertisement">
+    <ins class="adsbygoogle block" style={`display:block;min-height:${height}px`} data-ad-client={client} data-ad-slot={slot} data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script is:inline>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+)}

@@ -5,6 +5,30 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-12 · Phase 1: foundation site
+
+**Added**
+- Content collections (`src/content.config.ts`): `posts` with a strict schema (title, description 50-160 chars, tags 1-5, cover requires alt) and `authors`; one welcome post, two draft sample posts, the author profile.
+- Pages: home with featured + latest + pagination, `/page/[page]`, `/blog/[slug]`, `/topics`, `/tag/[slug]`, `/author/[handle]`, `/search` (Pagefind), 404, About, Contact, Privacy, Terms, Disclaimer, Editorial policy, Community guidelines.
+- Components: Header, Footer, PostCard, AuthorCard, AdSlot (renders nothing until `ADS_ENABLED=true`), TableOfContents, Pagination; `PageLayout` for text pages.
+- SEO: `BaseLayout` emits canonical, robots, Open Graph, Twitter, article dates, JSON-LD; `src/lib/seo.ts` builders; RSS at `/rss.xml`; sitemap filter; `robots.txt` sitemap line; build-time share images via `astro-og-canvas` at `/og/<slug>.png`; `public/og-default.png`.
+- `POST /api/contact`: honeypot, Turnstile verification, Resend delivery, clear 503 when not configured.
+- `scripts/check-content.mjs` (`npm run check:content`): word counts, missing description/alt, heading order, internal links, thin tags.
+- `wrangler.jsonc` vars: `ADSENSE_CLIENT`, `ADS_ENABLED`, `CONTACT_TO`. Pagefind runs as `postbuild`.
+- Placeholder images: `src/assets/images/cover-default.png`, `avatar-akhil.png`.
+- SETUP-GUIDE §13: Cloudflare Email Routing for `hello@trutiai.in`.
+
+**Changed**
+- `src/lib/site.ts`: domain, contact addresses, topics list, legal "last updated" date.
+- `global.css`: Typography plugin colours mapped to tokens; `prose-article` utility styles headings, code, tables.
+
+**Verified (local preview, 2026-11-12)**
+- 20 routes return the expected status (all 200, unknown path 404); article head has canonical, robots, OG image, published time; JSON-LD contains Article, Person, Organization, BreadcrumbList; `/og/welcome-to-trutiai.png` renders; `/api/contact` returns 503 with guidance while Resend is unconfigured; Pagefind indexes article bodies only.
+
+**Fixed**
+- Share image route renamed to `[...slug].ts`: `astro-og-canvas` appends `.png` itself, so the earlier name produced `.png.png`.
+
+
 ### 2026-11-12 · Phase 0: real Cloudflare resources wired
 
 **Changed**

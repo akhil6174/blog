@@ -1,0 +1,31 @@
+---
+import { SITE } from '../lib/site';
+const year = new Date().getFullYear();
+const legal = [
+  { href: '/about/', label: 'About' },
+  { href: '/contact/', label: 'Contact' },
+  { href: '/privacy/', label: 'Privacy policy' },
+  { href: '/terms/', label: 'Terms of use' },
+  { href: '/disclaimer/', label: 'Disclaimer' },
+  { href: '/editorial-policy/', label: 'Editorial policy' },
+  { href: '/community-guidelines/', label: 'Community guidelines' },
+  { href: '/rss.xml', label: 'RSS' },
+];
+---
+
+<footer class="mt-20 border-t border-line bg-surface">
+  <div class="mx-auto max-w-5xl px-4 py-10 font-sans text-sm text-muted">
+    <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+      <div class="max-w-sm">
+        <p class="text-base font-bold text-ink">{SITE.name}</p>
+        <p class="mt-2">{SITE.tagline}</p>
+      </div>
+      <nav aria-label="Footer" class="grid grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-3">
+        {legal.map((l) => (
+          <a href={l.href} class="hover:text-ink hover:underline">{l.label}</a>
+        ))}
+      </nav>
+    </div>
+    <p class="mt-8 border-t border-line pt-6">© {year} {SITE.name}. Written by people, edited by people. Contact: <a href={`mailto:${SITE.contactEmail}`} class="hover:text-ink hover:underline">{SITE.contactEmail}</a></p>
+  </div>
+</footer>

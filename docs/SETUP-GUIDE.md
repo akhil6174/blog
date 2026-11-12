@@ -30,6 +30,8 @@ What to sign up for, what to type in, what to copy out, and where each value goe
 | `TURNSTILE_SECRET_KEY` | Same widget | `.dev.vars` and `wrangler secret put` | 1 |
 | `SENTRY_DSN` | Sentry → project → Client Keys (DSN) | `.dev.vars` and `wrangler secret put` | 1 |
 | `CF_WEB_ANALYTICS_TOKEN` (public) | Cloudflare → Web Analytics → site → snippet | `wrangler.jsonc` → `vars.CF_WEB_ANALYTICS_TOKEN` | 1 |
+| `CONTACT_TO` | Your inbox for contact-form mail | `wrangler.jsonc` → `vars.CONTACT_TO` (already set) | 1 |
+| `ADSENSE_CLIENT`, `ADS_ENABLED` | AdSense publisher id; flag to turn ad units on | `wrangler.jsonc` → `vars` | 3 / 4 |
 | Search Console TXT record | Search Console → Domain property | Cloudflare DNS (not the code) | 0 |
 | AdSense publisher ID `ca-pub-…` | AdSense → Account → Settings → Account information | `BaseLayout.astro` meta tag, later `public/ads.txt` | 3 / 4 |
 
@@ -191,7 +193,18 @@ bing.com/webmasters → Sign in with the Google account → **Import from Google
 1. Cloudflare dashboard → Analytics & Logs → Web Analytics → Add a site → hostname `yourdomain.com`.
 2. Choose the **JS snippet** option. Copy only the `token` value from the snippet into `wrangler.jsonc` vars as `CF_WEB_ANALYTICS_TOKEN`. Phase 1 adds the script to `BaseLayout.astro`.
 
-## 13. Google AdSense (Phase 3, week 8: not now)
+## 13. Cloudflare Email Routing (5 minutes, needed in Phase 1)
+
+**Why:** the site shows `hello@trutiai.in` as its public contact address (AdSense reviewers look for a real one). Email Routing forwards mail sent to that address to your Gmail for free; you never run a mail server.
+
+1. Cloudflare dashboard → your domain `trutiai.in` → Email → Email Routing → Get started.
+2. Custom address: `hello` → Destination: your Gmail → Create. Cloudflare emails your Gmail a verification link; click it.
+3. Cloudflare adds the MX and TXT records automatically; accept when prompted.
+4. Optional: Catch-all → forward everything to your Gmail too.
+
+**Gotcha:** Resend also wants an MX record (for bounces) on a subdomain it tells you, so the two do not conflict. If Resend complains, add its records on the subdomain it specifies, not on the root.
+
+## 14. Google AdSense (Phase 3, week 8: not now)
 
 Do not sign up yet. Applying with an empty site wastes the first review. When Phase 2 is complete (25 to 30 posts, indexed), follow Part 4 of the plan. You will need: the same Gmail, your postal address exactly as on an ID, your PAN, an Indian bank account for wire payments, and the meta tag Google gives you (`ca-pub-…`) pasted into `BaseLayout.astro`.
 
@@ -214,6 +227,7 @@ Do not sign up yet. Applying with an empty site wastes the first review. When Ph
 | 10 | Sentry | Phase 1 | DSN |
 | 11 | Turnstile | Phase 1 | Site key, secret key |
 | 12 | Web Analytics | Phase 1 | Token |
-| 13 | AdSense | Week 8 | Publisher ID |
+| 13 | Email Routing (hello@trutiai.in → Gmail) | Phase 1 | Working contact address |
+| 14 | AdSense | Week 8 | Publisher ID |
 
 When steps 1 to 4, 6 and 7 are done, tell Claude Code "Phase 0 accounts done" and paste nothing else; it will check `/api/health` on the live domain and start Phase 1.
