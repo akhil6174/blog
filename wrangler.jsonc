@@ -17,6 +17,12 @@
 
   "observability": { "enabled": true },
 
+  // Custom domains: `wrangler deploy` creates the DNS records and certificates on the zone automatically.
+  "routes": [
+    { "pattern": "trutiai.in", "custom_domain": true },
+    { "pattern": "www.trutiai.in", "custom_domain": true }
+  ],
+
   // Plain (non-secret) settings. Secrets go in .dev.vars locally and `wrangler secret put` in production.
   "vars": {
     "SITE_URL": "https://trutiai.in",
