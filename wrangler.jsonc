@@ -1,0 +1,63 @@
+{
+  // Cloudflare Workers configuration for the tech blog.
+  // Everything here is on the Workers FREE plan. See docs/ARCHITECTURE.md for what each binding is for.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tech-blog",
+  "compatibility_date": "2026-11-03",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+  // Custom entry: re-exports Astro's request handler and adds the moderation Workflow + cron handler.
+  "main": "./src/worker.ts",
+
+  // Pre-rendered pages, images, CSS and JS are served from here: free and unlimited requests.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+
+  "observability": { "enabled": true },
+
+  // Plain (non-secret) settings. Secrets go in .dev.vars locally and `wrangler secret put` in production.
+  "vars": {
+    "SITE_URL": "https://trutiai.in",
+    "AI_MODEL_DEFAULT": "@cf/openai/gpt-oss-20b",
+    "AI_SAFETY_FALLBACK_MODEL": "@cf/meta/llama-guard-3-8b",
+    "ADMIN_EMAILS": "akhil6174dwivedi@gmail.com",
+    // Public keys (safe to commit). Their secret counterparts live in .dev.vars / wrangler secret.
+    "TURNSTILE_SITE_KEY": "",
+    "CF_WEB_ANALYTICS_TOKEN": ""
+  },
+
+  // D1: users, posts, comments, stats, moderation log. Create with: npx wrangler d1 create tech-blog-db
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tech-blog-db",
+      "database_id": "1a22a462-7685-4f6f-b04c-df555c36a8dc",
+      "migrations_dir": "drizzle"
+    }
+  ],
+
+  // R2: uploaded images (WebP). DEFERRED TO PHASE 3 (needs a card on file to enable; see D-013).
+  // When ready: npx wrangler r2 bucket create tech-blog-media, then uncomment:
+  // "r2_buckets": [
+  //   { "binding": "MEDIA", "bucket_name": "tech-blog-media" }
+  // ],
+
+  // KV: feature flags, settings cache, rate-limit counters, Top 10 lists.
+  // Create with: npx wrangler kv namespace create CACHE
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "dfc1220b89fe4c678c11d08c47d2bdaf" }
+  ],
+
+  // Workers AI: spam/quality check and fallback safety model (10,000 neurons/day free).
+  "ai": { "binding": "AI" },
+
+  // Workflows: durable 5-step moderation pipeline (3,000 steps/day free).
+  "workflows": [
+    { "binding": "MODERATION", "name": "moderate-post", "class_name": "ModeratePost" }
+  ],
+
+  // Cron: hourly housekeeping (sitemap, stale drafts, Top 10 lists, digest). Free.
+  "triggers": { "crons": ["0 * * * *"] }
+}

@@ -1,0 +1,20 @@
+# Copy to .dev.vars for local development. NEVER commit .dev.vars.
+# In production set each with:  npx wrangler secret put NAME
+# (Non-secret settings live in wrangler.jsonc "vars".)
+
+# Phase 3: Google sign-in (Better Auth). From Google Cloud Console > APIs & Services > Credentials.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+BETTER_AUTH_SECRET=
+
+# Phase 3: harmful-content check (free endpoint, needs an OpenAI API key).
+OPENAI_API_KEY=
+
+# Phase 1: contact form + Phase 3 writer notifications.
+RESEND_API_KEY=
+
+# Phase 1: bot protection on forms. (The public TURNSTILE_SITE_KEY goes in wrangler.jsonc vars.)
+TURNSTILE_SECRET_KEY=
+
+# Phase 1: error alerts.
+SENTRY_DSN=

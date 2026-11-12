@@ -1,0 +1,11 @@
+# Phase 0: open to all crawlers except private areas. Phase 1 adds the sitemap line with the real domain.
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /write
+Disallow: /drafts/
+Disallow: /search
+
+# The AdSense crawler must never be blocked.
+User-agent: Mediapartners-Google
+Allow: /
