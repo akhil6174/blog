@@ -29,7 +29,8 @@ Phases, goals and "done when" criteria come from `../Tech Blog Build Plan v2.md`
 ### Owner tasks (cannot be done by Claude: accounts, payments, OAuth)
 Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md).
 - [ ] Create accounts: Cloudflare, GitHub, Google (the Gmail you will keep for AdSense), OpenAI, Resend, Sentry
-- [x] Buy the domain: **trutiai.in** bought at GoDaddy (2026-11-12). Nameservers switched to Cloudflare, propagation pending
+- [x] Buy the domain: **trutiai.in** bought at GoDaddy (2026-11-12). Nameservers active on Cloudflare (anton/zelda.ns.cloudflare.com) since 2026-11-12 evening
+- [ ] First deploy: `npx wrangler deploy` run by the owner (Claude's auto mode cannot run production deploys). `wrangler.jsonc` now declares `trutiai.in` and `www` as custom domains, so the deploy attaches them
 - [x] Run `npx wrangler login` once on this PC (done 2026-11-11)
 - [x] Create resources and paste the ids into `wrangler.jsonc` (D1 `tech-blog-db` and KV `CACHE` created 2026-11-11; ids pasted and `ADMIN_EMAILS` set 2026-11-12)
   - R2 bucket: deferred to Phase 3 (needs a card on file; see D-013)
