@@ -20,10 +20,12 @@ export const { getStaticPaths, GET } = await OGImageRoute({
     border: { color: [26, 137, 23], width: 24, side: 'block-end' },
     padding: 72,
     font: {
-      title: { size: 60, weight: 'Bold', color: [41, 41, 41], lineHeight: 1.15, families: ['Inter', 'Segoe UI', 'Arial'] },
-      description: { size: 28, color: [107, 107, 107], lineHeight: 1.4, families: ['Inter', 'Segoe UI', 'Arial'] },
+      title: { size: 60, weight: 'Bold', color: [41, 41, 41], lineHeight: 1.15, families: ['Noto Sans'] },
+      description: { size: 28, color: [107, 107, 107], lineHeight: 1.4, families: ['Noto Sans'] },
     },
     logo: undefined,
+    // Local fonts (Noto Sans, SIL Open Font License) so builds never depend on a font download.
+    fonts: ['./src/assets/fonts/NotoSans-400.ttf', './src/assets/fonts/NotoSans-700.ttf'],
     cacheDir: './node_modules/.astro-og-canvas',
   }),
 });
