@@ -1,0 +1,39 @@
+---
+/**
+ * /community : published community posts (on-demand, edge-cached by the middleware).
+ * Hidden (404) while the `community_open` flag is false: invited writers test via their own status pages.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CommunityCard from '../../components/CommunityCard.astro';
+import { listPublished, countPublished } from '../../lib/community';
+import { getSettingBool } from '../../lib/db/settings';
+
+export const prerender = false;
+
+const open = await getSettingBool('community_open');
+if (!open) return new Response(null, { status: 404 });
+
+const PER = 12;
+const page = Math.max(1, Number(Astro.url.searchParams.get('page') ?? 1) || 1);
+const tag = Astro.url.searchParams.get('tag') ?? undefined;
+const items = await listPublished({ limit: PER, offset: (page - 1) * PER, tag });
+const total = tag ? items.length : await countPublished();
+const pages = Math.max(1, Math.ceil(total / PER));
+---
+
+<BaseLayout title={tag ? `Community: ${tag}` : 'Community articles'} description="Articles written by the TrutiAI community: tutorials, opinions and explainers from developers, checked before publishing." noindex={page > 1 || !!tag}>
+  <h1 class="font-sans text-3xl font-bold tracking-tight md:text-4xl">Community{tag && <span class="text-muted"> · {tag}</span>}</h1>
+  <p class="mt-3 max-w-2xl font-serif text-lg text-muted">Written by readers like you and checked before publishing. <a href="/write/" class="underline">Write your own</a>.</p>
+  {items.length === 0 ? (
+    <p class="mt-10 font-serif text-muted">No community articles yet. Be the first: <a href="/write/" class="underline">start writing</a>.</p>
+  ) : (
+    <div class="mt-10 grid gap-10 md:grid-cols-2 lg:grid-cols-3">{items.map((p) => <CommunityCard post={p} />)}</div>
+  )}
+  {!tag && pages > 1 && (
+    <nav aria-label="Pagination" class="mt-12 flex items-center justify-between font-sans text-sm">
+      {page > 1 ? <a href={`/community/?page=${page - 1}`} rel="prev" class="rounded border border-line bg-surface px-4 py-2">← Newer</a> : <span />}
+      <span class="text-muted">Page {page} of {pages}</span>
+      {page < pages ? <a href={`/community/?page=${page + 1}`} rel="next" class="rounded border border-line bg-surface px-4 py-2">Older →</a> : <span />}
+    </nav>
+  )}
+</BaseLayout>

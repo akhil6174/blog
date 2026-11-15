@@ -1,6 +1,6 @@
 # Progress tracker
 
-**Current phase: 1 — Foundation site live at https://trutiai.in (2026-11-12); owner inputs pending, then Phase 2 writing and Phase 3 build.**
+**Current phase: 3 — Community publishing built behind the flag (code complete 2026-11-15); Phase 2 writing runs in parallel; owner tasks below unlock testing on trutiai.in.**
 Phases, goals and "done when" criteria come from `../Tech Blog Build Plan v2.md` (Part 3). Tick a box only when the item is verified, not just written.
 
 | Phase | Goal | Status |
@@ -8,7 +8,7 @@ Phases, goals and "done when" criteria come from `../Tech Blog Build Plan v2.md`
 | 0 | Accounts, domain, Astro project | **Complete** (2026-11-12, site live at https://trutiai.in) |
 | 1 | Foundation site: layout, legal pages, SEO plumbing, search, analytics | Code done; owner inputs and live checks pending |
 | 2 | 25 to 30 original posts, indexed | Not started |
-| 3 | AdSense application + community features behind a flag | Not started |
+| 3 | AdSense application + community features behind a flag | Code done (2026-11-15); production migration, secrets and writer tests pending; AdSense application waits for Phase 2 content |
 | 4 | Ads live, community opens gradually | Not started |
 | 5 | Growth and monetization ladder | Not started |
 
@@ -77,6 +77,41 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [ ] PageSpeed Insights mobile score 90 or higher
 - [ ] Search Console: sitemap submitted and status "Success"
 
+## Phase 3
+
+### Done by Claude Code (2026-11-15)
+- [x] D1 schema (Drizzle): Better Auth tables + posts, post_revisions, post_stats, raises, tags, post_tags, comments, reports, moderation_log, settings; migration `drizzle/0000_init.sql`
+- [x] Better Auth: Google sign-in (when configured), roles reader/writer/trusted/admin, admin from `ADMIN_EMAILS`, invite-only mode, dev email login for local tests, production guard when `BETTER_AUTH_SECRET` is missing
+- [x] `/signin`, `/me` (my articles, sign out, delete account), `/write` (Tiptap on Preact: autosave every 10 s, submit), `/write/status/<id>` (live status)
+- [x] `POST /api/posts`: validation (Zod), slugs, revisions, tags, daily limits, Turnstile, starts the Workflow
+- [x] Moderation Workflow (5 durable steps): rules → OpenAI Moderation (Llama Guard fallback) → Workers AI quality (gpt-oss-20b, strict JSON) → decide → finalize (status, index flag, log, cache purge, email)
+- [x] Community: `/community` (hidden until `community_open`), `/p/<slug>` (edge-cached 10 min), `/writer/<handle>`, `/top` (from KV), `/sitemap-community.xml`
+- [x] Comments: server island on community and editorial posts, Preact form, same pipeline with lighter rules, one reply level
+- [x] Raises: island with 50 cap and 1 s debounce; `GET/POST /api/raise`; counts per post and per day
+- [x] View beacon after 10 s with 1-in-5 sampling above the threshold; reports with auto-hide at 3; hourly cron (Top 10 → KV, cache purge, stale drafts)
+- [x] Admin dashboard `/admin`: counters, article and comment queues with the AI reasons, reports, writers (invite/promote/trust/ban), settings editor, moderation log, "run hourly job"
+- [x] Header shows Write / account / Admin from the live session
+- [x] Unit tests (`npm test`): renderer safety, decision logic, verdict parser (10 tests)
+- [x] Local end-to-end: sign-in, draft, submit → Workflow decided in ~5 s (rules pass, Llama Guard fallback pass, gpt-oss-20b rejected a repetitive test post); community listing and article cached (MISS → HIT, still HIT after a comment); raise capped at 50; views counted; clean comment published and spam comment rejected; Top 10 populated by the cron; admin gated (anon → sign-in, reader → 403)
+
+### Owner tasks before testing on trutiai.in
+- [ ] Change the Workers Builds **deploy command** to `npm run deploy` (runs D1 migrations, then deploys). Until then run `npx wrangler d1 migrations apply tech-blog-db --remote` after schema changes
+- [ ] Production secrets (SETUP-GUIDE §5): `npx wrangler secret put BETTER_AUTH_SECRET` (generate with the node one-liner), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; Google OAuth redirect URI `https://trutiai.in/api/auth/callback/google`
+- [ ] `npx wrangler secret put OPENAI_API_KEY` (until then the harmful-content check uses Llama Guard on Workers AI, which costs neurons)
+- [ ] Sign in once with your Gmail on trutiai.in: your account becomes admin automatically (it is in `ADMIN_EMAILS`); open `/admin`
+- [ ] Invite 3 to 5 test writers from `/admin` and have them submit real articles; review the queue and the moderation log
+- [ ] Keep `community_open = false` until AdSense shows "Ready" (plan, Phase 4)
+
+### Phase 3 done when
+- [ ] An invited writer goes from sign-in to a published article in under five minutes on trutiai.in
+- [ ] A spammy test post is rejected with a reason; a borderline post lands in `/admin`
+- [ ] Community URLs send `noindex` while `community_open` is false (check with `curl -I`)
+- [ ] Resend notifications arrive (needs `RESEND_API_KEY`)
+
+### Deferred inside Phase 3
+- Image uploads to R2 (D-013): writers can embed images by URL for now
+- Playwright browser tests: covered by the curl-based end-to-end run; add when the editor UI settles
+
 ## Verification log
 
 | Date | Check | Result |
@@ -87,3 +122,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 | 2026-11-11 | `GET /robots.txt`, `GET /sitemap-index.xml` | 200, 200 |
 | 2026-11-12 | `npm run preview` → `GET /api/health` with Wrangler logged in and real ids | `{"ok":true,"checks":{"d1":true,"kv":true,"ai":true,"workflow":true}}` |
 | 2026-11-12 | Live: 14 routes on https://trutiai.in and https://www.trutiai.in | All 200, unknown path 404, health all true, CF-Cache-Status HIT on home, canonical + robots correct on the article |
+| 2026-11-15 | Local: submit → Workflow | rules pass (7 ms), harmful pass via Llama Guard fallback (1.4 s), quality reject by gpt-oss-20b score 20 (0.9 s), decide, finalize; status visible to the writer in ~5 s |
+| 2026-11-15 | Local: community | /community MISS→HIT; /p/<slug> 200 indexable, HIT after a comment; raise 60 → capped 50; 3 view beacons counted; clean comment published, spam rejected; /top filled by cron; sitemap-community lists the post; writer page 200 |
+| 2026-11-15 | Local: admin | anon → 302 to sign-in; reader → 302 / API 403; admin 200 with queues, settings, log; run_cron, set_settings, invite OK |
+| 2026-11-15 | `npm test` | 10 unit tests pass |

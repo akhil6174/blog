@@ -59,6 +59,16 @@ Non-secret settings are `vars` in `wrangler.jsonc`; secrets are listed in `.dev.
 `users`, `sessions`/`accounts`/`verifications` (Better Auth), `posts` (with `body_json`, `body_html`, `status`, `kind`, `quality_score`, `index_allowed`, `ads_allowed`, `views_count`, `raises_count`, `comments_count`), `post_stats` (per post per day), `raises` (user × post, 1..50), `post_revisions`, `tags`, `post_tags`, `comments`, `reports`, `moderation_log`, `settings`.
 Migrations live in `drizzle/` (Phase 3).
 
-## Phase 0 reality check
+## Route map (Phase 3)
 
-What exists today: the Worker entry, the bindings, a stub Workflow, the health route, the design tokens and a placeholder home. Every flow above except "editorial post read" and "/api/health" is implemented in Phases 1 to 3.
+| Route | Who | Notes |
+|---|---|---|
+| `/signin`, `/me`, `/write`, `/write/status/:id` | signed-in users | middleware redirects anonymous visitors to sign-in |
+| `/community`, `/p/:slug`, `/writer/:handle`, `/top`, `/sitemap-community.xml` | public when `community_open` | edge-cached 10 min by the middleware |
+| `/admin` | admin role | queues, reports, writers, settings, log |
+| `/api/auth/*` | Better Auth | 503 until `BETTER_AUTH_SECRET` is set in production |
+| `/api/posts`, `/api/comments`, `/api/raise`, `/api/report`, `/api/view`, `/api/me`, `/api/admin/action` | see each file header | JSON; all `cache-control: no-store` |
+
+## Status today
+
+Phases 0, 1 and 3 are implemented; Phase 2 (articles) is the owner's writing; Phase 4 (ads on, community open) is a settings change plus ad slot ids after AdSense approval. Image uploads to R2 are deferred (D-013).

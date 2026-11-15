@@ -1,0 +1,241 @@
+/**
+ * D1 (SQLite) schema. Two groups:
+ *  1. Better Auth tables (user, session, account, verification) with our extra user columns.
+ *  2. Blog tables from the plan: posts (community), post_stats, raises, post_revisions, tags, post_tags,
+ *     comments, reports, moderation_log, settings.
+ * Editorial posts stay as Markdown in src/content; only community content lives here.
+ */
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+
+const now = sql`(unixepoch())`;
+
+// ---------- Better Auth ----------
+export const user = sqliteTable(
+  'user',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
+    image: text('image'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+    // ours
+    role: text('role', { enum: ['reader', 'writer', 'trusted', 'admin'] }).notNull().default('writer'),
+    handle: text('handle'),
+    bio: text('bio'),
+    trustScore: integer('trust_score').notNull().default(0),
+    bannedAt: integer('banned_at', { mode: 'timestamp' }),
+    shadowBanned: integer('shadow_banned', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [uniqueIndex('user_email_idx').on(t.email), uniqueIndex('user_handle_idx').on(t.handle)],
+);
+
+export const session = sqliteTable(
+  'session',
+  {
+    id: text('id').primaryKey(),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    token: text('token').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  },
+  (t) => [uniqueIndex('session_token_idx').on(t.token), index('session_user_idx').on(t.userId)],
+);
+
+export const account = sqliteTable(
+  'account',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    idToken: text('id_token'),
+    accessTokenExpiresAt: integer('access_token_expires_at', { mode: 'timestamp' }),
+    refreshTokenExpiresAt: integer('refresh_token_expires_at', { mode: 'timestamp' }),
+    scope: text('scope'),
+    password: text('password'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('account_user_idx').on(t.userId)],
+);
+
+export const verification = sqliteTable(
+  'verification',
+  {
+    id: text('id').primaryKey(),
+    identifier: text('identifier').notNull(),
+    value: text('value').notNull(),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('verification_identifier_idx').on(t.identifier)],
+);
+
+// ---------- Blog ----------
+export const POST_STATUS = ['draft', 'submitted', 'checking', 'pending_review', 'published', 'rejected', 'hidden', 'unpublished'] as const;
+export type PostStatus = (typeof POST_STATUS)[number];
+
+export const posts = sqliteTable(
+  'posts',
+  {
+    id: text('id').primaryKey(),
+    authorId: text('author_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(),
+    title: text('title').notNull(),
+    subtitle: text('subtitle'),
+    description: text('description'),
+    bodyJson: text('body_json').notNull(), // Tiptap document (source of truth)
+    bodyHtml: text('body_html').notNull().default(''), // rendered once on save, sanitised
+    bodyText: text('body_text').notNull().default(''), // plain text for moderation and search
+    coverImage: text('cover_image'),
+    coverAlt: text('cover_alt'),
+    status: text('status', { enum: POST_STATUS }).notNull().default('draft'),
+    kind: text('kind', { enum: ['community'] }).notNull().default('community'),
+    qualityScore: integer('quality_score'),
+    indexAllowed: integer('index_allowed', { mode: 'boolean' }).notNull().default(false),
+    adsAllowed: integer('ads_allowed', { mode: 'boolean' }).notNull().default(false),
+    wordCount: integer('word_count').notNull().default(0),
+    readingMinutes: integer('reading_minutes').notNull().default(1),
+    viewsCount: integer('views_count').notNull().default(0),
+    raisesCount: integer('raises_count').notNull().default(0),
+    commentsCount: integer('comments_count').notNull().default(0),
+    reportsCount: integer('reports_count').notNull().default(0),
+    rejectReason: text('reject_reason'),
+    contentHash: text('content_hash'),
+    submittedAt: integer('submitted_at', { mode: 'timestamp' }),
+    publishedAt: integer('published_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [
+    uniqueIndex('posts_slug_idx').on(t.slug),
+    index('posts_author_idx').on(t.authorId),
+    index('posts_status_published_idx').on(t.status, t.publishedAt),
+    index('posts_hash_idx').on(t.contentHash),
+  ],
+);
+
+export const postRevisions = sqliteTable(
+  'post_revisions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+    bodyJson: text('body_json').notNull(),
+    title: text('title').notNull(),
+    savedAt: integer('saved_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('post_revisions_post_idx').on(t.postId, t.savedAt)],
+);
+
+export const postStats = sqliteTable(
+  'post_stats',
+  {
+    /** Community post id, or "editorial:<slug>" for Markdown posts (no FK on purpose). */
+    postId: text('post_id').notNull(),
+    day: text('day').notNull(), // YYYY-MM-DD (UTC)
+    views: integer('views').notNull().default(0),
+    raises: integer('raises').notNull().default(0),
+    comments: integer('comments').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.day] }), index('post_stats_day_idx').on(t.day)],
+);
+
+export const raises = sqliteTable(
+  'raises',
+  {
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    /** Community post id, or "editorial:<slug>" (no FK on purpose). */
+    postId: text('post_id').notNull(),
+    count: integer('count').notNull().default(0), // 1..50
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.postId] })],
+);
+
+export const tags = sqliteTable('tags', {
+  slug: text('slug').primaryKey(),
+  name: text('name').notNull(),
+  postsCount: integer('posts_count').notNull().default(0),
+});
+
+export const postTags = sqliteTable(
+  'post_tags',
+  {
+    postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+    tagSlug: text('tag_slug').notNull().references(() => tags.slug, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.tagSlug] }), index('post_tags_tag_idx').on(t.tagSlug)],
+);
+
+export const COMMENT_STATUS = ['checking', 'published', 'pending_review', 'rejected', 'hidden'] as const;
+
+export const comments = sqliteTable(
+  'comments',
+  {
+    id: text('id').primaryKey(),
+    /** Community post id, or "editorial:<slug>" for Markdown posts (no FK on purpose). */
+    postId: text('post_id').notNull(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    parentId: text('parent_id'),
+    body: text('body').notNull(),
+    bodyHtml: text('body_html').notNull().default(''),
+    status: text('status', { enum: COMMENT_STATUS }).notNull().default('checking'),
+    reportsCount: integer('reports_count').notNull().default(0),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('comments_post_idx').on(t.postId, t.status, t.createdAt)],
+);
+
+export const reports = sqliteTable(
+  'reports',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    targetType: text('target_type', { enum: ['post', 'comment'] }).notNull(),
+    targetId: text('target_id').notNull(),
+    reporterId: text('reporter_id').references(() => user.id, { onDelete: 'set null' }),
+    reporterIpHash: text('reporter_ip_hash'),
+    reason: text('reason').notNull(),
+    note: text('note'),
+    resolvedAt: integer('resolved_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('reports_target_idx').on(t.targetType, t.targetId), index('reports_open_idx').on(t.resolvedAt)],
+);
+
+export const moderationLog = sqliteTable(
+  'moderation_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    targetType: text('target_type', { enum: ['post', 'comment'] }).notNull(),
+    targetId: text('target_id').notNull(),
+    step: text('step').notNull(), // rules | harmful | quality | decide | finalize | admin
+    provider: text('provider'), // code | openai | workers-ai | admin
+    model: text('model'),
+    verdict: text('verdict').notNull(), // pass | publish | reject | unsure | error
+    reason: text('reason'),
+    score: integer('score'),
+    rawResponse: text('raw_response'),
+    fallback: integer('fallback', { mode: 'boolean' }).notNull().default(false),
+    durationMs: integer('duration_ms'),
+    actorId: text('actor_id'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('moderation_log_target_idx').on(t.targetType, t.targetId), index('moderation_log_created_idx').on(t.createdAt)],
+);
+
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+});
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, settings };

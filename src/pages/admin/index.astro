@@ -1,0 +1,207 @@
+---
+/**
+ * /admin : the editor's dashboard (admin role only, enforced by middleware).
+ * Sections: counters, review queue (posts + comments), open reports, writers (invite/promote/ban), settings, recent moderation log.
+ * Every action posts to /api/admin/action and the page reloads.
+ */
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { comments, db, moderationLog, posts, reports, user } from '../../lib/db';
+import { getSettings, SETTING_HELP, type SettingKey } from '../../lib/db/settings';
+
+export const prerender = false;
+
+const d = db();
+const me = Astro.locals.user!;
+const settings = await getSettings();
+
+const [counts] = await d
+  .select({
+    pendingPosts: sql<number>`sum(case when status='pending_review' then 1 else 0 end)`,
+    hiddenPosts: sql<number>`sum(case when status='hidden' then 1 else 0 end)`,
+    checkingPosts: sql<number>`sum(case when status in ('submitted','checking') then 1 else 0 end)`,
+    published: sql<number>`sum(case when status='published' then 1 else 0 end)`,
+    rejected: sql<number>`sum(case when status='rejected' then 1 else 0 end)`,
+  })
+  .from(posts);
+const [{ pendingComments }] = await d.select({ pendingComments: sql<number>`count(*)` }).from(comments).where(inArray(comments.status, ['pending_review', 'hidden']));
+const [{ openReports }] = await d.select({ openReports: sql<number>`count(*)` }).from(reports).where(isNull(reports.resolvedAt));
+const [{ writers }] = await d.select({ writers: sql<number>`count(*)` }).from(user);
+
+const queuePosts = await d.select().from(posts).where(inArray(posts.status, ['pending_review', 'hidden', 'submitted', 'checking'])).orderBy(desc(posts.updatedAt)).limit(50);
+const queueComments = await d.select().from(comments).where(inArray(comments.status, ['pending_review', 'hidden'])).orderBy(desc(comments.createdAt)).limit(50);
+const openReportRows = await d.select().from(reports).where(isNull(reports.resolvedAt)).orderBy(desc(reports.createdAt)).limit(50);
+const recentLog = await d.select().from(moderationLog).orderBy(desc(moderationLog.id)).limit(40);
+const recentUsers = await d.select({ id: user.id, name: user.name, email: user.email, role: user.role, handle: user.handle, createdAt: user.createdAt, bannedAt: user.bannedAt, trustScore: user.trustScore }).from(user).orderBy(desc(user.createdAt)).limit(50);
+
+const authorIds = [...new Set([...queuePosts.map((p) => p.authorId), ...queueComments.map((c) => c.userId)])];
+const authors = authorIds.length ? await d.select({ id: user.id, name: user.name, email: user.email, role: user.role }).from(user).where(inArray(user.id, authorIds)) : [];
+const am = new Map(authors.map((a) => [a.id, a]));
+const logFor = async (type: 'post' | 'comment', id: string) => d.select().from(moderationLog).where(and(eq(moderationLog.targetType, type), eq(moderationLog.targetId, id))).orderBy(desc(moderationLog.id)).limit(6);
+const postLogs = new Map<string, Awaited<ReturnType<typeof logFor>>>();
+for (const p of queuePosts) postLogs.set(p.id, await logFor('post', p.id));
+const fmt = (x: Date | null) => (x ? x.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
+---
+
+<BaseLayout title="Admin" description="Editor dashboard." noindex>
+  <div class="font-sans">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Editor dashboard</h1>
+        <p class="text-sm text-muted">Signed in as {me.email}</p>
+      </div>
+      <p id="flash" class="text-sm text-accent" role="status"></p>
+    </div>
+
+    <section class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
+      {[
+        ['Awaiting review', Number(counts.pendingPosts ?? 0)], ['Hidden (reports)', Number(counts.hiddenPosts ?? 0)], ['Checking now', Number(counts.checkingPosts ?? 0)], ['Published', Number(counts.published ?? 0)],
+        ['Rejected', Number(counts.rejected ?? 0)], ['Comments to review', Number(pendingComments)], ['Open reports', Number(openReports)], ['Accounts', Number(writers)],
+      ].map(([label, n]) => (
+        <div class="rounded-lg border border-line bg-surface p-3"><p class="text-2xl font-bold">{n}</p><p class="text-xs text-muted">{label}</p></div>
+      ))}
+    </section>
+
+    <div class="mt-6 flex flex-wrap gap-2 text-sm">
+      <span class:list={['rounded-full px-3 py-1', settings.community_open === 'true' ? 'bg-green-100 text-green-900' : 'bg-amber-100 text-amber-900']}>Community {settings.community_open === 'true' ? 'OPEN' : 'closed'}</span>
+      <span class:list={['rounded-full px-3 py-1', settings.community_invite_only === 'true' ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-900']}>Writing {settings.community_invite_only === 'true' ? 'invite-only' : 'open to all'}</span>
+      <span class="rounded-full bg-page px-3 py-1 text-muted">Model: {settings.ai_quality_model}</span>
+      <button class="act rounded border border-line px-3 py-1" data-action="run_cron">Run hourly job now</button>
+    </div>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Review queue: articles ({queuePosts.length})</h2>
+      {queuePosts.length === 0 ? <p class="mt-2 text-sm text-muted">Nothing waiting.</p> : (
+        <ul class="mt-3 space-y-4">
+          {queuePosts.map((p) => { const a = am.get(p.authorId); const logs = postLogs.get(p.id) ?? []; return (
+            <li class="rounded-lg border border-line bg-surface p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-semibold"><a href={`/p/${p.slug}/`} target="_blank" class="hover:underline">{p.title}</a> <span class="ml-2 rounded bg-page px-2 py-0.5 text-xs text-muted">{p.status}</span></p>
+                  <p class="text-xs text-muted">by {a?.name} ({a?.email}, {a?.role}) · {p.wordCount} words · quality {p.qualityScore ?? '–'} · reports {p.reportsCount} · {fmt(p.updatedAt)}</p>
+                  {p.rejectReason && <p class="mt-1 text-xs text-red-700">{p.rejectReason}</p>}
+                  <ul class="mt-2 space-y-0.5 text-xs text-muted">{logs.map((l) => <li><span class="font-mono">{l.step}</span> · {l.provider}{l.model ? ` (${l.model})` : ''} → <strong>{l.verdict}</strong>{l.score !== null ? ` ${l.score}` : ''}: {l.reason}</li>)}</ul>
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs">
+                  <button class="act rounded bg-accent px-3 py-1.5 font-semibold text-white" data-action="publish_post" data-id={p.id}>Publish</button>
+                  <button class="act rounded border border-line px-3 py-1.5" data-action="reject_post" data-id={p.id} data-prompt="Reason shown to the writer">Reject</button>
+                  <button class="act rounded border border-line px-3 py-1.5" data-action="trust_user" data-id={p.authorId}>Trust writer</button>
+                  <button class="act rounded border border-red-300 px-3 py-1.5 text-red-700" data-action="ban_user" data-id={p.authorId} data-confirm="Ban this writer and unpublish all their posts?">Ban writer</button>
+                </div>
+              </div>
+            </li>
+          ); })}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Review queue: comments ({queueComments.length})</h2>
+      {queueComments.length === 0 ? <p class="mt-2 text-sm text-muted">Nothing waiting.</p> : (
+        <ul class="mt-3 space-y-3">
+          {queueComments.map((c) => { const a = am.get(c.userId); return (
+            <li class="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-line bg-surface p-4">
+              <div class="min-w-0"><p class="text-sm">{c.body}</p><p class="text-xs text-muted">by {a?.name} · on {c.postId} · {c.status} · reports {c.reportsCount} · {fmt(c.createdAt)}</p></div>
+              <div class="flex gap-2 text-xs">
+                <button class="act rounded bg-accent px-3 py-1.5 font-semibold text-white" data-action="publish_comment" data-id={c.id}>Publish</button>
+                <button class="act rounded border border-line px-3 py-1.5" data-action="reject_comment" data-id={c.id}>Reject</button>
+                <button class="act rounded border border-red-300 px-3 py-1.5 text-red-700" data-action="ban_user" data-id={c.userId} data-confirm="Ban this user?">Ban</button>
+              </div>
+            </li>
+          ); })}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Open reports ({openReportRows.length})</h2>
+      {openReportRows.length === 0 ? <p class="mt-2 text-sm text-muted">None.</p> : (
+        <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+          {openReportRows.map((r) => (
+            <li class="flex flex-wrap items-center justify-between gap-3 p-3">
+              <span>{r.targetType} <span class="font-mono text-xs">{r.targetId}</span> · {r.reason}{r.note ? ` · ${r.note}` : ''} · {fmt(r.createdAt)}</span>
+              <span class="flex gap-2 text-xs">
+                {r.targetType === 'post' ? <button class="act rounded border border-line px-3 py-1.5" data-action="unpublish_post" data-id={r.targetId}>Unpublish</button> : <button class="act rounded border border-line px-3 py-1.5" data-action="reject_comment" data-id={r.targetId}>Remove</button>}
+                <button class="act rounded border border-line px-3 py-1.5" data-action="resolve_report" data-id={String(r.id)}>Dismiss</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Writers and accounts</h2>
+      <form id="invite" class="mt-3 flex flex-wrap gap-2 text-sm">
+        <input name="email" type="email" required placeholder="email to invite as writer" class="rounded border border-line px-3 py-1.5" />
+        <button class="rounded bg-accent px-3 py-1.5 font-semibold text-white">Invite / promote to writer</button>
+        <span class="text-xs text-muted self-center">If they have not signed in yet, the invite applies on their first sign-in.</span>
+      </form>
+      <div class="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-page text-xs uppercase tracking-wide text-muted"><tr><th class="p-2">Name</th><th class="p-2">Email</th><th class="p-2">Role</th><th class="p-2">Trust</th><th class="p-2">Joined</th><th class="p-2">Actions</th></tr></thead>
+          <tbody>
+            {recentUsers.map((u) => (
+              <tr class="border-t border-line">
+                <td class="p-2">{u.name}{u.bannedAt && <span class="ml-1 rounded bg-red-100 px-1 text-xs text-red-800">banned</span>}</td>
+                <td class="p-2 text-muted">{u.email}</td><td class="p-2">{u.role}</td><td class="p-2">{u.trustScore}</td><td class="p-2 text-muted">{fmt(u.createdAt)}</td>
+                <td class="p-2"><span class="flex flex-wrap gap-1 text-xs">
+                  {u.role === 'reader' && <button class="act rounded border border-line px-2 py-1" data-action="set_role" data-id={u.id} data-value="writer">Make writer</button>}
+                  {u.role === 'writer' && <button class="act rounded border border-line px-2 py-1" data-action="set_role" data-id={u.id} data-value="trusted">Trust</button>}
+                  {u.role === 'trusted' && <button class="act rounded border border-line px-2 py-1" data-action="set_role" data-id={u.id} data-value="writer">Untrust</button>}
+                  {u.bannedAt ? <button class="act rounded border border-line px-2 py-1" data-action="unban_user" data-id={u.id}>Unban</button> : u.id !== me.id && <button class="act rounded border border-red-300 px-2 py-1 text-red-700" data-action="ban_user" data-id={u.id} data-confirm="Ban and unpublish all their posts?">Ban</button>}
+                </span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Settings</h2>
+      <p class="text-sm text-muted">Changes apply within a minute, no redeploy. Flip <strong>community_open</strong> to true only after AdSense shows "Ready" (plan, Phase 4).</p>
+      <form id="settings" class="mt-3 grid gap-3 md:grid-cols-2">
+        {settingKeys.map((k) => (
+          <label class="grid gap-1 rounded-lg border border-line bg-surface p-3 text-sm">
+            <span class="font-mono text-xs font-semibold">{k}</span>
+            <input name={k} value={settings[k]} class="rounded border border-line px-2 py-1 font-mono text-sm" />
+            <span class="text-xs text-muted">{SETTING_HELP[k]}</span>
+          </label>
+        ))}
+        <div class="md:col-span-2"><button class="rounded bg-accent px-4 py-2 font-semibold text-white">Save settings</button></div>
+      </form>
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Recent moderation log</h2>
+      <div class="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-page uppercase tracking-wide text-muted"><tr><th class="p-2">When</th><th class="p-2">Target</th><th class="p-2">Step</th><th class="p-2">Provider</th><th class="p-2">Verdict</th><th class="p-2">Score</th><th class="p-2">Reason</th><th class="p-2">ms</th></tr></thead>
+          <tbody>{recentLog.map((l) => <tr class="border-t border-line"><td class="p-2 text-muted">{fmt(l.createdAt)}</td><td class="p-2 font-mono">{l.targetType}:{l.targetId.slice(0, 8)}</td><td class="p-2">{l.step}</td><td class="p-2">{l.provider}{l.fallback ? ' (fallback)' : ''}</td><td class="p-2 font-semibold">{l.verdict}</td><td class="p-2">{l.score ?? ''}</td><td class="p-2">{l.reason}</td><td class="p-2 text-muted">{l.durationMs ?? ''}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script is:inline>
+    const flash = document.getElementById('flash');
+    async function act(body) {
+      const r = await fetch('/api/admin/action', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { flash.textContent = d.error || 'Failed'; flash.className = 'text-sm text-red-700'; return false; }
+      flash.textContent = d.message || 'Done'; return true;
+    }
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', async () => {
+      const { action, id, value, confirm: c, prompt: p } = b.dataset;
+      if (c && !window.confirm(c)) return;
+      let reason;
+      if (p) { reason = window.prompt(p); if (reason === null) return; }
+      b.disabled = true;
+      if (await act({ action, id, value, reason })) setTimeout(() => location.reload(), 400); else b.disabled = false;
+    }));
+    document.getElementById('invite')?.addEventListener('submit', async (e) => { e.preventDefault(); const email = new FormData(e.target).get('email'); if (await act({ action: 'invite', value: email })) setTimeout(() => location.reload(), 400); });
+    document.getElementById('settings')?.addEventListener('submit', async (e) => { e.preventDefault(); const fd = new FormData(e.target); const values = Object.fromEntries(fd.entries()); if (await act({ action: 'set_settings', values })) setTimeout(() => location.reload(), 400); });
+  </script>
+</BaseLayout>

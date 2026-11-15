@@ -11,3 +11,4 @@ User-agent: Mediapartners-Google
 Allow: /
 
 Sitemap: https://trutiai.in/sitemap-index.xml
+Sitemap: https://trutiai.in/sitemap-community.xml

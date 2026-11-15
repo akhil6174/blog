@@ -1,0 +1,69 @@
+---
+/**
+ * Server island: the published comments for a post, rendered fresh on every request (never cached), so the
+ * article page can stay in the edge cache (D-007). Works on community posts and on pre-rendered editorial posts.
+ */
+import { and, asc, eq, inArray } from 'drizzle-orm';
+// Lazy: this component is imported by pre-rendered pages, and `lib/db` needs the Cloudflare runtime (D-003).
+const { comments, db, user } = await import('../lib/db');
+
+interface Props { postId: string }
+const { postId } = Astro.props;
+
+type Row = typeof comments.$inferSelect;
+let rows: Row[] = [];
+let authors: { id: string; name: string; image: string | null; handle: string | null }[] = [];
+try {
+  rows = await db().select().from(comments).where(and(eq(comments.postId, postId), eq(comments.status, 'published'))).orderBy(asc(comments.createdAt)).limit(200);
+  const authorIds = [...new Set(rows.map((r) => r.userId))];
+  authors = authorIds.length ? await db().select({ id: user.id, name: user.name, image: user.image, handle: user.handle }).from(user).where(inArray(user.id, authorIds)) : [];
+} catch (e) {
+  // Database not migrated yet or temporarily unavailable: show nothing rather than an error.
+  console.error('[comments] unavailable:', (e as Error).message);
+}
+const am = new Map(authors.map((a) => [a.id, a]));
+const top = rows.filter((r) => !r.parentId);
+const replies = (id: string) => rows.filter((r) => r.parentId === id);
+const fmt = (d: Date) => d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+
+<div class="mt-4 font-sans" id="comments" data-count={rows.length}>
+  {rows.length === 0 ? (
+    <p class="text-sm text-muted">No comments yet. Start the conversation.</p>
+  ) : (
+    <ol class="space-y-6">
+      {top.map((c) => {
+        const a = am.get(c.userId);
+        return (
+          <li id={`c-${c.id}`} class="rounded-lg border border-line bg-surface p-4">
+            <p class="flex items-center gap-2 text-sm">
+              {a?.image && <img src={a.image} alt="" width="24" height="24" class="h-6 w-6 rounded-full" referrerpolicy="no-referrer" />}
+              <span class="font-semibold">{a?.name ?? 'Former member'}</span>
+              <time class="text-muted" datetime={c.createdAt.toISOString()}>{fmt(c.createdAt)}</time>
+            </p>
+            <div class="prose prose-sm mt-2 max-w-none font-serif" set:html={c.bodyHtml} />
+            <p class="mt-2 text-xs text-muted"><button type="button" class="reply-btn underline" data-id={c.id}>Reply</button> · <button type="button" class="report-comment underline" data-id={c.id}>Report</button></p>
+            {replies(c.id).length > 0 && (
+              <ol class="mt-4 space-y-4 border-l-2 border-line pl-4">
+                {replies(c.id).map((r) => {
+                  const ra = am.get(r.userId);
+                  return (
+                    <li id={`c-${r.id}`}>
+                      <p class="flex items-center gap-2 text-sm">
+                        {ra?.image && <img src={ra.image} alt="" width="20" height="20" class="h-5 w-5 rounded-full" referrerpolicy="no-referrer" />}
+                        <span class="font-semibold">{ra?.name ?? 'Former member'}</span>
+                        <time class="text-muted" datetime={r.createdAt.toISOString()}>{fmt(r.createdAt)}</time>
+                      </p>
+                      <div class="prose prose-sm mt-1 max-w-none font-serif" set:html={r.bodyHtml} />
+                      <p class="mt-1 text-xs text-muted"><button type="button" class="report-comment underline" data-id={r.id}>Report</button></p>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  )}
+</div>

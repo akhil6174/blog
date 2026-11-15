@@ -31,7 +31,8 @@ export default defineConfig({
   },
 
   integrations: [
-    preact(),
+    // compat: lets Tiptap's React bindings run on Preact (D-008).
+    preact({ compat: true }),
     sitemap({
       // Never list these in the sitemap (see SEO checklist in the plan).
       filter: (page) => !/\/(api|admin|write|drafts|search)(\/|$)/.test(page),

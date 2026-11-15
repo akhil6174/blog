@@ -5,6 +5,31 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-15 · Phase 3: community publishing behind the flag
+
+**Added**
+- Data layer: `src/lib/db/schema.ts` (Drizzle, D1), `drizzle/0000_init.sql`, `src/lib/db/settings.ts` (runtime settings with defaults and 60 s cache), `drizzle.config.ts`.
+- Auth: `src/lib/auth.ts` (Better Auth + Drizzle adapter, Google, roles, invite-only, dev login), `src/pages/api/auth/[...all].ts`, `src/middleware.ts` (session, route protection, edge cache for public community routes), `src/pages/signin.astro`, `src/pages/me/index.astro`, `src/pages/api/me.ts`.
+- Writing: `src/islands/Editor.tsx` (Tiptap on Preact), `src/pages/write/index.astro`, `src/pages/write/status/[id].astro`, `src/pages/api/posts.ts`, `src/pages/api/posts/[id]/status.ts`, `src/lib/content.ts` + `src/lib/render-doc.ts` (DOM-free Tiptap JSON → sanitised HTML), `src/lib/turnstile.ts`.
+- Moderation: `src/lib/moderation/{types,rules,harmful,quality,parse,decide,index}.ts`, the real `ModeratePost` Workflow in `src/worker.ts`, `src/lib/email.ts` (Resend), `src/cron/hourly.ts` (Top 10 → KV, purges, stale drafts).
+- Community: `src/lib/community.ts`, `src/lib/cache.ts`, `src/components/{CommunityCard,CommentList}.astro`, `src/islands/{CommentForm,RaiseButton,ReportButton}.tsx`, pages `/community`, `/p/[slug]`, `/writer/[handle]`, `/top`, `/sitemap-community.xml`, APIs `/api/comments`, `/api/raise`, `/api/view`, `/api/report`.
+- Admin: `src/pages/admin/index.astro`, `src/pages/api/admin/action.ts`.
+- Tests: `vitest.config.ts`, `tests/render-doc.test.ts`, `tests/moderation.test.ts`; scripts `test`, `deploy` (migrations + deploy), `db:generate`, `db:migrate:local`.
+- Editorial posts now have comments, raises, report and the view beacon (interaction id `editorial:<slug>`); header shows the signed-in state; `robots.txt` lists the community sitemap.
+
+**Changed**
+- `astro.config.mjs`: Preact `compat: true` (Tiptap's React bindings).
+- `wrangler.jsonc`/types: no new bindings; secrets listed in `.dev.vars.example` (`SITE_URL` and `AUTH_DEV_LOGIN` are local-only overrides).
+
+**Fixed during the build**
+- `@tiptap/html` needs a DOM (and its server build needs Node `vm`), neither of which exists in Workers: replaced with a small deterministic renderer (D-016).
+- Node prerender cannot load `cloudflare:workers`: middleware and the comments island import the runtime lazily (D-003).
+- Better Auth marks cookies Secure when `SITE_URL` is https: local `.dev.vars` overrides `SITE_URL` (D-017).
+
+**Verified (local preview, 2026-11-15)**
+- Full submit → Workflow run in about 5 s with all five steps logged; community pages cached and purged as designed; raise cap; view counts; comment moderation (publish and reject); Top 10 via cron; admin gating and actions; 10 unit tests green; production build green.
+
+
 ### 2026-11-12 · Phase 0 complete: live on trutiai.in
 
 **Deployed**

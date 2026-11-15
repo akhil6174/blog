@@ -1,0 +1,31 @@
+---
+/**
+ * /writer/<handle> : community writer profile (on-demand, cached). noindex until they have a published post and the community is open.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CommunityCard from '../../components/CommunityCard.astro';
+import { getWriter, listPublished } from '../../lib/community';
+import { getSettingBool } from '../../lib/db/settings';
+
+export const prerender = false;
+
+const w = await getWriter(Astro.params.handle!);
+const open = await getSettingBool('community_open');
+if (!w || w.bannedAt || !open) return new Response(null, { status: 404 });
+const items = await listPublished({ limit: 50, authorId: w.id });
+---
+
+<BaseLayout title={w.name} description={`${w.name} writes on TrutiAI. ${w.bio ?? ''}`.slice(0, 158)} noindex={items.length === 0} image={w.image ?? '/og-default.png'}>
+  <div class="mx-auto flex max-w-measure gap-5 rounded-lg border border-line bg-surface p-6 font-sans">
+    {w.image && <img src={w.image} alt="" width="80" height="80" class="h-20 w-20 shrink-0 rounded-full" referrerpolicy="no-referrer" />}
+    <div>
+      <h1 class="text-2xl font-bold">{w.name}</h1>
+      <p class="text-sm text-muted">Community writer · joined {w.createdAt.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
+      {w.bio && <p class="mt-2 font-serif text-base leading-relaxed">{w.bio}</p>}
+    </div>
+  </div>
+  <section class="mx-auto mt-12 max-w-5xl">
+    <h2 class="mb-6 font-sans text-xs font-semibold uppercase tracking-wide text-muted">Articles by {w.name}</h2>
+    {items.length === 0 ? <p class="font-serif text-muted">No published articles yet.</p> : <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-3">{items.map((p) => <CommunityCard post={p} />)}</div>}
+  </section>
+</BaseLayout>

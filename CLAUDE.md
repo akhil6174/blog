@@ -37,6 +37,9 @@ Rule of thumb: a change is not finished until CHANGELOG, FILES (if files changed
 - Astro components for static UI; Preact islands (in `src/islands/`) only for interactive parts.
 - Design tokens live in `src/styles/global.css` (`@theme`). Use the token utilities (`bg-page`, `text-ink`, `text-muted`, `border-line`, `text-accent`), not raw hex values.
 - Routes under `src/pages/api/` are on-demand JSON endpoints and send `x-robots-tag: noindex`.
+- Anything imported by a pre-rendered page must not import `cloudflare:workers` at module top level (use `await import()` inside the handler/component). The build's Node prerender fails otherwise.
+- Schema changes: edit `src/lib/db/schema.ts`, run `npm run db:generate`, then `npm run db:migrate:local`; production applies them through `npm run deploy`.
+- Local testing of auth flows: `.dev.vars` with `AUTH_DEV_LOGIN=true` and `SITE_URL=http://127.0.0.1:4321`; sign up through `/api/auth/sign-up/email` (send an `Origin` header from scripts).
 - Read bindings and vars with `import { env } from 'cloudflare:workers'`. `Astro.locals.runtime.env` no longer exists in Astro 6+ and throws at runtime.
 - Local dev: `npm run build` needs no Cloudflare login. `npm run dev` / `npm run preview` do, because the Workers AI binding proxies to the account. To test without login, temporarily remove the `ai` binding from `wrangler.jsonc` and restore it afterwards.
 - Commit messages: imperative, one line, optional body. Reference the phase, for example `Phase 1: add legal pages`.
@@ -53,4 +56,4 @@ npx wrangler deploy    # manual deploy (normally Workers Builds deploys on git p
 
 ## Current phase
 
-Phase 1 (foundation site) is live at https://trutiai.in. Waiting on owner inputs (bio, photo, topics, Email Routing, Resend/Turnstile/analytics keys); Phase 3 can start behind the flag. See `docs/PROGRESS.md`.
+Phase 3 (community publishing) is built and tested locally; Phase 1 is live at https://trutiai.in. Waiting on owner tasks: production D1 migration (`npm run deploy` as the Workers Builds deploy command), `BETTER_AUTH_SECRET` + Google OAuth secrets, OpenAI key, bio/photo, Email Routing, Resend/Turnstile/analytics keys. Phase 2 (articles) is the owner's writing. See `docs/PROGRESS.md`.

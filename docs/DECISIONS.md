@@ -109,3 +109,31 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** Placeholder ad boxes before approval are a known rejection trigger, yet layouts must reserve space to avoid layout shift later.
 - **Decision:** `AdSlot` is placed in the article template now but outputs no HTML unless `ADS_ENABLED=true` and `ADSENSE_CLIENT` are set. The verification meta tag is likewise emitted only when `ADSENSE_CLIENT` is set.
 - **Consequences:** Phase 4 is a config change plus slot ids, not a template change.
+
+## D-016 · Own Tiptap JSON renderer instead of @tiptap/html
+
+- **Date:** 2026-11-15 · **Status:** accepted
+- **Context:** `@tiptap/html` renders through a DOM; its browser build throws in Workers and its server build uses happy-dom, which needs Node's `vm` module that Workers do not provide.
+- **Decision:** `src/lib/render-doc.ts` renders the exact node and mark set the editor allows (headings, paragraphs, lists, quotes, code blocks, links, images, YouTube, rules) to HTML and plain text, then `sanitize-html` runs as a second guard. Heading ids are generated for the table of contents.
+- **Consequences:** No DOM dependency, deterministic output, unit-tested. Adding a new editor extension means adding a case to the renderer (the test file lists them).
+
+## D-017 · Local auth testing without Google
+
+- **Date:** 2026-11-15 · **Status:** accepted
+- **Context:** Google OAuth cannot run against localhost without the owner's client credentials, and Better Auth sets Secure cookies whenever `SITE_URL` is https.
+- **Decision:** `.dev.vars` may set `AUTH_DEV_LOGIN=true` (enables Better Auth email/password only in that environment) and override `SITE_URL=http://127.0.0.1:4321`. In production, if `BETTER_AUTH_SECRET` is missing the auth routes answer 503 instead of running on a fallback secret.
+- **Consequences:** The whole write/moderate/admin flow is testable with curl or Playwright locally; production never runs with forgeable sessions.
+
+## D-018 · Invite-only writing via roles and an invited-emails setting
+
+- **Date:** 2026-11-15 · **Status:** accepted
+- **Context:** The plan tests community publishing with a few invited writers while AdSense reviews the site.
+- **Decision:** While `community_invite_only` is true, new sign-ups get the `reader` role; emails in the `invited_emails` setting (or promoted from `/admin`) get `writer`. `community_open` separately controls whether published community posts are visible to the public and indexable.
+- **Consequences:** Two independent switches: who may write, and whether the world can read. Both change from `/admin` without a deploy.
+
+## D-019 · Edge caching lives in the middleware, keyed by path
+
+- **Date:** 2026-11-15 · **Status:** accepted
+- **Context:** Astro pages cannot easily wrap their own response in the Cache API; the plan wants community HTML cached for 10 minutes and purged on edit.
+- **Decision:** The middleware caches GET responses for `/community`, `/p/*`, `/writer/*`, `/top` and the community sitemap (`src/lib/cache.ts`), and publish/edit/unpublish call `purgePostCaches`. Comments load through a server island and raises through JSON, so those never purge (D-007).
+- **Consequences:** Worker CPU per cached hit is about a millisecond and D1 is not touched. Personal state on those pages is fetched client-side.

@@ -1,0 +1,49 @@
+---
+/**
+ * /write/status/<id> : what happened to a submission. Polls /api/posts/<id>/status every 5 s while checking.
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { db, posts } from '../../../lib/db';
+import { hasRole } from '../../../lib/auth';
+import { eq } from 'drizzle-orm';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const p = await db().query.posts.findFirst({ where: eq(posts.id, Astro.params.id!) });
+if (!p || (p.authorId !== user.id && !hasRole(user, 'admin'))) return Astro.redirect('/me/');
+
+const labels: Record<string, { title: string; text: string; tone: string }> = {
+  submitted: { title: 'Checking your article…', text: 'Automatic checks usually take under a minute. This page updates by itself.', tone: 'text-muted' },
+  checking: { title: 'Checking your article…', text: 'Automatic checks usually take under a minute. This page updates by itself.', tone: 'text-muted' },
+  published: { title: 'Published', text: 'Your article is live.', tone: 'text-accent' },
+  pending_review: { title: 'Waiting for an editor', text: 'The automatic checks could not decide. A person will review it, usually within two days, and you will get an email.', tone: 'text-ink' },
+  rejected: { title: 'Not published', text: p.rejectReason ?? 'The article did not pass our checks.', tone: 'text-red-700' },
+  hidden: { title: 'Hidden pending review', text: 'Readers reported this article; an editor is reviewing it.', tone: 'text-red-700' },
+  unpublished: { title: 'Unpublished', text: 'This article was taken down.', tone: 'text-red-700' },
+  draft: { title: 'Draft', text: 'Not submitted yet.', tone: 'text-muted' },
+};
+const l = labels[p.status] ?? labels.draft;
+---
+
+<BaseLayout title={l.title} description="Submission status." noindex>
+  <div class="mx-auto max-w-measure rounded-lg border border-line bg-surface p-8 font-sans" data-status={p.status} id="status-box">
+    <p class="text-xs font-semibold uppercase tracking-wide text-muted">{p.title}</p>
+    <h1 class:list={['mt-2 text-2xl font-bold', l.tone]} id="status-title">{l.title}</h1>
+    <p class="mt-2 text-muted" id="status-text">{l.text}</p>
+    <div class="mt-6 flex flex-wrap gap-3 text-sm">
+      {p.status === 'published' && <a href={`/p/${p.slug}/`} class="rounded bg-accent px-4 py-2 font-semibold text-white">View article</a>}
+      {['rejected', 'draft', 'published', 'pending_review'].includes(p.status) && <a href={`/write/?id=${p.id}`} class="rounded border border-line px-4 py-2">Edit</a>}
+      <a href="/me/" class="rounded border border-line px-4 py-2">My articles</a>
+    </div>
+  </div>
+  {['submitted', 'checking'].includes(p.status) && (
+    <script is:inline define:vars={{ id: p.id }}>
+      const t = setInterval(async () => {
+        const r = await fetch(`/api/posts/${id}/status`, { headers: { accept: 'application/json' } });
+        const d = await r.json().catch(() => ({}));
+        if (d.status && d.status !== 'submitted' && d.status !== 'checking') { clearInterval(t); location.reload(); }
+      }, 5000);
+    </script>
+  )}
+</BaseLayout>

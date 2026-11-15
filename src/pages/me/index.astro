@@ -1,0 +1,66 @@
+---
+/**
+ * /me : the writer's dashboard. Their posts by status, profile basics, sign out, delete account.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { db, posts } from '../../lib/db';
+import { desc, eq } from 'drizzle-orm';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const mine = await db().select().from(posts).where(eq(posts.authorId, user.id)).orderBy(desc(posts.updatedAt)).limit(100);
+const label: Record<string, string> = { draft: 'Draft', submitted: 'Checking', checking: 'Checking', pending_review: 'Awaiting editor', published: 'Published', rejected: 'Declined', hidden: 'Hidden', unpublished: 'Unpublished' };
+---
+
+<BaseLayout title="My articles" description="Your articles on TrutiAI." noindex>
+  <div class="mx-auto max-w-3xl font-sans">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        {user.image && <img src={user.image} alt="" width="40" height="40" class="h-10 w-10 rounded-full" referrerpolicy="no-referrer" />}
+        <div>
+          <h1 class="text-xl font-bold">{user.name}</h1>
+          <p class="text-sm text-muted">{user.email} · role: {user.role}</p>
+        </div>
+      </div>
+      <div class="flex gap-2 text-sm">
+        <a href="/write/" class="rounded bg-accent px-4 py-2 font-semibold text-white">Write</a>
+        <button id="signout" class="rounded border border-line px-4 py-2">Sign out</button>
+      </div>
+    </div>
+
+    <h2 class="mt-10 text-xs font-semibold uppercase tracking-wide text-muted">Your articles</h2>
+    {mine.length === 0 ? (
+      <p class="mt-3 font-serif text-muted">Nothing yet. <a href="/write/" class="underline">Start writing</a>.</p>
+    ) : (
+      <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface">
+        {mine.map((p) => (
+          <li class="flex flex-wrap items-center justify-between gap-3 p-4">
+            <div>
+              <p class="font-semibold">{p.title}</p>
+              <p class="text-xs text-muted">{label[p.status] ?? p.status} · {p.wordCount} words · updated {p.updatedAt.toLocaleDateString('en-IN')}{p.status === 'rejected' && p.rejectReason ? ` · ${p.rejectReason}` : ''}</p>
+            </div>
+            <div class="flex gap-2 text-sm">
+              {p.status === 'published' && <a href={`/p/${p.slug}/`} class="rounded border border-line px-3 py-1.5">View</a>}
+              {['submitted', 'checking', 'pending_review'].includes(p.status) ? <a href={`/write/status/${p.id}/`} class="rounded border border-line px-3 py-1.5">Status</a> : <a href={`/write/?id=${p.id}`} class="rounded border border-line px-3 py-1.5">Edit</a>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <details class="mt-12 text-sm text-muted">
+      <summary class="cursor-pointer">Delete my account</summary>
+      <p class="mt-2">Deleting removes your profile and sign-in. Published articles are unpublished too. Email <a href="/contact/" class="underline">us</a> if you want them kept under an anonymous byline instead.</p>
+      <button id="delete-account" class="mt-3 rounded border border-red-300 px-3 py-1.5 text-red-700">Delete account</button>
+    </details>
+  </div>
+  <script is:inline>
+    document.getElementById('signout')?.addEventListener('click', async () => { await fetch('/api/auth/sign-out', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); location.href = '/'; });
+    document.getElementById('delete-account')?.addEventListener('click', async () => {
+      if (!confirm('Delete your account and unpublish your articles? This cannot be undone.')) return;
+      const r = await fetch('/api/me', { method: 'DELETE' });
+      if (r.ok) location.href = '/'; else alert('Could not delete. Please contact us.');
+    });
+  </script>
+</BaseLayout>

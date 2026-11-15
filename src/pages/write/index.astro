@@ -1,0 +1,49 @@
+---
+/**
+ * /write : the editor (on-demand, sign-in required by middleware). ?id=<post> edits an existing post of yours.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Editor from '../../islands/Editor';
+import { db, posts, postTags } from '../../lib/db';
+import { getSettingInt } from '../../lib/db/settings';
+import { hasRole } from '../../lib/auth';
+import { eq } from 'drizzle-orm';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const canWrite = hasRole(user, 'writer');
+const minWords = await getSettingInt('min_words');
+const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY ?? '';
+
+let initial: Record<string, unknown> | undefined;
+const id = Astro.url.searchParams.get('id');
+if (id) {
+  const p = await db().query.posts.findFirst({ where: eq(posts.id, id) });
+  if (!p || (p.authorId !== user.id && !hasRole(user, 'admin'))) return Astro.redirect('/write/');
+  if (['checking', 'submitted'].includes(p.status)) return Astro.redirect(`/write/status/${p.id}/`);
+  const t = await db().select({ slug: postTags.tagSlug }).from(postTags).where(eq(postTags.postId, p.id));
+  initial = {
+    id: p.id, title: p.title, subtitle: p.subtitle ?? '', description: p.description ?? '', tags: t.map((x) => x.slug),
+    coverImage: p.coverImage, coverAlt: p.coverAlt, bodyJson: JSON.parse(p.bodyJson), status: p.status, rejectReason: p.rejectReason,
+  };
+}
+---
+
+<BaseLayout title={initial ? 'Edit article' : 'Write an article'} description="Write for TrutiAI." noindex>
+  <div class="mx-auto max-w-measure">
+    <div class="mb-6 flex items-center justify-between font-sans text-sm text-muted">
+      <span>Writing as <strong class="text-ink">{user.name}</strong></span>
+      <a href="/me/" class="underline hover:text-ink">My articles</a>
+    </div>
+    {!canWrite ? (
+      <div class="rounded-lg border border-line bg-surface p-6 font-sans">
+        <h1 class="text-xl font-bold">Writing is invite-only right now</h1>
+        <p class="mt-2 text-muted">We are opening community publishing gradually. <a href="/contact/" class="underline">Ask for an invite</a> and tell us what you would like to write about.</p>
+      </div>
+    ) : (
+      <Editor client:only="preact" initial={initial} minWords={minWords} maxTags={5} turnstileSiteKey={turnstileSiteKey} />
+    )}
+  </div>
+  {turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+</BaseLayout>

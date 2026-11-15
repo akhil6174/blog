@@ -112,7 +112,9 @@ Choosing the name: short, pronounceable, no hyphens or numbers, says "tech" or y
    ```
    Git asks you to sign in through the browser the first time (Git Credential Manager is included with Git for Windows).
 
-**Connect Workers Builds:** Cloudflare → Workers & Pages → Create → Import a repository → Connect GitHub → install the Cloudflare Workers & Pages GitHub App for the `tech-blog` repository only → select the repo → Build command `npm run build`, Deploy command `npx wrangler deploy`, root `/` → add build variable `SITE_URL = https://yourdomain.com` → Save and Deploy. Every push to `main` now deploys; other branches get preview URLs.
+**Connect Workers Builds:** Cloudflare → Workers & Pages → Create → Import a repository → Connect GitHub → install the Cloudflare Workers & Pages GitHub App for the repository only → select the repo → Build command `npm run build`, **Deploy command `npm run deploy`** (runs the D1 migrations, then `wrangler deploy`), root `/` → add build variable `SITE_URL = https://trutiai.in` → Save and Deploy. Every push to `main` now deploys; other branches get preview URLs.
+
+**Already connected with `npx wrangler deploy`?** Change the deploy command to `npm run deploy` under the project's Settings → Build. Until then, run `npx wrangler d1 migrations apply tech-blog-db --remote` yourself whenever `drizzle/` gains a new migration.
 
 ## 5. Google Cloud: the sign-in button (20 minutes, needed in Phase 3 but painless to do now)
 
@@ -128,7 +130,17 @@ Choosing the name: short, pronounceable, no hyphens or numbers, says "tech" or y
    - Authorized JavaScript origins: `http://localhost:4321` and `https://yourdomain.com`
    - Authorized redirect URIs: `http://localhost:4321/api/auth/callback/google` and `https://yourdomain.com/api/auth/callback/google`
    - Create. Copy the **Client ID** and **Client secret** into the vault immediately (the secret is shown once; you can download the JSON too).
-8. Generate the Better Auth secret on your PC and store it as `BETTER_AUTH_SECRET`:
+8. Generate the Better Auth secret on your PC, store it in the vault as `BETTER_AUTH_SECRET`, and set the three production secrets (each command prompts for the value):
+   ```bash
+   npx wrangler secret put BETTER_AUTH_SECRET
+   ```
+   ```bash
+   npx wrangler secret put GOOGLE_CLIENT_ID
+   ```
+   ```bash
+   npx wrangler secret put GOOGLE_CLIENT_SECRET
+   ```
+   Generate the secret value with:
    ```bash
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```

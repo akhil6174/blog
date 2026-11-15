@@ -1,0 +1,28 @@
+---
+import type { PublicPost } from '../lib/community';
+import { formatDate } from '../lib/posts';
+
+interface Props { post: PublicPost }
+const { post } = Astro.props;
+const url = `/p/${post.slug}/`;
+---
+
+<article class="group flex flex-col gap-3">
+  {post.coverImage && (
+    <a href={url} class="block overflow-hidden rounded-lg border border-line bg-surface" tabindex="-1" aria-hidden="true">
+      <img src={post.coverImage} alt={post.coverAlt ?? ''} loading="lazy" class="aspect-[16/9] w-full object-cover transition group-hover:scale-[1.02]" referrerpolicy="no-referrer" />
+    </a>
+  )}
+  <p class="font-sans text-xs font-semibold uppercase tracking-wide text-accent">
+    {post.tags.slice(0, 2).map((t, i) => (<>{i > 0 && <span class="text-muted"> · </span>}<a href={`/community/?tag=${t.slug}`} class="hover:underline">{t.name}</a></>))}
+    {post.tags.length === 0 && 'Community'}
+  </p>
+  <h2 class="font-sans text-xl font-bold leading-snug tracking-tight"><a href={url} class="hover:underline decoration-2 underline-offset-4">{post.title}</a></h2>
+  {post.description && <p class="font-serif text-base leading-relaxed text-muted">{post.description}</p>}
+  <p class="font-sans text-sm text-muted">
+    {post.author.handle ? <a href={`/writer/${post.author.handle}/`} class="font-medium text-ink hover:underline">{post.author.name}</a> : <span class="font-medium text-ink">{post.author.name}</span>}
+    {post.publishedAt && <> · <time datetime={post.publishedAt.toISOString()}>{formatDate(post.publishedAt)}</time></>}
+    <span> · {post.readingMinutes} min read</span>
+    {post.raisesCount > 0 && <span> · {post.raisesCount} raises</span>}
+  </p>
+</article>

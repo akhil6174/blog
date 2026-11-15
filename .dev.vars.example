@@ -18,3 +18,8 @@ TURNSTILE_SECRET_KEY=
 
 # Phase 1: error alerts.
 SENTRY_DSN=
+
+# Local only: makes auth cookies non-secure and URLs local. Never set in production.
+SITE_URL=http://127.0.0.1:4321
+# Local only: enables the email/password form on /signin for testing without Google.
+AUTH_DEV_LOGIN=true

@@ -1,0 +1,68 @@
+---
+/**
+ * Sign-in page (on-demand). Google in production; a dev-only email/password form when AUTH_DEV_LOGIN=true.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { auth, isAuthConfigured, isDevLoginEnabled, isGoogleConfigured } from '../lib/auth';
+
+export const prerender = false;
+
+const next = Astro.url.searchParams.get('next') ?? '/write/';
+const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/write/';
+const s = await auth().api.getSession({ headers: Astro.request.headers });
+if (s?.user) return Astro.redirect(safeNext);
+const google = isAuthConfigured() && isGoogleConfigured();
+const dev = isDevLoginEnabled();
+---
+
+<BaseLayout title="Sign in" description="Sign in to TrutiAI to write articles and comment." noindex>
+  <div class="mx-auto max-w-md rounded-lg border border-line bg-surface p-8 font-sans">
+    <h1 class="text-2xl font-bold tracking-tight">Sign in</h1>
+    <p class="mt-2 text-sm text-muted">Write articles, comment and raise posts. We only receive your name, email and profile picture.</p>
+
+    {google ? (
+      <button id="google-btn" type="button" class="mt-6 flex w-full items-center justify-center gap-3 rounded border border-line bg-white px-4 py-3 font-semibold hover:bg-page">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.8 6C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17.5z"/><path fill="#FBBC05" d="M10.4 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6C6.5 42.6 14.6 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+    ) : (
+      <p class="mt-6 rounded border border-line bg-page p-3 text-sm text-muted">Sign-in is not configured yet (owner tasks: BETTER_AUTH_SECRET and the Google OAuth client, SETUP-GUIDE §5).</p>
+    )}
+
+    {dev && (
+      <form id="dev-form" class="mt-6 grid gap-3 border-t border-line pt-6">
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Local testing only</p>
+        <input name="email" type="email" placeholder="email" required class="rounded border border-line px-3 py-2" />
+        <input name="password" type="password" placeholder="password (8+)" minlength="8" required class="rounded border border-line px-3 py-2" />
+        <input name="name" type="text" placeholder="name (sign-up only)" class="rounded border border-line px-3 py-2" />
+        <div class="flex gap-2">
+          <button type="submit" data-mode="signin" class="rounded bg-accent px-4 py-2 font-semibold text-white">Sign in</button>
+          <button type="submit" data-mode="signup" class="rounded border border-line px-4 py-2">Sign up</button>
+        </div>
+        <p id="dev-msg" class="text-sm text-red-700"></p>
+      </form>
+    )}
+
+    <p class="mt-6 text-xs text-muted">By continuing you agree to the <a href="/terms/" class="underline">terms</a> and <a href="/privacy/" class="underline">privacy policy</a>.</p>
+  </div>
+
+  <script is:inline define:vars={{ safeNext }}>
+    const gb = document.getElementById('google-btn');
+    gb?.addEventListener('click', async () => {
+      gb.disabled = true;
+      const res = await fetch('/api/auth/sign-in/social', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'google', callbackURL: safeNext }) });
+      const data = await res.json().catch(() => ({}));
+      if (data.url) location.href = data.url; else { gb.disabled = false; alert(data.message || 'Sign-in failed. Try again.'); }
+    });
+    const f = document.getElementById('dev-form');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const mode = e.submitter?.dataset.mode || 'signin';
+      const fd = new FormData(f);
+      const body = { email: fd.get('email'), password: fd.get('password'), name: fd.get('name') || String(fd.get('email')).split('@')[0], callbackURL: safeNext };
+      const res = await fetch(`/api/auth/${mode === 'signup' ? 'sign-up/email' : 'sign-in/email'}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) location.href = safeNext; else document.getElementById('dev-msg').textContent = data.message || 'Failed';
+    });
+  </script>
+</BaseLayout>

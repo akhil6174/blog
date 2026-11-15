@@ -4,8 +4,8 @@ import { SITE } from '../lib/site';
 const nav = [
   { href: '/', label: 'Home' },
   { href: '/topics/', label: 'Topics' },
+  { href: '/top/', label: 'Top 10' },
   { href: '/about/', label: 'About' },
-  { href: '/contact/', label: 'Contact' },
 ];
 const path = Astro.url.pathname;
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
@@ -17,22 +17,31 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
 
     <nav aria-label="Primary" class="flex items-center gap-1 font-sans text-sm">
       {nav.map((item) => (
-        <a
-          href={item.href}
-          aria-current={isActive(item.href) ? 'page' : undefined}
-          class:list={[
-            'rounded px-2.5 py-1.5 text-muted transition hover:bg-page hover:text-ink',
-            isActive(item.href) && 'text-ink font-semibold',
-          ]}
-        >
+        <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined} class:list={['hidden rounded px-2.5 py-1.5 text-muted transition hover:bg-page hover:text-ink sm:inline', isActive(item.href) && 'text-ink font-semibold']}>
           {item.label}
         </a>
       ))}
-      <a href="/search/" class="ml-1 inline-flex h-9 w-9 items-center justify-center rounded text-muted hover:bg-page hover:text-ink" aria-label="Search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
-        </svg>
+      <a href="/search/" class="inline-flex h-9 w-9 items-center justify-center rounded text-muted hover:bg-page hover:text-ink" aria-label="Search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
       </a>
+      <span id="auth-slot" class="ml-1 flex items-center gap-2">
+        <a href="/write/" class="rounded border border-line px-3 py-1.5 text-ink hover:bg-page">Write</a>
+      </span>
     </nav>
   </div>
 </header>
+
+<script is:inline>
+  // Static pages cannot know who is signed in; swap the Write button for the user's menu client-side.
+  (async () => {
+    try {
+      const r = await fetch('/api/auth/get-session', { credentials: 'same-origin', headers: { accept: 'application/json' } });
+      const d = await r.json();
+      const slot = document.getElementById('auth-slot');
+      if (!slot || !d || !d.user) return;
+      const u = d.user;
+      const admin = u.role === 'admin' ? '<a href="/admin/" class="rounded px-2 py-1.5 text-muted hover:text-ink">Admin</a>' : '';
+      slot.innerHTML = `<a href="/write/" class="rounded border border-line px-3 py-1.5 text-ink hover:bg-page">Write</a>${admin}<a href="/me/" class="inline-flex items-center gap-2 rounded px-2 py-1 hover:bg-page" aria-label="My account">${u.image ? `<img src="${u.image}" alt="" width="28" height="28" class="h-7 w-7 rounded-full" referrerpolicy="no-referrer">` : `<span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">${(u.name || '?').slice(0, 1).toUpperCase()}</span>`}</a>`;
+    } catch {}
+  })();
+</script>
