@@ -38,6 +38,7 @@ Rule of thumb: a change is not finished until CHANGELOG, FILES (if files changed
 - Design tokens live in `src/styles/global.css` (`@theme`). Use the token utilities (`bg-page`, `text-ink`, `text-muted`, `border-line`, `text-accent`), not raw hex values.
 - Routes under `src/pages/api/` are on-demand JSON endpoints and send `x-robots-tag: noindex`.
 - Anything imported by a pre-rendered page must not import `cloudflare:workers` at module top level (use `await import()` inside the handler/component). The build's Node prerender fails otherwise.
+- After adding npm packages on Windows, regenerate the lock file before pushing: `rm -rf node_modules package-lock.json && npm install --include=optional` (Workers Builds runs `npm ci` on Linux and fails on a Windows-only lock).
 - Schema changes: edit `src/lib/db/schema.ts`, run `npm run db:generate`, then `npm run db:migrate:local`; production applies them through `npm run deploy`.
 - Local testing of auth flows: `.dev.vars` with `AUTH_DEV_LOGIN=true` and `SITE_URL=http://127.0.0.1:4321`; sign up through `/api/auth/sign-up/email` (send an `Origin` header from scripts).
 - Read bindings and vars with `import { env } from 'cloudflare:workers'`. `Astro.locals.runtime.env` no longer exists in Astro 6+ and throws at runtime.

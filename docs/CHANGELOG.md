@@ -26,6 +26,9 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 - Node prerender cannot load `cloudflare:workers`: middleware and the comments island import the runtime lazily (D-003).
 - Better Auth marks cookies Secure when `SITE_URL` is https: local `.dev.vars` overrides `SITE_URL` (D-017).
 
+**Deployed**
+- Live on trutiai.in after regenerating `package-lock.json` (the Windows-generated lock again lacked Linux optional packages; rule: after adding packages, run `rm -rf node_modules package-lock.json && npm install --include=optional` before pushing). Owner applied the D1 migration and set the auth secrets.
+
 **Verified (local preview, 2026-11-15)**
 - Full submit → Workflow run in about 5 s with all five steps logged; community pages cached and purged as designed; raise cap; view counts; comment moderation (publish and reject); Top 10 via cron; admin gating and actions; 10 unit tests green; production build green.
 

@@ -95,8 +95,9 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Local end-to-end: sign-in, draft, submit → Workflow decided in ~5 s (rules pass, Llama Guard fallback pass, gpt-oss-20b rejected a repetitive test post); community listing and article cached (MISS → HIT, still HIT after a comment); raise capped at 50; views counted; clean comment published and spam comment rejected; Top 10 populated by the cron; admin gated (anon → sign-in, reader → 403)
 
 ### Owner tasks before testing on trutiai.in
-- [ ] Change the Workers Builds **deploy command** to `npm run deploy` (runs D1 migrations, then deploys). Until then run `npx wrangler d1 migrations apply tech-blog-db --remote` after schema changes
-- [ ] Production secrets (SETUP-GUIDE §5): `npx wrangler secret put BETTER_AUTH_SECRET` (generate with the node one-liner), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; Google OAuth redirect URI `https://trutiai.in/api/auth/callback/google`
+- [x] Production D1 migrated by the owner on 2026-11-15 (`wrangler d1 migrations apply --remote`)
+- [ ] Change the Workers Builds **deploy command** to `npm run deploy` so future migrations apply automatically
+- [x] Production secrets set by the owner on 2026-11-15: `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Google sign-in URL generates on the live site)
 - [ ] `npx wrangler secret put OPENAI_API_KEY` (until then the harmful-content check uses Llama Guard on Workers AI, which costs neurons)
 - [ ] Sign in once with your Gmail on trutiai.in: your account becomes admin automatically (it is in `ADMIN_EMAILS`); open `/admin`
 - [ ] Invite 3 to 5 test writers from `/admin` and have them submit real articles; review the queue and the moderation log
@@ -126,3 +127,4 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 | 2026-11-15 | Local: community | /community MISS→HIT; /p/<slug> 200 indexable, HIT after a comment; raise 60 → capped 50; 3 view beacons counted; clean comment published, spam rejected; /top filled by cron; sitemap-community lists the post; writer page 200 |
 | 2026-11-15 | Local: admin | anon → 302 to sign-in; reader → 302 / API 403; admin 200 with queues, settings, log; run_cron, set_settings, invite OK |
 | 2026-11-15 | `npm test` | 10 unit tests pass |
+| 2026-11-15 | Live Phase 3 on https://trutiai.in | `/signin` 200; `/api/auth/get-session` → null (auth configured); Google sign-in URL generated; `/admin` and `/write` → 302 to sign-in; `/community` 404 (flag closed); `/top`, `/sitemap-community.xml`, `/api/raise` 200; comments island present on editorial posts. First Phase 3 build had failed on `npm ci` until the lock file was regenerated. |
