@@ -55,6 +55,7 @@ npm run dev            # local dev with Cloudflare bindings emulated (needs `npx
 npm run build          # production build into dist/
 npm run preview        # serve the production build locally through workerd
 npm run generate-types # regenerate worker-configuration.d.ts after editing wrangler.jsonc
+npm run db:backup      # export the production database to backups/ (weekly; see SETUP-GUIDE §16)
 npx wrangler deploy    # manual deploy (normally Workers Builds deploys on git push)
 ```
 

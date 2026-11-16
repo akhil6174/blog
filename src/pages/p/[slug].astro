@@ -6,6 +6,8 @@
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AdSlot from '../../components/AdSlot.astro';
+import TechDetails from '../../components/TechDetails.astro';
+import { parseTech } from '../../lib/tech';
 import CommunityCard from '../../components/CommunityCard.astro';
 import CommentList from '../../components/CommentList.astro';
 import CommentForm from '../../islands/CommentForm';
@@ -67,6 +69,8 @@ const jsonLd = noindex ? [] : [
     </header>
 
     {post.coverImage && <figure class="mb-8"><img src={post.coverImage} alt={post.coverAlt ?? ''} class="w-full rounded-lg border border-line" referrerpolicy="no-referrer" /></figure>}
+
+    <TechDetails tech={parseTech(post.techMeta)} />
 
     {toc.length >= 3 && (
       <nav aria-label="In this article" class="my-8 rounded-lg border border-line bg-surface p-5 font-sans text-sm">

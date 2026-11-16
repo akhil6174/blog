@@ -123,6 +123,17 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Step E: publish your articles from the editor to /blog/ (Markdown commit, static page), update, unpublish, schedule (cron every 15 min) — built 2026-11-16
 - [ ] Production: apply migration `0002_step_e_scheduling` and set the `GITHUB_TOKEN` secret (SETUP-GUIDE §15), then push
 
+## Essential improvements (D-030)
+
+- [x] Version history with restore, conflict protection between tabs/devices (2026-11-16)
+- [x] Technical details box and front matter; reader "Report a problem" with technical reasons and email notice
+- [x] My articles: totals, sections, withdraw, trash/restore, profile with website
+- [x] Admin: request changes, required reasons, audit log, trash, export, bulk invites, pause submissions/comments
+- [x] `npm run db:backup` and backup/restore guide (SETUP-GUIDE §16)
+- [x] Local tests: essentials 33/33, editor 64/64, settings 25/25, images 16/16, publish 22/22, unit 28/28
+- [ ] Production: apply migration `0003_essentials` (`npx wrangler d1 migrations apply tech-blog-db --remote`) before or right after the push
+- [ ] Owner: turn on Google 2-Step Verification for the admin Google account; run `npm run db:backup` once a week
+
 ## Verification log
 
 | Date | Check | Result |

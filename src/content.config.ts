@@ -27,6 +27,13 @@ const posts = defineCollection({
       author: reference('authors'),
       draft: z.boolean().default(false),
       featured: z.boolean().default(false),
+      // Optional technical details (src/lib/tech.ts), shown in a box above the article.
+      difficulty: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+      stack: z.string().max(120).optional(),
+      versions: z.string().max(160).optional(),
+      testedOn: z.string().max(160).optional(),
+      repoUrl: z.string().url().optional(),
+      lastVerified: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     })
     .refine((d) => (!d.cover && !d.coverUrl) || !!d.coverAlt, { message: 'coverAlt is required when a cover is set' }),
 });

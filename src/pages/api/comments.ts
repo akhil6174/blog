@@ -10,6 +10,7 @@ import { comments, db, posts } from '../../lib/db';
 import { esc } from '../../lib/render-doc';
 import { newId } from '../../lib/content';
 import { verifyTurnstile } from '../../lib/turnstile';
+import { getSettingBool } from '../../lib/db/settings';
 
 export const prerender = false;
 
@@ -37,6 +38,7 @@ export function commentHtml(text: string): string {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return json({ error: 'Please sign in to comment.' }, 401);
+  if (!(await getSettingBool('comments_open'))) return json({ error: 'Comments are paused right now. Please try again later.' }, 503);
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json({ error: 'Invalid comment.' }, 400);
   const b = parsed.data;

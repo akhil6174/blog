@@ -5,6 +5,26 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Essential improvements (reliability, editorial flow, admin)
+
+Reviewed the "Essential Product Improvements" list against the code (D-030). Most of it already existed; these were missing and worth building now.
+
+**Added**
+- Editor: **Version history** (clock button): lists the last 20 saved versions and restores one; the current state is kept first, so a restore can be undone.
+- Editor: **conflict protection**. Every save carries the version it started from; a save from an out-of-date tab or device is refused and the writer chooses "Load the latest" or "Keep mine". Autosave pauses until then.
+- **Technical details** (optional, settings panel): difficulty, languages and frameworks, versions, tested on, code repository, last verified date. Shown in a box above the article on `/blog/` and `/p/` pages, and written into the Markdown front matter of editor-published articles.
+- **Report a problem** on articles: readers pick a reason (code does not work, outdated, incorrect, broken link, spam, copied, harmful, other) and add details. Technical reports never hide an article; they email the editor and the community author (when Resend is set up).
+- **My articles** rebuilt: totals (published, views, raises, comments, words), sections (needs attention, drafts, in review, scheduled, published, hidden, trash), Withdraw, Delete to trash (30 days), Restore, and a public profile form (name, bio, website shown on the writer page).
+- Admin: **Request changes** (new `changes_requested` status, writer is emailed and sees the note); reasons are required for rejecting and requesting changes; **audit log** of every admin action; **trash** with restore; **export** of articles, writers, reports and the audit log as JSON; **bulk invitations** (up to 50 emails); one-click **emergency switches** to pause submissions or comments (`submissions_open`, `comments_open`).
+- `npm run db:backup`: full production database export to `backups/` (git-ignored). SETUP-GUIDE §16 covers backups and restore.
+- Migration `drizzle/0003_essentials.sql`: `posts.tech_meta`, `posts.version`, `user.website`, `audit_log` table.
+- `tests/e2e/essentials.e2e.mjs` (33 checks).
+
+**Fixed**
+- A save without an address no longer gets the address "post" (a second untitled draft showed "address already taken").
+- The hourly cleanup deleted any draft untouched for 180 days, not just untitled ones as documented; it now only deletes untitled drafts.
+- The admin queue's "Trust writer" button called an action that did not exist; it now sets the trusted role.
+
 ### 2026-11-16 · Editor step E: publish your articles from the editor
 
 **Added**

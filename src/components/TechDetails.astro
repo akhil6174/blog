@@ -1,0 +1,28 @@
+---
+/**
+ * "Technical details" box above an article: difficulty, stack, versions, tested environment, repository, last verified.
+ * Renders nothing when the writer left every field empty.
+ */
+import { difficultyLabel, type TechMeta } from '../lib/tech';
+import { formatDate } from '../lib/posts';
+
+interface Props { tech: TechMeta }
+const { tech } = Astro.props;
+const rows: [string, string][] = [];
+if (tech.difficulty) rows.push(['Level', difficultyLabel(tech.difficulty) ?? tech.difficulty]);
+if (tech.stack) rows.push(['Stack', tech.stack]);
+if (tech.versions) rows.push(['Versions', tech.versions]);
+if (tech.testedOn) rows.push(['Tested on', tech.testedOn]);
+const verified = tech.lastVerified ? new Date(`${tech.lastVerified}T00:00:00Z`) : null;
+---
+
+{(rows.length > 0 || tech.repoUrl || verified) && (
+  <aside class="mb-8 rounded-lg border border-line bg-surface p-4 font-sans text-sm" aria-label="Technical details">
+    <p class="text-xs font-semibold uppercase tracking-wide text-muted">Technical details</p>
+    <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+      {rows.map(([k, v]) => (<><dt class="text-muted">{k}</dt><dd class="min-w-0 break-words">{v}</dd></>))}
+      {tech.repoUrl && (<><dt class="text-muted">Code</dt><dd class="min-w-0 break-all"><a href={tech.repoUrl} rel="noopener nofollow" target="_blank" class="text-accent underline">{tech.repoUrl.replace(/^https:\/\//, '')}</a></dd></>)}
+      {verified && (<><dt class="text-muted">Last verified</dt><dd><time datetime={tech.lastVerified}>{formatDate(verified)}</time></dd></>)}
+    </dl>
+  </aside>
+)}

@@ -12,6 +12,7 @@ import AuthorCard from '../../components/AuthorCard.astro';
 import PostCard from '../../components/PostCard.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import AdSlot from '../../components/AdSlot.astro';
+import TechDetails from '../../components/TechDetails.astro';
 import CommentList from '../../components/CommentList.astro';
 import CommentForm from '../../islands/CommentForm';
 import RaiseButton from '../../islands/RaiseButton';
@@ -105,6 +106,8 @@ const jsonLd = [
         <Image src={post.data.cover} alt={post.data.coverAlt ?? ''} widths={[680, 1000, 1360]} sizes="(min-width: 768px) 680px, 100vw" class="w-full rounded-lg border border-line" loading="eager" fetchpriority="high" />
       </figure>
     )}
+
+    <TechDetails tech={{ difficulty: post.data.difficulty, stack: post.data.stack, versions: post.data.versions, testedOn: post.data.testedOn, repoUrl: post.data.repoUrl, lastVerified: post.data.lastVerified }} />
 
     {words > 1200 && <TableOfContents headings={headings} />}
 

@@ -207,3 +207,22 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** Writing 25 to 30 articles as Markdown files with git is slow for the owner; the editor is far easier. Serving editor articles from D1 at `/blog/` would mean making the home page, topics, RSS, sitemap and search dynamic.
 - **Decision:** Admin articles are `kind = editorial`. "Publish to blog" saves, validates with the same rules the content collection enforces, converts the Tiptap document to Markdown (`src/lib/markdown.ts`) with front matter, and commits `src/content/posts/<slug>.md` through the GitHub Contents API (`src/lib/github.ts`, fine-grained token on this repo only). The push triggers Workers Builds; the article becomes a normal static page with listings, RSS, sitemap, Pagefind and a share image. Update re-commits (adds `updatedDate`); Unpublish deletes the file (the slug stays reserved). Scheduling stores `scheduled_at`; the cron now runs every 15 minutes and publishes due articles (Top 10 and housekeeping still once an hour). Files carry an editor marker so a hand-written Markdown post with the same name is never overwritten. `GITHUB_DRY_RUN=true` (local only) keeps everything off GitHub for testing.
 - **Consequences:** Two to three minutes from Publish to live. The repository is the record of published articles; the D1 row stays the editable source. Hand-written Markdown posts (like the welcome post) are not editable in the editor.
+
+## D-030 · Essential improvements: what was built, what already existed, what waits
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The owner shared a 16-section "Essential Product Improvements" list and asked to add whatever was missing and worth it. The site is AdSense-first with one admin and community posting closed (D-005), on the free plan.
+- **Already in place:** Tiptap editor with Markdown shortcuts, tables, lists, quotes, code; autosave with status and local recovery; image upload with alt text, captions and compression; preview, word count, reading time, focus mode, shortcuts, templates; submission, AI moderation and review queue; scheduling; Better Auth sessions, backend role checks, Zod validation, HTML sanitising, Turnstile, per-user limits; canonical URLs, sitemaps, robots.txt, Article and Breadcrumb structured data, Open Graph images, clean locked slugs, noindex for unpublished and unapproved content; RSS; search (Pagefind); related articles; comments, replies, raises, reports; Top 10.
+- **Built now:** version history and restore, optimistic locking (`posts.version`), technical metadata and reader technical reports with email notice, contributor dashboard sections, withdraw, trash and restore, profile and website link, request changes with required reasons, audit log, export, bulk invites, emergency switches, database backup script.
+- **Waiting, and why:**
+  - Extra roles (Super Admin, Editor, Moderator): there is one admin; the four existing roles cover it. Add when a second editor joins.
+  - Reviewer assignment, inline editorial comments: need more than one editor.
+  - Newsletter, notification centre, follows, bookmarks, reading history: need Resend and an audience; revisit after AdSense approval.
+  - Media library with duplicate and unused detection: KV listing costs list operations and images are few; revisit when uploads grow or R2 is enabled (D-013).
+  - Redirect manager: published slugs are locked (D-026), so nothing redirects yet.
+  - Staging environment: a second Worker plus D1 database doubles setup for one person; local preview with dry-run publishing covers it for now.
+  - Admin two-factor: sign-in is Google-only, so turn on Google 2-Step Verification for the admin account instead (SETUP-GUIDE §16).
+  - AVIF conversion: the browser already compresses to WebP before upload; Workers cannot convert images within the free CPU limit.
+  - Everything in the list's "postpone" section (RAG, knowledge graph, playgrounds, AI writing agents, Q&A, gamification).
+- **Consequences:** One more migration (`0003_essentials`) for production. The trash is purged by the hourly cron after 30 days. Technical reports go to `CONTACT_TO` by email once `RESEND_API_KEY` is set; until then they appear only on `/admin`.
+

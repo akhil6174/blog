@@ -1,12 +1,14 @@
 ---
 /**
  * /admin : the editor's dashboard (admin role only, enforced by middleware).
- * Sections: counters, review queue (posts + comments), open reports, writers (invite/promote/ban), settings, recent moderation log.
+ * Sections: counters, emergency switches, review queue (posts + comments), open reports (technical and abuse),
+ * writers (bulk invite/promote/ban), trash, settings, data export, audit log, recent moderation log.
  * Every action posts to /api/admin/action and the page reloads.
  */
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { comments, db, moderationLog, posts, reports, user } from '../../lib/db';
+import { auditLog, comments, db, moderationLog, posts, reports, user } from '../../lib/db';
+import { isTechnicalReason, reasonLabel } from '../../lib/tech';
 import { getSettings, SETTING_HELP, type SettingKey } from '../../lib/db/settings';
 
 export const prerender = false;
@@ -32,6 +34,12 @@ const queuePosts = await d.select().from(posts).where(inArray(posts.status, ['pe
 const queueComments = await d.select().from(comments).where(inArray(comments.status, ['pending_review', 'hidden'])).orderBy(desc(comments.createdAt)).limit(50);
 const openReportRows = await d.select().from(reports).where(isNull(reports.resolvedAt)).orderBy(desc(reports.createdAt)).limit(50);
 const recentLog = await d.select().from(moderationLog).orderBy(desc(moderationLog.id)).limit(40);
+const trashed = await d.select({ id: posts.id, title: posts.title, authorId: posts.authorId, updatedAt: posts.updatedAt }).from(posts).where(eq(posts.status, 'trashed')).orderBy(desc(posts.updatedAt)).limit(50);
+const auditRows = await d.select().from(auditLog).orderBy(desc(auditLog.id)).limit(40);
+const actorIds = [...new Set([...auditRows.map((a) => a.actorId).filter(Boolean), ...trashed.map((t) => t.authorId)])] as string[];
+const actors = actorIds.length ? await d.select({ id: user.id, name: user.name }).from(user).where(inArray(user.id, actorIds)) : [];
+const actorName = new Map(actors.map((a) => [a.id, a.name]));
+const reportLink = (targetId: string) => (targetId.startsWith('editorial:') ? `/blog/${targetId.slice(10)}/` : null);
 const recentUsers = await d.select({ id: user.id, name: user.name, email: user.email, role: user.role, handle: user.handle, createdAt: user.createdAt, bannedAt: user.bannedAt, trustScore: user.trustScore }).from(user).orderBy(desc(user.createdAt)).limit(50);
 
 const authorIds = [...new Set([...queuePosts.map((p) => p.authorId), ...queueComments.map((c) => c.userId)])];
@@ -67,6 +75,12 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
       <span class:list={['rounded-full px-3 py-1', settings.community_open === 'true' ? 'bg-green-100 text-green-900' : 'bg-amber-100 text-amber-900']}>Community {settings.community_open === 'true' ? 'OPEN' : 'closed'}</span>
       <span class:list={['rounded-full px-3 py-1', settings.community_invite_only === 'true' ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-900']}>Writing {settings.community_invite_only === 'true' ? 'invite-only' : 'open to all'}</span>
       <span class="rounded-full bg-page px-3 py-1 text-muted">Model: {settings.ai_quality_model}</span>
+      <button class:list={['act rounded-full px-3 py-1', settings.submissions_open === 'false' ? 'bg-red-100 text-red-900' : 'border border-line']} data-action="set_settings" data-values={JSON.stringify({ submissions_open: settings.submissions_open === 'false' ? 'true' : 'false' })} data-confirm={settings.submissions_open === 'false' ? 'Allow submissions again?' : 'Pause all article submissions? Writers can still save drafts.'}>
+        Submissions {settings.submissions_open === 'false' ? 'PAUSED · resume' : 'on · pause'}
+      </button>
+      <button class:list={['act rounded-full px-3 py-1', settings.comments_open === 'false' ? 'bg-red-100 text-red-900' : 'border border-line']} data-action="set_settings" data-values={JSON.stringify({ comments_open: settings.comments_open === 'false' ? 'true' : 'false' })} data-confirm={settings.comments_open === 'false' ? 'Allow new comments again?' : 'Pause all new comments?'}>
+        Comments {settings.comments_open === 'false' ? 'PAUSED · resume' : 'on · pause'}
+      </button>
       <button class="act rounded border border-line px-3 py-1" data-action="run_cron">Run hourly job now</button>
     </div>
 
@@ -85,8 +99,9 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
                 </div>
                 <div class="flex flex-wrap gap-2 text-xs">
                   <button class="act rounded bg-accent px-3 py-1.5 font-semibold text-white" data-action="publish_post" data-id={p.id}>Publish</button>
-                  <button class="act rounded border border-line px-3 py-1.5" data-action="reject_post" data-id={p.id} data-prompt="Reason shown to the writer">Reject</button>
-                  <button class="act rounded border border-line px-3 py-1.5" data-action="trust_user" data-id={p.authorId}>Trust writer</button>
+                  <button class="act rounded border border-line px-3 py-1.5" data-action="request_changes" data-id={p.id} data-prompt="What should the writer change? (they see this, at least 10 characters)">Request changes</button>
+                  <button class="act rounded border border-line px-3 py-1.5" data-action="reject_post" data-id={p.id} data-prompt="Why is it declined? (the writer sees this, at least 10 characters)">Reject</button>
+                  <button class="act rounded border border-line px-3 py-1.5" data-action="set_role" data-id={p.authorId} data-value="trusted">Trust writer</button>
                   <button class="act rounded border border-red-300 px-3 py-1.5 text-red-700" data-action="ban_user" data-id={p.authorId} data-confirm="Ban this writer and unpublish all their posts?">Ban writer</button>
                 </div>
               </div>
@@ -120,10 +135,16 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
         <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
           {openReportRows.map((r) => (
             <li class="flex flex-wrap items-center justify-between gap-3 p-3">
-              <span>{r.targetType} <span class="font-mono text-xs">{r.targetId}</span> · {r.reason}{r.note ? ` · ${r.note}` : ''} · {fmt(r.createdAt)}</span>
+              <span class="min-w-0">
+                <span class:list={['mr-1 rounded px-1.5 py-0.5 text-xs font-semibold', isTechnicalReason(r.reason) ? 'bg-blue-100 text-blue-900' : 'bg-red-100 text-red-900']}>{reasonLabel(r.reason)}</span>
+                {r.targetType} {reportLink(r.targetId) ? <a href={reportLink(r.targetId)!} target="_blank" class="font-mono text-xs underline">{r.targetId}</a> : <span class="font-mono text-xs">{r.targetId}</span>}
+                {r.note ? <span class="block text-xs text-muted">“{r.note}”</span> : null}
+                <span class="block text-xs text-muted">{fmt(r.createdAt)}</span>
+              </span>
               <span class="flex gap-2 text-xs">
-                {r.targetType === 'post' ? <button class="act rounded border border-line px-3 py-1.5" data-action="unpublish_post" data-id={r.targetId}>Unpublish</button> : <button class="act rounded border border-line px-3 py-1.5" data-action="reject_comment" data-id={r.targetId}>Remove</button>}
-                <button class="act rounded border border-line px-3 py-1.5" data-action="resolve_report" data-id={String(r.id)}>Dismiss</button>
+                {r.targetType === 'comment' ? <button class="act rounded border border-line px-3 py-1.5" data-action="reject_comment" data-id={r.targetId}>Remove</button>
+                  : !r.targetId.startsWith('editorial:') && !isTechnicalReason(r.reason) ? <button class="act rounded border border-line px-3 py-1.5" data-action="unpublish_post" data-id={r.targetId}>Unpublish</button> : null}
+                <button class="act rounded border border-line px-3 py-1.5" data-action="resolve_report" data-id={String(r.id)}>{isTechnicalReason(r.reason) ? 'Mark fixed' : 'Dismiss'}</button>
               </span>
             </li>
           ))}
@@ -133,10 +154,12 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
 
     <section class="mt-10">
       <h2 class="text-lg font-bold">Writers and accounts</h2>
-      <form id="invite" class="mt-3 flex flex-wrap gap-2 text-sm">
-        <input name="email" type="email" required placeholder="email to invite as writer" class="rounded border border-line px-3 py-1.5" />
-        <button class="rounded bg-accent px-3 py-1.5 font-semibold text-white">Invite / promote to writer</button>
-        <span class="text-xs text-muted self-center">If they have not signed in yet, the invite applies on their first sign-in.</span>
+      <form id="invite" class="mt-3 grid gap-2 text-sm md:max-w-xl">
+        <textarea name="email" required rows="2" placeholder="Emails to invite as writers: one, or many separated by commas or new lines (up to 50)" class="rounded border border-line px-3 py-1.5"></textarea>
+        <div class="flex flex-wrap items-center gap-2">
+          <button class="rounded bg-accent px-3 py-1.5 font-semibold text-white">Invite / promote to writer</button>
+          <span class="text-xs text-muted">If they have not signed in yet, the invite applies on their first sign-in. Then send them the link to /signin/ yourself.</span>
+        </div>
       </form>
       <div class="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
         <table class="w-full text-left text-sm">
@@ -160,6 +183,21 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
     </section>
 
     <section class="mt-10">
+      <h2 class="text-lg font-bold">Trash ({trashed.length})</h2>
+      <p class="text-sm text-muted">Articles writers deleted. They are removed for good 30 days after deletion.</p>
+      {trashed.length === 0 ? <p class="mt-2 text-sm text-muted">Empty.</p> : (
+        <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+          {trashed.map((t) => (
+            <li class="flex flex-wrap items-center justify-between gap-3 p-3">
+              <span>{t.title} <span class="text-xs text-muted">· {actorName.get(t.authorId) ?? 'unknown'} · deleted {fmt(t.updatedAt)}</span></span>
+              <button class="act rounded border border-line px-3 py-1.5 text-xs" data-action="restore_post" data-id={t.id}>Restore</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-10">
       <h2 class="text-lg font-bold">Settings</h2>
       <p class="text-sm text-muted">Changes apply within a minute, no redeploy. Flip <strong>community_open</strong> to true only after AdSense shows "Ready" (plan, Phase 4).</p>
       <form id="settings" class="mt-3 grid gap-3 md:grid-cols-2">
@@ -172,6 +210,27 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
         ))}
         <div class="md:col-span-2"><button class="rounded bg-accent px-4 py-2 font-semibold text-white">Save settings</button></div>
       </form>
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Export data</h2>
+      <p class="text-sm text-muted">Download a JSON copy. For a full database backup, run <code>npm run db:backup</code> on your computer.</p>
+      <div class="mt-3 flex flex-wrap gap-2 text-sm">
+        {['articles', 'writers', 'reports', 'audit'].map((t) => <a href={`/api/admin/export?type=${t}`} class="rounded border border-line px-3 py-1.5 capitalize hover:border-accent" download>{t}</a>)}
+      </div>
+    </section>
+
+    <section class="mt-10">
+      <h2 class="text-lg font-bold">Audit log</h2>
+      <p class="text-sm text-muted">Every admin action, newest first.</p>
+      {auditRows.length === 0 ? <p class="mt-2 text-sm text-muted">Nothing yet.</p> : (
+        <div class="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-page uppercase tracking-wide text-muted"><tr><th class="p-2">When</th><th class="p-2">Who</th><th class="p-2">Action</th><th class="p-2">Target</th><th class="p-2">Detail</th></tr></thead>
+            <tbody>{auditRows.map((a) => <tr class="border-t border-line"><td class="whitespace-nowrap p-2 text-muted">{fmt(a.createdAt)}</td><td class="p-2">{(a.actorId && actorName.get(a.actorId)) ?? a.actorId ?? 'system'}</td><td class="p-2 font-mono">{a.action}</td><td class="p-2 font-mono">{a.targetId ? a.targetId.slice(0, 24) : ''}</td><td class="max-w-md p-2 break-words">{a.detail}</td></tr>)}</tbody>
+          </table>
+        </div>
+      )}
     </section>
 
     <section class="mt-10">
@@ -195,11 +254,12 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
     }
     document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', async () => {
       const { action, id, value, confirm: c, prompt: p } = b.dataset;
+      const values = b.dataset.values ? JSON.parse(b.dataset.values) : undefined;
       if (c && !window.confirm(c)) return;
       let reason;
       if (p) { reason = window.prompt(p); if (reason === null) return; }
       b.disabled = true;
-      if (await act({ action, id, value, reason })) setTimeout(() => location.reload(), 400); else b.disabled = false;
+      if (await act({ action, id, value, reason, values })) setTimeout(() => location.reload(), 400); else b.disabled = false;
     }));
     document.getElementById('invite')?.addEventListener('submit', async (e) => { e.preventDefault(); const email = new FormData(e.target).get('email'); if (await act({ action: 'invite', value: email })) setTimeout(() => location.reload(), 400); });
     document.getElementById('settings')?.addEventListener('submit', async (e) => { e.preventDefault(); const fd = new FormData(e.target); const values = Object.fromEntries(fd.entries()); if (await act({ action: 'set_settings', values })) setTimeout(() => location.reload(), 400); });

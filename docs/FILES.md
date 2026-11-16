@@ -30,6 +30,9 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/content/posts/*.md` | Editorial articles. `draft: true` keeps a post out of production. Files starting with `_` are ignored |
 | `src/content/authors/*.json` | Author profiles (name, role, bio, avatar, links) |
 | `src/assets/images/` | Images imported by content and components (optimised at build): default cover, author avatar |
+| `src/lib/tech.ts` | Technical details: validation, clean-up and parsing of the optional metadata |
+| `src/lib/tech-labels.ts` | Difficulty levels and report reasons (shared with browser code, no validation library) |
+| `src/lib/audit.ts` | Writes one audit log row per admin action |
 | `src/lib/site.ts` | Site constants: name, domain, tagline, description, contact addresses, topics, author, legal date |
 | `src/lib/posts.ts` | Post helpers: published list, author lookup, reading time, word count, tag slugs/summaries, related posts, dates, URLs |
 | `src/lib/seo.ts` | JSON-LD builders: WebSite, Person, Article, BreadcrumbList |
@@ -41,6 +44,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/components/AuthorCard.astro` | Author byline (compact) or author box (full) |
 | `src/components/AdSlot.astro` | Reserved-height ad container; renders nothing until `ADS_ENABLED=true` |
 | `src/components/TableOfContents.astro` | "In this article" list from H2/H3 headings |
+| `src/components/TechDetails.astro` | "Technical details" box above an article (level, stack, versions, tested on, code, last verified) |
 | `src/components/Pagination.astro` | Newer/Older links |
 | `src/pages/index.astro` | Home: tagline, topic chips, featured post, latest posts, pagination |
 | `src/pages/page/[page].astro` | Older posts, pages 2+ |
@@ -69,6 +73,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 |---|---|
 | `drizzle.config.ts` | Drizzle Kit config: generates SQL migrations from the schema into `drizzle/` |
 | `drizzle/0002_step_e_scheduling.sql` | Adds `scheduled_at` to `posts` |
+| `drizzle/0003_essentials.sql` | Adds `posts.tech_meta`, `posts.version`, `user.website` and the `audit_log` table |
 | `drizzle/0001_step_b_seo_fields.sql` | Adds `seo_title`, `category`, `summary_source`, `summary_basis`, `featured` to `posts` |
 | `drizzle/0000_init.sql` (+ `meta/`) | The database migration; applied with `npm run db:migrate:local` or `npm run deploy` |
 | `vitest.config.ts` | Unit test config (pure modules only) |
@@ -79,6 +84,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `tests/media.test.ts` | Import address rules, file-type sniffing, image source checks |
 | `tests/e2e/images.e2e.mjs` | Playwright check of URL import (API safety and both dialogs) |
 | `tests/markdown.test.ts` | Markdown conversion and front matter tests |
+| `tests/e2e/essentials.e2e.mjs` | Playwright check of version history, conflicts, technical details, My articles, admin tools and reader reports |
 | `tests/e2e/publish.e2e.mjs` | Playwright check of publishing, updating, unpublishing, scheduling and permissions (dry run) |
 | `tests/e2e/editor.e2e.mjs` | Playwright browser check of the editor (run against `npm run preview`) |
 | `src/middleware.ts` | Edge cache for public community routes; session loading and protection for /write, /me, /admin and write APIs |
@@ -129,9 +135,11 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/sitemap-community.xml.ts` | Sitemap for indexable community posts |
 | `src/pages/admin/index.astro` | Editor dashboard |
 | `src/pages/api/auth/[...all].ts` | Better Auth routes |
-| `src/pages/api/me.ts` | Account deletion |
+| `src/pages/api/me.ts` | Profile editing (name, bio, website) and account deletion |
 | `src/pages/api/posts.ts` | Save draft / submit |
 | `src/pages/api/posts/[id]/status.ts` | Submission status JSON |
+| `src/pages/api/posts/[id]/revisions.ts` | Saved versions of an article (list, or one for restoring); owner or admin only |
+| `src/pages/api/posts/[id]/action.ts` | Writer actions from My articles: withdraw, move to trash, restore |
 | `src/pages/api/comments.ts` | Create comment (moderated) |
 | `src/pages/api/raise.ts` | Raise counts |
 | `src/pages/api/view.ts` | View beacon |
@@ -148,12 +156,14 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/slug.ts` | Shared slug rules for the editor and the posts API |
 | `src/pages/api/ai/summary.ts` | AI summary endpoint (Workers AI, rate-limited) |
 | `src/lib/media.ts` | Image upload constants, file-type sniffing, `isImageSrc` |
-| `src/pages/api/admin/action.ts` | All admin actions |
+| `src/pages/api/admin/action.ts` | All admin actions, each written to the audit log |
+| `src/pages/api/admin/export.ts` | JSON download of articles, writers, reports or the audit log (admin only) |
 
 ## `scripts/`
 
 | File | What it does |
 |---|---|
+| `scripts/backup-db.mjs` | `npm run db:backup`: exports the production database to `backups/` |
 | `scripts/check-content.mjs` | `npm run check:content`: word counts, missing description/alt, heading order, internal links, thin tags; fails on blocking problems in published posts |
 
 ## `public/` (copied to the site root as-is)

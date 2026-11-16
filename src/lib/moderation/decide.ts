@@ -4,7 +4,8 @@
 import type { StepResult } from './types';
 
 export type Decision = {
-  status: 'published' | 'rejected' | 'pending_review';
+  /** changes_requested is only set by an editor (never by the automatic checks). */
+  status: 'published' | 'rejected' | 'pending_review' | 'changes_requested';
   reason: string;
   qualityScore: number | null;
   indexAllowed: boolean;

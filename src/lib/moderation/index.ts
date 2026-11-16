@@ -66,7 +66,7 @@ export async function applyDecision(kind: 'post' | 'comment', id: string, dec: D
         qualityScore: dec.qualityScore,
         indexAllowed: dec.indexAllowed,
         adsAllowed: dec.adsAllowed,
-        rejectReason: dec.status === 'rejected' ? dec.reason : null,
+        rejectReason: dec.status === 'rejected' || dec.status === 'changes_requested' ? dec.reason : null,
         publishedAt: dec.status === 'published' ? p.publishedAt ?? now : p.publishedAt,
         updatedAt: now,
       })

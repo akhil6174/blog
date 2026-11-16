@@ -236,6 +236,28 @@ bing.com/webmasters → Sign in with the Google account → **Import from Google
 
 **Gotchas:** never put the token in a file, chat or commit. If it leaks or expires, delete it on GitHub, create a new one and run the command again. `GITHUB_DRY_RUN` belongs only in your local `.dev.vars`, never in production.
 
+## 16. Backups, restore and admin account safety (10 minutes once, then 1 minute a week)
+
+**Why:** your articles and writers live in the D1 database. Cloudflare keeps 7 days of history (Time Travel), but a copy you hold yourself protects against mistakes you notice later.
+
+1. **Weekly backup.** From the `tech-blog` folder:
+   ```bash
+   npm run db:backup
+   ```
+   It saves `backups/trutiai-<date>.sql` (never committed). Copy the file to Google Drive or another computer.
+2. **Undo a recent mistake (last 7 days).** Find the time just before it, then restore to it:
+   ```bash
+   npx wrangler d1 time-travel info tech-blog-db
+   ```
+   ```bash
+   npx wrangler d1 time-travel restore tech-blog-db --timestamp=2026-11-16T10:00:00Z
+   ```
+   This replaces the whole database with that moment, so anything written after it is lost. Take a backup first.
+3. **Restore from a backup file** (only if the database is lost): ask Claude Code to walk you through it, because it needs an empty database first.
+4. **Test a restore once** on your computer, so you know it works: `npx wrangler d1 execute tech-blog-db --local --file=backups/<file>.sql` loads it into the local copy.
+5. **Protect the admin account.** You sign in with Google only, so turn on **2-Step Verification** at myaccount.google.com → Security for the Google account in `ADMIN_EMAILS`. That is the admin's two-factor.
+6. **Quick exports** of articles, writers, reports and the audit log are on `/admin` → Export data.
+
 ## 14. Google AdSense (Phase 3, week 8: not now)
 
 Do not sign up yet. Applying with an empty site wastes the first review. When Phase 2 is complete (25 to 30 posts, indexed), follow Part 4 of the plan. You will need: the same Gmail, your postal address exactly as on an ID, your PAN, an Indian bank account for wire payments, and the meta tag Google gives you (`ca-pub-…`) pasted into `BaseLayout.astro`.

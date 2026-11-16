@@ -7,6 +7,11 @@ import { isImageSrc } from '../../lib/media';
 import { CATEGORIES } from '../../lib/site';
 import { SEO_TITLE_MAX, SUMMARY_IDEAL_MAX, SUMMARY_MIN } from '../../lib/fingerprint';
 import { slugTyping } from '../../lib/slug';
+import { DIFFICULTIES } from '../../lib/tech-labels';
+
+export const TECH_KEYS = ['difficulty', 'stack', 'versions', 'testedOn', 'repoUrl', 'lastVerified'] as const;
+export type TechFields = Record<(typeof TECH_KEYS)[number], string>;
+export const emptyTech = (t?: Partial<TechFields> | null): TechFields => Object.fromEntries(TECH_KEYS.map((k) => [k, t?.[k] ?? ''])) as TechFields;
 
 export type Settings = {
   description: string;
@@ -19,6 +24,7 @@ export type Settings = {
   summarySource: '' | 'ai' | 'user';
   summaryBasis: string;
   featured: boolean;
+  tech: TechFields;
 };
 
 type Props = {
@@ -52,6 +58,8 @@ export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   submitted: { label: 'In review', tone: 'bg-amber-100 text-amber-900' },
   checking: { label: 'In review', tone: 'bg-amber-100 text-amber-900' },
   pending_review: { label: 'Waiting for an editor', tone: 'bg-amber-100 text-amber-900' },
+  changes_requested: { label: 'Changes requested', tone: 'bg-amber-100 text-amber-900' },
+  trashed: { label: 'In the trash', tone: 'bg-red-100 text-red-900' },
   scheduled: { label: 'Scheduled', tone: 'bg-blue-100 text-blue-900' },
   published: { label: 'Published', tone: 'bg-green-100 text-green-900' },
   rejected: { label: 'Declined', tone: 'bg-red-100 text-red-900' },
@@ -70,6 +78,7 @@ export default function SettingsPanel(p: Props) {
   const st = STATUS_LABEL[p.status] ?? STATUS_LABEL.draft;
   const tagCount = v.tags.split(',').map((t) => t.trim()).filter(Boolean).length;
   const shownTitle = v.seoTitle.trim() || p.title.trim() || 'Your article title';
+  const setTech = (k: keyof TechFields, val: string) => p.onChange({ tech: { ...v.tech, [k]: val } });
 
   return (
     <div class="grid min-w-0 grid-cols-1 gap-5 font-sans text-sm">
@@ -78,6 +87,13 @@ export default function SettingsPanel(p: Props) {
           <h2 class="text-xs font-semibold uppercase tracking-wide text-muted">Status</h2>
           <span class={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.tone}`}>{st.label}</span>
         </div>
+        {p.status === 'changes_requested' && p.rejectReason && (
+          <div class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+            <p class="flex items-center gap-1.5 font-semibold"><AlertTriangle size={15} /> The editor asked for changes</p>
+            <p class="mt-1">{p.rejectReason}</p>
+            <p class="mt-2 text-xs">Make the changes, then submit again.</p>
+          </div>
+        )}
         {p.status === 'rejected' && p.rejectReason && (
           <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-red-900">
             <p class="flex items-center gap-1.5 font-semibold"><AlertTriangle size={15} /> Editor feedback</p>
@@ -179,6 +195,38 @@ export default function SettingsPanel(p: Props) {
           </button>
         )}
       </section>
+
+
+      {/* Technical details (optional) */}
+      <details class="grid min-w-0 grid-cols-1 gap-2 rounded-lg border border-line p-3" open={TECH_KEYS.some((k) => v.tech[k])}>
+        <summary class="cursor-pointer font-semibold">Technical details <span class="font-normal text-muted">(optional)</span></summary>
+        <p class="mt-1 text-xs text-muted">Shown in a box above the article. Helps readers check the steps match their setup.</p>
+        <div class="mt-2 grid min-w-0 grid-cols-1 gap-2">
+          <label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold">Difficulty</span>
+            <select aria-label="Difficulty" value={v.tech.difficulty} onChange={(e) => setTech('difficulty', (e.target as HTMLSelectElement).value)} class="field">
+              <option value="">Not set</option>
+              {DIFFICULTIES.map((d) => <option value={d.value}>{d.label}</option>)}
+            </select>
+          </label>
+          <label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold">Languages and frameworks</span>
+            <input aria-label="Languages and frameworks" maxLength={120} value={v.tech.stack} onInput={(e) => setTech('stack', (e.target as HTMLInputElement).value)} class="field" placeholder="TypeScript, Astro, Cloudflare Workers" /></label>
+          <label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold">Versions used</span>
+            <input aria-label="Versions used" maxLength={160} value={v.tech.versions} onInput={(e) => setTech('versions', (e.target as HTMLInputElement).value)} class="field" placeholder="Node 22, Astro 7.4, Wrangler 4" /></label>
+          <label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold">Tested on</span>
+            <input aria-label="Tested on" maxLength={160} value={v.tech.testedOn} onInput={(e) => setTech('testedOn', (e.target as HTMLInputElement).value)} class="field" placeholder="Windows 11, Chrome 140" /></label>
+          <label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold">Code repository</span>
+            <input aria-label="Code repository" type="url" maxLength={300} value={v.tech.repoUrl} onInput={(e) => setTech('repoUrl', (e.target as HTMLInputElement).value)} class="field" placeholder="https://github.com/you/example" />
+            {v.tech.repoUrl && !/^https:\/\/\S+$/.test(v.tech.repoUrl.trim()) && <span class="text-xs text-amber-700">Use a full https:// link, or it will not be shown.</span>}
+          </label>
+          <div class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold">Last verified</span>
+            <div class="flex min-w-0 gap-2">
+              <input aria-label="Last verified" type="date" value={v.tech.lastVerified} onInput={(e) => setTech('lastVerified', (e.target as HTMLInputElement).value)} class="field min-w-0 flex-1" />
+              <button type="button" class="shrink-0 rounded-md border border-line px-2 text-xs font-semibold hover:border-accent" onClick={() => setTech('lastVerified', new Date().toISOString().slice(0, 10))}>Today</button>
+            </div>
+            <span class="text-xs text-muted">The day you last checked the steps still work.</span>
+          </div>
+        </div>
+      </details>
 
       {p.isAdmin && (
         <label class="flex items-start gap-2 rounded-lg border border-line p-3">

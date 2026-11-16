@@ -8,6 +8,7 @@ import { db, posts, postTags } from './db';
 import { getSettingInt } from './db/settings';
 import { CATEGORIES, SITE } from './site';
 import { editorialFile } from './markdown';
+import { parseTech } from './tech';
 import { deleteFile, isDryRun, putFile } from './github';
 import type { TiptapNode } from './render-doc';
 
@@ -60,6 +61,7 @@ export async function publishEditorial(postId: string, now = new Date()): Promis
       seoTitle: p.seoTitle,
       coverUrl: p.coverImage,
       coverAlt: p.coverAlt,
+      tech: parseTech(p.techMeta),
     },
     JSON.parse(p.bodyJson) as TiptapNode,
   );

@@ -8,7 +8,8 @@ import { env } from 'cloudflare:workers';
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, posts, postRevisions, postTags, tags } from '../../lib/db';
-import { getSettingInt } from '../../lib/db/settings';
+import { getSettingBool, getSettingInt } from '../../lib/db/settings';
+import { cleanTech, hasTech } from '../../lib/tech';
 import { hasRole } from '../../lib/auth';
 import { contentHash, excerpt, isTiptapDoc, newId, readingMinutes, renderDoc, slugify } from '../../lib/content';
 import { tagSlug } from '../../lib/posts';
@@ -39,6 +40,12 @@ const Body = z.object({
   summaryBasis: z.string().max(4000).optional().default(''),
   /** Admin only; ignored for everyone else. */
   featured: z.boolean().optional(),
+  /** Optional technical details (src/lib/tech.ts); invalid fields are dropped, never fail the save. */
+  tech: z.record(z.string(), z.string().max(300)).optional(),
+  /** The post version this edit started from. A newer stored version means another tab or device saved since. */
+  baseVersion: z.number().int().min(0).optional(),
+  /** true = overwrite anyway after the writer saw the conflict warning. */
+  force: z.boolean().default(false),
 });
 
 const json = (b: unknown, status = 200) => Response.json(b, { status, headers: { 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });
@@ -61,6 +68,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (b.id && !post) return json({ error: 'Post not found.' }, 404);
   if (post && post.authorId !== user.id && !hasRole(user, 'admin')) return json({ error: 'Not your post.' }, 403);
   if (post && ['checking', 'submitted'].includes(post.status)) return json({ error: 'This post is being checked; wait for the result before editing.' }, 409);
+  if (post?.status === 'trashed') return json({ error: 'This article is in the trash. Restore it from My articles first.' }, 409);
+  // Optimistic locking: refuse to overwrite a newer save from another tab or device.
+  if (post && typeof b.baseVersion === 'number' && post.version > b.baseVersion && !b.force) {
+    return json({ error: 'This article was changed in another tab or device.', conflict: true, version: post.version, updatedAt: post.updatedAt.toISOString() }, 409);
+  }
   // Admins write editorial articles (published to /blog/ from the editor, no moderation); everyone else writes community posts.
   const kind: 'community' | 'editorial' = post?.kind ?? (hasRole(user, 'admin') ? 'editorial' : 'community');
   if (kind === 'editorial' && b.submit) return json({ error: 'Editorial articles are published with "Publish to blog", not submitted for review.' }, 400);
@@ -68,6 +80,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { html, text, words } = renderDoc(b.bodyJson);
   const title = b.title.trim() || 'Untitled draft';
   const description = b.description.trim() || excerpt(text);
+
+  if (b.submit && !(await getSettingBool('submissions_open')) && !hasRole(user, 'admin')) return json({ error: 'Submissions are paused right now. Your draft is saved; please try again later.' }, 503);
 
   if (b.submit) {
     const problems: string[] = [];
@@ -97,7 +111,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Slug: set on first save, kept stable afterwards (SEO); de-duplicate.
   // Slug: free to change until the first publish, then locked so published links never break.
   const locked = !!post?.publishedAt;
-  const requested = slugify(b.slug || '');
+  const requested = b.slug.trim() ? slugify(b.slug) : ''; // slugify('') is 'post', which would clash
   let slug = post?.slug;
   let slugError: string | null = null;
   if (!locked && requested && requested !== slug) {
@@ -118,6 +132,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const id = post?.id ?? newId();
   const status = b.submit ? 'submitted' : post && post.status !== 'draft' && post.status !== 'rejected' ? post.status : 'draft';
+  const tech = cleanTech(b.tech);
+  const version = (post?.version ?? 0) + 1;
   const values = {
     id,
     authorId: post?.authorId ?? user.id,
@@ -130,6 +146,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     bodyText: text,
     coverImage: b.coverImage ?? null,
     coverAlt: b.coverAlt ?? null,
+    techMeta: b.tech ? (hasTech(tech) ? JSON.stringify(tech) : null) : post?.techMeta ?? null,
+    version,
     seoTitle: b.seoTitle.trim() || null,
     category: CATEGORIES.some((c) => c.slug === b.category) ? b.category : null,
     summarySource: b.summarySource || null,
@@ -140,6 +158,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     wordCount: words,
     readingMinutes: readingMinutes(words),
     contentHash: await contentHash(text),
+    // Feedback stays visible while the writer revises (rejected or changes requested); cleared on resubmit.
     rejectReason: b.submit ? null : post?.rejectReason ?? null,
     submittedAt: b.submit ? nowDate : post?.submittedAt ?? null,
     updatedAt: nowDate,
@@ -178,7 +197,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (b.submit) {
     await env.MODERATION.create({ id: `post-${id}-${Date.now()}`, params: { postId: id, kind: 'post' } });
-    return json({ id, status: 'submitted', slug, slugError, redirect: `/write/status/${id}/` });
+    return json({ id, status: 'submitted', slug, slugError, version, redirect: `/write/status/${id}/` });
   }
-  return json({ id, status, kind, slug, slugLocked: locked, slugError, updatedAt: nowDate.toISOString() });
+  return json({ id, status, kind, slug, slugLocked: locked, slugError, version, updatedAt: nowDate.toISOString() });
 };

@@ -3,6 +3,7 @@
  *  1. Top 10 lists (today, this month, this year) from post_stats -> KV "top:<window>" as JSON.
  *  2. Purge the community listing/sitemap caches so new posts appear even if a purge was missed.
  *  3. Delete drafts untouched for 180 days with no title.
+ *  4. Empty the trash: articles trashed more than 30 days ago (revisions and tags cascade).
  */
 import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
@@ -59,5 +60,8 @@ export async function runHourly(now = new Date()): Promise<void> {
   await purgePaths(['/community/', '/sitemap-community.xml', '/top/']);
 
   const cutoff = new Date(now.getTime() - 180 * 24 * 3600 * 1000);
-  await db().delete(posts).where(and(eq(posts.status, 'draft'), lt(posts.updatedAt, cutoff), isNull(posts.submittedAt)));
+  await db().delete(posts).where(and(eq(posts.status, 'draft'), eq(posts.title, 'Untitled draft'), lt(posts.updatedAt, cutoff), isNull(posts.submittedAt)));
+
+  const trashCutoff = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+  await db().delete(posts).where(and(eq(posts.status, 'trashed'), lt(posts.updatedAt, trashCutoff)));
 }

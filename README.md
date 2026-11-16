@@ -25,6 +25,7 @@ npm run dev            # dev server at http://127.0.0.1:4321 with Cloudflare bin
 npm run build          # production build into dist/
 npm run preview        # serve the production build through workerd (closest to production)
 npm run generate-types # regenerate worker-configuration.d.ts after changing wrangler.jsonc
+npm run db:backup      # export the production database to backups/ (weekly; see SETUP-GUIDE §16)
 npx wrangler deploy    # manual deploy; normally Workers Builds deploys on push to main
 ```
 

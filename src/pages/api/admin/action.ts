@@ -1,5 +1,7 @@
 /**
- * POST /api/admin/action : every admin operation (admin role enforced by middleware). Each action is logged.
+ * POST /api/admin/action : every admin operation (admin role enforced by middleware).
+ * Every successful action is written to the audit log (shown on /admin). Rejecting and requesting changes need a reason,
+ * because the writer sees it.
  */
 import type { APIRoute } from 'astro';
 import { eq, sql } from 'drizzle-orm';
@@ -9,11 +11,12 @@ import { SETTING_DEFAULTS, setSetting, type SettingKey } from '../../../lib/db/s
 import { applyDecision, logStep } from '../../../lib/moderation';
 import { purgePostCaches } from '../../../lib/cache';
 import { runHourly } from '../../../cron/hourly';
+import { audit } from '../../../lib/audit';
 
 export const prerender = false;
 
 const Body = z.object({
-  action: z.enum(['publish_post', 'reject_post', 'unpublish_post', 'publish_comment', 'reject_comment', 'resolve_report', 'set_role', 'ban_user', 'unban_user', 'invite', 'set_settings', 'run_cron']),
+  action: z.enum(['publish_post', 'reject_post', 'request_changes', 'restore_post', 'unpublish_post', 'publish_comment', 'reject_comment', 'resolve_report', 'set_role', 'ban_user', 'unban_user', 'invite', 'set_settings', 'run_cron']),
   id: z.string().optional(),
   value: z.string().optional(),
   reason: z.string().max(300).optional(),
@@ -27,6 +30,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json({ error: 'Invalid request.' }, 400);
   const { action, id, value, reason, values } = parsed.data;
+  const res = await run(me, action, id, value, reason?.trim(), values);
+  if (res.status < 400) {
+    const detail = action === 'set_settings' ? Object.entries(values ?? {}).map(([k, v]) => `${k}=${v}`).join(', ') : [value, reason].filter(Boolean).join(' · ');
+    await audit(me.id, action, id ?? null, detail || null);
+  }
+  return res;
+};
+
+async function run(me: { id: string }, action: z.infer<typeof Body>['action'], id?: string, value?: string, reason?: string, values?: Record<string, string>): Promise<Response> {
   const d = db();
   const adminLog = (type: 'post' | 'comment', target: string, verdict: string, why: string) => logStep(type, target, { step: 'decide', verdict: verdict as 'publish', reason: `admin: ${why}`, provider: 'code' }, me.id);
 
@@ -39,11 +51,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await adminLog('post', id, 'publish', reason || 'approved');
       return json({ message: 'Published.' });
     }
-    case 'reject_post': {
+    case 'reject_post':
+    case 'request_changes': {
       if (!id) return json({ error: 'id required' }, 400);
-      await applyDecision('post', id, { status: 'rejected', reason: reason || 'Declined by editor. See the community guidelines.', qualityScore: null, indexAllowed: false, adsAllowed: false }, { notify: true });
-      await adminLog('post', id, 'reject', reason || 'declined');
-      return json({ message: 'Rejected and writer notified.' });
+      if (!reason || reason.length < 10) return json({ error: 'Write a reason of at least 10 characters. The writer sees it.' }, 400);
+      const changes = action === 'request_changes';
+      await applyDecision('post', id, { status: changes ? 'changes_requested' : 'rejected', reason, qualityScore: null, indexAllowed: false, adsAllowed: false }, { notify: true });
+      await adminLog('post', id, changes ? 'unsure' : 'reject', `${changes ? 'changes requested' : 'declined'}: ${reason}`);
+      return json({ message: changes ? 'Changes requested and writer notified.' : 'Rejected and writer notified.' });
+    }
+    case 'restore_post': {
+      if (!id) return json({ error: 'id required' }, 400);
+      const p = await d.query.posts.findFirst({ where: eq(posts.id, id), columns: { status: true } });
+      if (p?.status !== 'trashed') return json({ error: 'Only articles in the trash can be restored.' }, 400);
+      await d.update(posts).set({ status: 'draft', updatedAt: new Date() }).where(eq(posts.id, id));
+      return json({ message: 'Restored as a draft for its writer.' });
     }
     case 'unpublish_post': {
       if (!id) return json({ error: 'id required' }, 400);
@@ -106,15 +128,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ message: 'User unbanned. Their posts stay unpublished until re-approved.' });
     }
     case 'invite': {
-      const email = (value ?? '').trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'Valid email required' }, 400);
-      const existing = await d.query.user.findFirst({ where: eq(user.email, email) });
-      if (existing) {
-        if (existing.role === 'reader') await d.update(user).set({ role: 'writer' }).where(eq(user.id, existing.id));
-        return json({ message: `${email} can write now.` });
+      // One or many emails, separated by commas, spaces or new lines (bulk invitations).
+      const emails = [...new Set((value ?? '').toLowerCase().split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean))];
+      const bad = emails.filter((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+      if (emails.length === 0 || bad.length) return json({ error: bad.length ? `Not valid: ${bad.slice(0, 5).join(', ')}` : 'Valid email required' }, 400);
+      if (emails.length > 50) return json({ error: 'Invite at most 50 people at a time.' }, 400);
+      const later: string[] = [];
+      let now = 0;
+      for (const email of emails) {
+        const existing = await d.query.user.findFirst({ where: eq(user.email, email) });
+        if (existing) {
+          if (existing.role === 'reader') await d.update(user).set({ role: 'writer' }).where(eq(user.id, existing.id));
+          now++;
+        } else later.push(email);
       }
-      await setSetting('invited_emails' as SettingKey, [...new Set([...(await invitedList()), email])].join(','));
-      return json({ message: `${email} will become a writer on first sign-in.` });
+      if (later.length) await setSetting('invited_emails' as SettingKey, [...new Set([...(await invitedList()), ...later])].join(','));
+      return json({ message: emails.length === 1 ? (now ? `${emails[0]} can write now.` : `${emails[0]} will become a writer on first sign-in.`) : `${now} can write now, ${later.length} will become writers on first sign-in.` });
     }
     case 'set_settings': {
       if (!values) return json({ error: 'values required' }, 400);
@@ -128,7 +157,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
   return json({ error: 'Unknown action' }, 400);
-};
+}
 
 async function invitedList(): Promise<string[]> {
   const row = await db().query.settings.findFirst({ where: (s, { eq: e }) => e(s.key, 'invited_emails') });

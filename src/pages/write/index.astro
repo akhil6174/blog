@@ -4,6 +4,7 @@
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Editor from '../../islands/editor/Editor';
+import { parseTech } from '../../lib/tech';
 import { db, posts, postTags } from '../../lib/db';
 import { getSettingInt } from '../../lib/db/settings';
 import { hasRole } from '../../lib/auth';
@@ -22,11 +23,13 @@ if (id) {
   const p = await db().query.posts.findFirst({ where: eq(posts.id, id) });
   if (!p || (p.authorId !== user.id && !hasRole(user, 'admin'))) return Astro.redirect('/write/');
   if (['checking', 'submitted'].includes(p.status)) return Astro.redirect(`/write/status/${p.id}/`);
+  if (p.status === 'trashed') return Astro.redirect('/me/#trash');
   const t = await db().select({ slug: postTags.tagSlug }).from(postTags).where(eq(postTags.postId, p.id));
   initial = {
     id: p.id, title: p.title, subtitle: p.subtitle ?? '', description: p.description ?? '', tags: t.map((x) => x.slug),
     coverImage: p.coverImage, coverAlt: p.coverAlt, bodyJson: JSON.parse(p.bodyJson), status: p.status, rejectReason: p.rejectReason, updatedAt: p.updatedAt.toISOString(),
     seoTitle: p.seoTitle, category: p.category, slug: p.slug, summarySource: p.summarySource, summaryBasis: p.summaryBasis, featured: p.featured, publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null, kind: p.kind, scheduledAt: p.scheduledAt ? p.scheduledAt.toISOString() : null,
+    tech: parseTech(p.techMeta), version: p.version,
   };
 }
 ---

@@ -141,6 +141,8 @@ export type EditorialMeta = {
   seoTitle?: string | null;
   coverUrl?: string | null;
   coverAlt?: string | null;
+  /** Optional technical details (src/lib/tech.ts). */
+  tech?: { difficulty?: string; stack?: string; versions?: string; testedOn?: string; repoUrl?: string; lastVerified?: string };
 };
 
 const yaml = (v: string) => JSON.stringify(v); // JSON strings are valid YAML scalars
@@ -158,6 +160,7 @@ export function frontmatter(m: EditorialMeta): string {
     ...(m.category ? [`category: ${yaml(m.category)}`] : []),
     ...(m.seoTitle ? [`seoTitle: ${yaml(m.seoTitle)}`] : []),
     ...(m.coverUrl ? [`coverUrl: ${yaml(m.coverUrl)}`, `coverAlt: ${yaml(m.coverAlt ?? '')}`] : []),
+    ...(['difficulty', 'stack', 'versions', 'testedOn', 'repoUrl', 'lastVerified'] as const).filter((k) => m.tech?.[k]).map((k) => `${k}: ${yaml(m.tech![k]!)}`),
     '# Written in the TrutiAI editor. Edit it there: changes here are overwritten on the next publish.',
     '---',
     '',

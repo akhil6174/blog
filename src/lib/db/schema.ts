@@ -25,6 +25,8 @@ export const user = sqliteTable(
     role: text('role', { enum: ['reader', 'writer', 'trusted', 'admin'] }).notNull().default('writer'),
     handle: text('handle'),
     bio: text('bio'),
+    /** Portfolio or personal site shown on the writer page. */
+    website: text('website'),
     trustScore: integer('trust_score').notNull().default(0),
     bannedAt: integer('banned_at', { mode: 'timestamp' }),
     shadowBanned: integer('shadow_banned', { mode: 'boolean' }).notNull().default(false),
@@ -81,7 +83,7 @@ export const verification = sqliteTable(
 );
 
 // ---------- Blog ----------
-export const POST_STATUS = ['draft', 'submitted', 'checking', 'pending_review', 'scheduled', 'published', 'rejected', 'hidden', 'unpublished'] as const;
+export const POST_STATUS = ['draft', 'submitted', 'checking', 'pending_review', 'changes_requested', 'scheduled', 'published', 'rejected', 'hidden', 'unpublished', 'trashed'] as const;
 export type PostStatus = (typeof POST_STATUS)[number];
 
 export const posts = sqliteTable(
@@ -108,6 +110,10 @@ export const posts = sqliteTable(
     bodyText: text('body_text').notNull().default(''), // plain text for moderation and search
     coverImage: text('cover_image'),
     coverAlt: text('cover_alt'),
+    /** Optional technical details as JSON (src/lib/tech.ts): difficulty, stack, versions, tested on, repo, last verified. */
+    techMeta: text('tech_meta'),
+    /** Bumped by every editor save. A save based on an older version is refused (two tabs or devices). */
+    version: integer('version').notNull().default(0),
     status: text('status', { enum: POST_STATUS }).notNull().default('draft'),
     /** community: moderated, served from D1 at /p/<slug>. editorial: admin-written, committed as Markdown to the repo and served statically at /blog/<slug>. */
     kind: text('kind', { enum: ['community', 'editorial'] }).notNull().default('community'),
@@ -245,10 +251,24 @@ export const moderationLog = sqliteTable(
   (t) => [index('moderation_log_target_idx').on(t.targetType, t.targetId), index('moderation_log_created_idx').on(t.createdAt)],
 );
 
+/** Who did what in the admin area and on account-level actions. Kept small: one row per admin action. */
+export const auditLog = sqliteTable(
+  'audit_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    actorId: text('actor_id'),
+    action: text('action').notNull(),
+    targetId: text('target_id'),
+    detail: text('detail'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('audit_log_created_idx').on(t.createdAt)],
+);
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
 });
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, settings };
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings };

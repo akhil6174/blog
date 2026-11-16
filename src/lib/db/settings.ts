@@ -8,6 +8,8 @@ import { db, settings } from './index';
 
 export const SETTING_DEFAULTS = {
   community_open: 'false', // community publishing visible to the public
+  submissions_open: 'true', // emergency switch: false = nobody can submit community articles
+  comments_open: 'true', // emergency switch: false = no new comments anywhere
   community_invite_only: 'true', // while false/true: only users with role >= writer who were invited can write (Phase 3 testing)
   ai_quality_model: env.AI_MODEL_DEFAULT || '@cf/openai/gpt-oss-20b',
   ai_safety_fallback_model: env.AI_SAFETY_FALLBACK_MODEL || '@cf/meta/llama-guard-3-8b',
@@ -65,6 +67,8 @@ export function invalidateSettingsCache() {
 
 export const SETTING_HELP: Record<SettingKey, string> = {
   community_open: 'true = community posts are public, listed and linked. false = only the admin and the author can see them.',
+  submissions_open: 'Emergency switch. false = writers can keep drafting, but nobody can submit articles for review.',
+  comments_open: 'Emergency switch. false = no new comments on any article; existing comments stay visible.',
   community_invite_only: 'true = only users the admin promoted to writer can open /write. false = anyone signed in can write.',
   ai_quality_model: 'Workers AI model id for the spam/quality check. Change here when Cloudflare deprecates a model.',
   ai_safety_fallback_model: 'Workers AI model used for the harmful-content check only if OpenAI fails.',

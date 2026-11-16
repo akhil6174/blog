@@ -13,7 +13,7 @@ import { NodeSelection } from '@tiptap/pm/state';
 import type { Editor as TEditor, JSONContent } from '@tiptap/core';
 import {
   Bold, Check, Code, Columns2, Eye, Highlighter, Italic, LayoutTemplate, Link as LinkIcon, Maximize2, Minimize2, Moon,
-  PenLine, RotateCcw, Settings2, Strikethrough, Sun, Underline, X,
+  History, PenLine, RotateCcw, Settings2, Strikethrough, Sun, Underline, X,
 } from 'lucide-preact';
 import { buildExtensions, type EditorCallbacks } from './extensions';
 import type { SlashItem } from './slash';
@@ -22,7 +22,7 @@ import Rail from './Rail';
 import BlockHandle from './BlockHandle';
 import Modal from './Modal';
 import Preview from './Preview';
-import SettingsPanel, { STATUS_LABEL, type Settings } from './SettingsPanel';
+import SettingsPanel, { STATUS_LABEL, emptyTech, type Settings, type TechFields } from './SettingsPanel';
 import { TEMPLATES, type Template } from './templates';
 import { BodyImageDialog, CoverDialog } from './ImageDialogs';
 import { isImageSrc } from '../../lib/media';
@@ -50,6 +50,8 @@ type InitialPost = {
   publishedAt?: string | null;
   kind?: 'community' | 'editorial';
   scheduledAt?: string | null;
+  tech?: Partial<TechFields> | null;
+  version?: number;
 };
 
 type Props = { initial?: InitialPost; authorName: string; minWords: number; maxTags: number; turnstileSiteKey?: string; isAdmin?: boolean; host?: string };
@@ -64,6 +66,8 @@ type ModalState =
   | { kind: 'schedule' }
   | { kind: 'templates'; chosen?: Template }
   | { kind: 'shortcuts' }
+  | { kind: 'history'; items?: { id: number; title: string; savedAt: string; words: number }[]; error?: string }
+  | { kind: 'conflict' }
   | { kind: 'notice'; title: string; items: string[] }
   | { kind: 'confirm'; title: string; body: string; confirmLabel: string; danger?: boolean; run: () => void | Promise<void> };
 
@@ -124,6 +128,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     summarySource: (initial.summarySource === 'ai' || initial.summarySource === 'user' ? initial.summarySource : '') as Settings['summarySource'],
     summaryBasis: initial.summaryBasis ?? '',
     featured: !!initial.featured,
+    tech: emptyTech(initial.tech),
   });
   // The URL follows the title until the writer edits it (or the post is published, which locks it).
   const [slugTouched, setSlugTouched] = useState(!!initial.slug && initial.slug !== slugify(initial.title ?? '') && initial.slug !== 'untitled-draft');
@@ -154,6 +159,10 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const latest = useRef({ title, subtitle, settings, effectiveSlug });
   latest.current = { title, subtitle, settings, effectiveSlug };
   const version = useRef(0);
+  /** Server-side version this editor last saw; sent with every save so a newer save elsewhere is never overwritten. */
+  const serverVersion = useRef(initial.version ?? 0);
+  const forceNext = useRef(false);
+  const conflicted = useRef(false);
   const savedVersion = useRef(0);
   const inflight = useRef(false);
   const pending = useRef(false);
@@ -166,7 +175,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const localKey = () => `trutiai:draft:${idRef.current ?? 'new'}`;
 
   // ---------- saving ----------
-  const payload = (submit: boolean) => {
+  const payload = (submit: boolean, snapshot = false) => {
     const s = latest.current.settings;
     const tags = s.tags.split(',').map((t) => t.trim()).filter((t) => t.length >= 2).map((t) => t.slice(0, 30)).slice(0, maxTags);
     return {
@@ -184,17 +193,23 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       summarySource: s.summarySource,
       summaryBasis: s.summaryBasis,
       ...(isAdmin ? { featured: s.featured } : {}),
+      tech: s.tech,
+      ...(idRef.current ? { baseVersion: serverVersion.current } : {}),
+      force: forceNext.current,
       submit,
-      autosave: !submit,
+      autosave: !submit && !snapshot,
       turnstileToken: submit ? document.querySelector<HTMLInputElement>('input[name="cf-turnstile-response"]')?.value ?? '' : '',
     };
   };
 
-  const persist = useCallback(async (submit = false): Promise<boolean> => {
+  /** snapshot = also keep this exact state in Version history (used before restoring an older version). */
+  const persist = useCallback(async (submit = false, snapshot = false): Promise<boolean> => {
     if (inflight.current) {
       pending.current = true;
       return false;
     }
+    // After a conflict, wait for the writer's choice instead of retrying in the background.
+    if (conflicted.current && !forceNext.current) return false;
     window.clearTimeout(idleTimer.current);
     window.clearTimeout(maxTimer.current);
     window.clearTimeout(retryTimer.current);
@@ -203,9 +218,18 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     inflight.current = true;
     setSave((s) => ({ ...s, state: 'saving' }));
     try {
-      const res = await fetch('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload(submit)) });
-      const data = (await res.json().catch(() => ({}))) as { id?: string; status?: string; redirect?: string; error?: string; slug?: string; slugLocked?: boolean; slugError?: string | null };
+      const res = await fetch('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload(submit, snapshot)) });
+      const data = (await res.json().catch(() => ({}))) as { id?: string; status?: string; redirect?: string; error?: string; slug?: string; slugLocked?: boolean; slugError?: string | null; version?: number; conflict?: boolean };
+      if (res.status === 409 && data.conflict) {
+        conflicted.current = true;
+        setSave((s) => ({ ...s, state: 'error', msg: 'Changed in another tab' }));
+        setModal({ kind: 'conflict' });
+        return false;
+      }
       if (!res.ok) throw new Error(data.error ?? `Save failed (${res.status})`);
+      if (typeof data.version === 'number') serverVersion.current = data.version;
+      conflicted.current = false;
+      forceNext.current = false;
       if (data.id && !idRef.current) {
         const oldKey = localKey();
         idRef.current = data.id;
@@ -297,6 +321,37 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   useEffect(() => {
     if (editor && ['localhost', '127.0.0.1'].includes(location.hostname)) (window as unknown as { __editor?: TEditor }).__editor = editor;
   }, [editor]);
+
+  const openHistory = async () => {
+    setModal({ kind: 'history' });
+    // Save first so the newest work is part of the list.
+    if (version.current !== savedVersion.current) await persist(false);
+    if (!idRef.current) return setModal({ kind: 'history', items: [] });
+    try {
+      const r = await fetch(`/api/posts/${idRef.current}/revisions`);
+      const d = (await r.json()) as { revisions?: { id: number; title: string; savedAt: string; words: number }[]; error?: string };
+      if (!r.ok) throw new Error(d.error ?? 'Could not load versions.');
+      setModal((m) => (m?.kind === 'history' ? { kind: 'history', items: d.revisions ?? [] } : m));
+    } catch (e) {
+      setModal((m) => (m?.kind === 'history' ? { kind: 'history', error: (e as Error).message } : m));
+    }
+  };
+  const restoreRevision = async (rev: number) => {
+    if (!editor || !idRef.current) return;
+    try {
+      const r = await fetch(`/api/posts/${idRef.current}/revisions?rev=${rev}`);
+      const d = (await r.json()) as { title?: string; bodyJson?: JSONContent; error?: string };
+      if (!r.ok || !d.bodyJson) throw new Error(d.error ?? 'Could not load this version.');
+      // Keep the current state in history first, so restoring is never a one-way door.
+      await persist(false, true);
+      editor.commands.setContent(d.bodyJson);
+      if (d.title && d.title !== 'Untitled draft') setTitle(d.title);
+      setModal(null);
+      markDirty();
+    } catch (e) {
+      setModal({ kind: 'history', error: (e as Error).message });
+    }
+  };
 
   const openLink = () => {
     if (!editor) return;
@@ -630,7 +685,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             editor.commands.setContent(recovery.bodyJson);
             setTitle(recovery.title);
             setSubtitle(recovery.subtitle);
-            setSettings(recovery.settings);
+            setSettings({ ...recovery.settings, tech: emptyTech(recovery.settings.tech) });
             setRecovery(null);
             markDirty();
           }}>Restore</button>
@@ -774,6 +829,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
               return !d;
             });
           }}>{dark ? <Sun size={17} /> : <Moon size={17} />}</button>
+          {!focus && <button type="button" class="icon-btn" title="Version history" aria-label="Version history" onClick={openHistory}><History size={17} /></button>}
           <button type="button" class="icon-btn" title={focus ? 'Exit focus mode (Esc)' : 'Focus mode (Ctrl .)'} aria-label={focus ? 'Exit focus mode' : 'Focus mode'} aria-pressed={focus} onClick={() => { setFocus((f) => !f); setMode('write'); }}>
             {focus ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
           </button>
@@ -937,6 +993,42 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             ))}
           </dl>
           <p class="mt-3 text-xs text-muted">On a Mac, use Cmd instead of Ctrl and Option instead of Alt.</p>
+        </Modal>
+      )}
+
+      {modal?.kind === 'history' && (
+        <Modal title="Version history" wide onClose={() => setModal(null)}>
+          <p class="text-sm text-muted">A version is kept when you submit or publish, and at most every 5 minutes while you write. The last 20 are kept. Restoring replaces the editor content; Ctrl Z undoes it.</p>
+          {modal.error && <p class="mt-3 text-sm text-red-700" role="alert">{modal.error}</p>}
+          {!modal.items && !modal.error && <p class="mt-3 text-sm text-muted">Loading…</p>}
+          {modal.items && modal.items.length === 0 && <p class="mt-3 text-sm text-muted">No saved versions yet. Keep writing: the first one is kept within a few minutes.</p>}
+          {modal.items && modal.items.length > 0 && (
+            <ul class="mt-3 max-h-[60vh] divide-y divide-line overflow-y-auto rounded-lg border border-line" aria-label="Saved versions">
+              {modal.items.map((r, i) => (
+                <li class="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+                  <span class="min-w-0">
+                    <span class="block font-semibold">{new Date(r.savedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}{i === 0 && <span class="ml-2 rounded bg-page px-1.5 py-0.5 text-xs font-normal text-muted">latest</span>}</span>
+                    <span class="block truncate text-xs text-muted">{r.title} · {r.words.toLocaleString('en-IN')} words</span>
+                  </span>
+                  <button type="button" class="btn-secondary" onClick={() => void restoreRevision(r.id)}>Restore</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
+
+      {modal?.kind === 'conflict' && (
+        <Modal title="Changed somewhere else" onClose={() => setModal(null)}>
+          <p class="text-sm text-muted">This article was saved from another tab or device after you opened it. Saving here now would overwrite that work, so autosave is paused.</p>
+          <ul class="mt-3 list-disc space-y-1 pl-5 text-sm">
+            <li><strong>Load the latest</strong> opens the newer version. What you typed here is kept in this browser and offered back.</li>
+            <li><strong>Keep mine</strong> saves this version over the other one. The other one stays in Version history.</li>
+          </ul>
+          <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <button type="button" class="btn-secondary" onClick={() => { savedVersion.current = version.current; location.reload(); }}>Load the latest</button>
+            <button type="button" class="btn-danger" onClick={() => { forceNext.current = true; setModal(null); void persist(false); }}>Keep mine</button>
+          </div>
         </Modal>
       )}
 

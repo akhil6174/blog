@@ -27,5 +27,15 @@ export function postDecisionEmail(p: { authorName: string; title: string; status
   if (p.status === 'pending_review') {
     return { subject: `In review: ${p.title}`, text: `${hi}Your article "${p.title}" passed the automatic checks but needs a quick look from an editor. This usually takes under two days; we will email you either way.\n\nReason given by the checks: ${p.reason}\n\n— ${SITE.name}` };
   }
+  if (p.status === 'changes_requested') {
+    return { subject: `Changes requested: ${p.title}`, text: `${hi}An editor read "${p.title}" and asked for a few changes before it can be published.
+
+What to change: ${p.reason}
+
+Edit it and submit again here:
+${p.editUrl}
+
+— ${SITE.name}` };
+  }
   return { subject: `Not published: ${p.title}`, text: `${hi}Your article "${p.title}" was not published.\n\nReason: ${p.reason}\n\nYou can edit and resubmit it here:\n${p.editUrl}\n\nIf you think this is a mistake, reply to this email.\n— ${SITE.name}` };
 }
