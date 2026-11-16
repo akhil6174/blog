@@ -2,14 +2,14 @@
  * Browser-side image processing: decode, resize, crop and compress to WebP (JPEG where the browser cannot
  * encode WebP), then upload. Keeps every image small and keeps image work off the Worker.
  */
-export const ACCEPT = 'image/jpeg,image/png,image/webp';
+export const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 export const MAX_INPUT_BYTES = 20_000_000;
 export const COVER_W = 1200;
 export const COVER_H = 630;
 export const BODY_MAX_W = 1600;
 
 export function checkFile(file: File): string | null {
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return 'Choose a JPG, PNG or WebP image.';
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) return 'Choose a JPG, PNG, WebP or GIF image.';
   if (file.size > MAX_INPUT_BYTES) return 'That file is over 20 MB. Choose a smaller image.';
   return null;
 }
@@ -85,4 +85,18 @@ export async function upload(blob: Blob, kind: 'cover' | 'body'): Promise<string
 
 export function formatBytes(n: number): string {
   return n > 1_000_000 ? `${(n / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1000))} KB`;
+}
+
+/** Fetch a public image through our server (no hotlinking) and return it as a File for the normal crop/compress path. */
+export async function importFromUrl(raw: string): Promise<File> {
+  const url = raw.trim();
+  if (!/^https?:\/\//i.test(url)) throw new Error('Paste a full image address starting with https://');
+  const res = await fetch(`/api/media/import?url=${encodeURIComponent(url)}`);
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Import failed (${res.status}).`);
+  }
+  const blob = await res.blob();
+  const name = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'image').slice(0, 80) || 'image';
+  return new File([blob], name, { type: blob.type || 'image/jpeg' });
 }

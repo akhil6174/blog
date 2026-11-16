@@ -5,6 +5,13 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Editor step C completed: import images by URL
+
+**Added**
+- "Import from URL" in the image and cover dialogs copies the image to TrutiAI (crop, compress, upload) instead of linking to it; GIF accepted (converted to WebP). Linking as-is is offered only if an import fails.
+- `GET /api/media/import` with address checks, public-only fetching, redirect re-checks, timeout and an 8 MB cap; unit tests (`tests/media.test.ts`) and `tests/e2e/images.e2e.mjs`.
+
+
 ### 2026-11-16 · Editor step B: article settings
 
 **Added**

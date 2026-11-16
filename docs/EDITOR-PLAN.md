@@ -1,6 +1,7 @@
 # Writing page redesign: analysis and plan
 
-Status: **steps A and B done** (B: 2026-11-16, 25/25 settings checks with the real model).
+Status: **steps A, B and C done** (C completed 2026-11-16 with URL import). Steps D and E pending.
+Earlier: **steps A and B done** (B: 2026-11-16, 25/25 settings checks with the real model).
 Previous status: **step A done** (2026-11-16, 50/50 browser checks in `tests/e2e/editor.e2e.mjs`). Steps B to E pending. Defaults approved by the owner: R2 if enabled else D1 storage, editorial posts from the editor, selection-only AI assistant.
 Source: the owner's 10-section brief for a Notion/Medium-style block editor.
 

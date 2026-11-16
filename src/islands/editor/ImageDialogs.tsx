@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { ImagePlus, Link as LinkIcon, Upload, ZoomIn } from 'lucide-preact';
 import Modal from './Modal';
-import { ACCEPT, checkFile, COVER_H, COVER_W, coverGeometry, decode, drawCover, formatBytes, renderCover, resizeForBody, upload, type Crop } from './image';
+import { ACCEPT, checkFile, COVER_H, COVER_W, coverGeometry, decode, drawCover, formatBytes, importFromUrl, renderCover, resizeForBody, upload, type Crop } from './image';
 
 type Tab = 'device' | 'url';
 
@@ -16,7 +16,7 @@ function Tabs({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
     <div class="mb-4 flex gap-1 rounded-lg bg-line/60 p-0.5 text-sm" role="tablist">
       {(['device', 'url'] as Tab[]).map((t) => (
         <button type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} class={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 font-semibold ${tab === t ? 'bg-surface text-ink shadow-sm' : 'text-muted'}`}>
-          {t === 'device' ? <Upload size={14} /> : <LinkIcon size={14} />} {t === 'device' ? 'Upload from device' : 'Image URL'}
+          {t === 'device' ? <Upload size={14} /> : <LinkIcon size={14} />} {t === 'device' ? 'Upload from device' : 'Import from URL'}
         </button>
       ))}
     </div>
@@ -44,12 +44,28 @@ function DropZone({ onFile, label }: { onFile: (f: File) => void; label: string 
     >
       <ImagePlus size={28} class="text-muted" />
       <p class="font-semibold">{label}</p>
-      <p class="text-xs text-muted">JPG, PNG or WebP, up to 20 MB. It is compressed before upload.</p>
+      <p class="text-xs text-muted">JPG, PNG, WebP or GIF, up to 20 MB. It is compressed before upload.</p>
       <input ref={input} type="file" accept={ACCEPT} class="sr-only" aria-label="Choose an image file" onChange={(e) => {
         const f = (e.target as HTMLInputElement).files?.[0];
         if (f) onFile(f);
         (e.target as HTMLInputElement).value = '';
       }} />
+    </div>
+  );
+}
+
+/** URL tab: import the image (copied to TrutiAI), with linking as a fallback when a site blocks importing. */
+function UrlImport({ url, setUrl, busy, onImport, onLinkInstead, failed }: { url: string; setUrl: (v: string) => void; busy: boolean; onImport: () => void; onLinkInstead?: () => void; failed: boolean }) {
+  return (
+    <div class="grid gap-2">
+      <div class="flex gap-2">
+        <input class="field" value={url} placeholder="https://… image address" inputMode="url" aria-label="Image address" onInput={(e) => setUrl((e.target as HTMLInputElement).value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onImport(); } }} />
+        <button type="button" class="btn-primary shrink-0" disabled={busy || !url.trim()} onClick={onImport}>{busy ? 'Importing…' : 'Import'}</button>
+      </div>
+      <p class="text-xs text-muted">The image is copied to TrutiAI so it keeps working if the original site changes. Only use images you have the right to publish.</p>
+      {failed && onLinkInstead && (
+        <p class="text-xs text-muted">Some sites block copying. You can <button type="button" class="underline" onClick={onLinkInstead}>link to it as-is instead</button> (it breaks if that site removes it).</p>
+      )}
     </div>
   );
 }
@@ -63,6 +79,9 @@ export function BodyImageDialog({ initialFile, onInsert, onClose }: { initialFil
   const [alt, setAlt] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [importFailed, setImportFailed] = useState(false);
+  const [linkMode, setLinkMode] = useState(false);
+  const [source, setSource] = useState('');
 
   const pick = async (f: File) => {
     const bad = checkFile(f);
@@ -85,15 +104,34 @@ export function BodyImageDialog({ initialFile, onInsert, onClose }: { initialFil
   useEffect(() => {
     if (initialFile) void pick(initialFile);
   }, []);
+  const doImport = async () => {
+    setBusy(true);
+    setError('');
+    setImportFailed(false);
+    try {
+      const f = await importFromUrl(url);
+      setSource(new URL(url.trim()).host);
+      setBusy(false);
+      setTab('device');
+      await pick(f);
+    } catch (err) {
+      setError((err as Error).message);
+      setImportFailed(true);
+      setBusy(false);
+    }
+  };
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   const submit = async (e: Event) => {
     e.preventDefault();
     if (!alt.trim()) return setError('Describe the image for readers who cannot see it.');
     if (tab === 'url') {
-      if (!/^https:\/\//i.test(url.trim())) return setError('Use a full https:// image address.');
-      onInsert(url.trim(), alt.trim());
-      return;
+      if (linkMode) {
+        if (!/^https:\/\//i.test(url.trim())) return setError('Use a full https:// image address.');
+        onInsert(url.trim(), alt.trim());
+        return;
+      }
+      return void doImport();
     }
     if (!blob) return setError('Choose an image first.');
     setBusy(true);
@@ -114,7 +152,7 @@ export function BodyImageDialog({ initialFile, onInsert, onClose }: { initialFil
             <div class="grid gap-2">
               <img src={preview} alt="" class="max-h-60 w-full rounded-lg border border-line object-contain" />
               <p class="flex items-center justify-between text-xs text-muted">
-                <span>Compressed to {blob ? formatBytes(blob.size) : ''}</span>
+                <span>{source ? `Imported from ${source}, compressed` : 'Compressed'} to {blob ? formatBytes(blob.size) : ''}</span>
                 <button type="button" class="underline" onClick={() => { setBlob(null); setPreview(''); }}>Choose another</button>
               </p>
             </div>
@@ -123,15 +161,20 @@ export function BodyImageDialog({ initialFile, onInsert, onClose }: { initialFil
           )
         ) : (
           <>
-            <input class="field" value={url} placeholder="https://… image address" inputMode="url" onInput={(e) => { setUrl((e.target as HTMLInputElement).value); setError(''); }} />
-            {/^https:\/\//i.test(url) && <img src={url} alt="" class="max-h-48 w-full rounded-lg border border-line object-contain" referrerpolicy="no-referrer" />}
+            <UrlImport url={url} setUrl={(v) => { setUrl(v); setError(''); setImportFailed(false); setLinkMode(false); }} busy={busy} onImport={() => void doImport()} failed={importFailed} onLinkInstead={() => { setLinkMode(true); setError(''); }} />
+            {linkMode && /^https:\/\//i.test(url) && (
+              <>
+                <img src={url} alt="" class="max-h-48 w-full rounded-lg border border-line object-contain" referrerpolicy="no-referrer" />
+                <p class="text-xs text-amber-800">Linking, not copying: this image depends on {(() => { try { return new URL(url).host; } catch { return 'the other site'; } })()}.</p>
+              </>
+            )}
           </>
         )}
         <input class="field" value={alt} maxLength={200} placeholder="Describe the image (alt text, required)" onInput={(e) => { setAlt((e.target as HTMLInputElement).value); setError(''); }} />
         {error && <p class="text-sm text-red-700" role="alert">{error}</p>}
         <div class="flex justify-end gap-2">
           <button type="button" class="btn-secondary" onClick={onClose}>Cancel</button>
-          <button class="btn-primary" disabled={busy}>{busy && tab === 'device' && blob ? 'Uploading…' : 'Insert'}</button>
+          {(tab === 'device' || linkMode) && <button class="btn-primary" disabled={busy}>{busy && tab === 'device' && blob ? 'Uploading…' : 'Insert'}</button>}
         </div>
       </form>
     </Modal>
@@ -188,6 +231,8 @@ export function CoverDialog({ current, currentAlt, onSave, onClose }: { current:
   const [alt, setAlt] = useState(currentAlt);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [importFailed, setImportFailed] = useState(false);
+  const [linkMode, setLinkMode] = useState(false);
 
   const pick = async (f: File) => {
     const bad = checkFile(f);
@@ -204,11 +249,27 @@ export function CoverDialog({ current, currentAlt, onSave, onClose }: { current:
     }
   };
   useEffect(() => () => bmp?.close(), [bmp]);
+  const doImport = async () => {
+    setBusy(true);
+    setError('');
+    setImportFailed(false);
+    try {
+      const f = await importFromUrl(url);
+      setTab('device');
+      await pick(f);
+    } catch (err) {
+      setError((err as Error).message);
+      setImportFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const save = async (e: Event) => {
     e.preventDefault();
     if (!alt.trim()) return setError('Describe the cover image (alt text).');
     if (tab === 'url') {
+      if (!linkMode) return void doImport();
       if (!/^https:\/\//i.test(url.trim())) return setError('Use a full https:// image address.');
       if (urlOk === false) return setError('That address did not load as an image.');
       onSave(url.trim(), alt.trim());
@@ -240,18 +301,18 @@ export function CoverDialog({ current, currentAlt, onSave, onClose }: { current:
           )
         ) : (
           <>
-            <input class="field" value={url} placeholder="https://… image address" inputMode="url" onInput={(e) => { setUrl((e.target as HTMLInputElement).value); setUrlOk(null); setError(''); }} />
-            {/^https:\/\//i.test(url) && (
+            <UrlImport url={url} setUrl={(v) => { setUrl(v); setUrlOk(null); setError(''); setImportFailed(false); setLinkMode(false); }} busy={busy} onImport={() => void doImport()} failed={importFailed} onLinkInstead={() => { setLinkMode(true); setError(''); }} />
+            {linkMode && /^https:\/\//i.test(url) && (
               <img src={url} alt="" referrerpolicy="no-referrer" class="aspect-[1200/630] w-full rounded-lg border border-line object-cover" onLoad={() => setUrlOk(true)} onError={() => setUrlOk(false)} />
             )}
-            {urlOk === false && <p class="text-sm text-red-700">That address did not load as an image. Check the link, or upload the file instead.</p>}
+            {linkMode && urlOk === false && <p class="text-sm text-red-700">That address did not load as an image. Upload the file instead.</p>}
           </>
         )}
         <input class="field" value={alt} maxLength={200} placeholder="Describe the image (alt text, required)" onInput={(e) => { setAlt((e.target as HTMLInputElement).value); setError(''); }} />
         {error && <p class="text-sm text-amber-800" role="alert">{error}</p>}
         <div class="flex justify-end gap-2">
           <button type="button" class="btn-secondary" onClick={onClose}>Cancel</button>
-          <button class="btn-primary" disabled={busy}>{busy ? 'Uploading…' : 'Use this cover'}</button>
+          {(tab === 'device' || linkMode) && <button class="btn-primary" disabled={busy}>{busy ? 'Uploading…' : 'Use this cover'}</button>}
         </div>
       </form>
     </Modal>

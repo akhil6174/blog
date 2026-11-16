@@ -75,6 +75,8 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `tests/moderation.test.ts` | Decision logic and verdict parser tests |
 | `tests/settings.test.ts` | Fingerprint, summary clean-up and slug tests |
 | `tests/e2e/settings.e2e.mjs` | Playwright check of the settings panel with the real AI model (mocked if unreachable) |
+| `tests/media.test.ts` | Import address rules, file-type sniffing, image source checks |
+| `tests/e2e/images.e2e.mjs` | Playwright check of URL import (API safety and both dialogs) |
 | `tests/e2e/editor.e2e.mjs` | Playwright browser check of the editor (run against `npm run preview`) |
 | `src/middleware.ts` | Edge cache for public community routes; session loading and protection for /write, /me, /admin and write APIs |
 | `src/lib/db/schema.ts` | All D1 tables (Better Auth + blog) |
@@ -132,6 +134,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/view.ts` | View beacon |
 | `src/pages/api/report.ts` | Reports with auto-hide |
 | `src/pages/api/media.ts` | Image upload: type sniffing, size and daily limits, store in KV |
+| `src/pages/api/media/import.ts` | Safe server-side fetch of an image URL for importing (no storage) |
 | `src/pages/media/[file].ts` | Serves uploaded images with a one-year edge cache |
 | `src/lib/fingerprint.ts` | Sentence fingerprints for detecting big article changes; summary and SEO title length constants |
 | `src/lib/ai-summary.ts` | Summary prompt and clean-up (openers, dangling endings, trimming) |
