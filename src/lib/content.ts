@@ -13,10 +13,12 @@ export function isTiptapDoc(x: unknown): x is TiptapDoc {
 }
 
 const SANITIZE: sanitizeHtml.IOptions = {
-  allowedTags: ['p', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'strong', 'em', 's', 'a', 'img', 'hr', 'br', 'iframe', 'span', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div'],
+  allowedTags: ['u', 'mark', 'p', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'strong', 'em', 's', 'a', 'img', 'hr', 'br', 'iframe', 'span', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div'],
   allowedAttributes: {
     h2: ['id'], h3: ['id'], h4: ['id'],
     a: ['href', 'rel', 'target', 'title'],
+    th: ['colspan', 'rowspan'],
+    td: ['colspan', 'rowspan'],
     img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
     code: ['class'],
     span: ['class'],

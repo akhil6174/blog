@@ -36,6 +36,12 @@ function renderText(n: Node): string {
       case 'code':
         out = `<code>${out}</code>`;
         break;
+      case 'underline':
+        out = `<u>${out}</u>`;
+        break;
+      case 'highlight':
+        out = `<mark>${out}</mark>`;
+        break;
       case 'link': {
         const href = safeUrl(m.attrs?.href);
         if (href) out = `<a href="${attr(href)}" rel="ugc nofollow noopener" target="_blank">${out}</a>`;
@@ -85,6 +91,18 @@ export function renderNode(n: Node): string {
     }
     case 'horizontalRule':
       return '<hr>';
+    case 'table':
+      return `<table><tbody>${children(n)}</tbody></table>`;
+    case 'tableRow':
+      return `<tr>${children(n)}</tr>`;
+    case 'tableHeader':
+    case 'tableCell': {
+      const tag = n.type === 'tableHeader' ? 'th' : 'td';
+      const cs = Number(n.attrs?.colspan ?? 1);
+      const rs = Number(n.attrs?.rowspan ?? 1);
+      const span = `${cs > 1 ? ` colspan="${cs}"` : ''}${rs > 1 ? ` rowspan="${rs}"` : ''}`;
+      return `<${tag}${span}>${children(n)}</${tag}>`;
+    }
     case 'hardBreak':
       return '<br>';
     case 'image': {
@@ -124,6 +142,8 @@ export function plainText(n: Node): string {
   if (n.type === 'text') return n.text ?? '';
   if (n.type === 'hardBreak') return '\n';
   const inner = (n.content ?? []).map(plainText).join(n.type === 'doc' ? '\n\n' : '');
+  if (n.type === 'tableCell' || n.type === 'tableHeader') return `${inner.trim()} `;
+  if (n.type === 'tableRow') return `${inner.trim()}\n`;
   return ['paragraph', 'heading', 'listItem', 'blockquote', 'codeBlock'].includes(n.type) ? `${inner}\n` : inner;
 }
 

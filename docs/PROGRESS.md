@@ -113,6 +113,14 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - Image uploads to R2 (D-013): writers can embed images by URL for now
 - Playwright browser tests: covered by the curl-based end-to-end run; add when the editor UI settles
 
+## Writing page redesign (docs/EDITOR-PLAN.md)
+
+- [x] Step A: block editor (rail, bubble, slash menu, block handle, tables/highlight/underline, templates, stats, cheaper autosave + local recovery, write/split/preview, focus mode, dark theme, status and feedback, confirmations, mobile layout) — 2026-11-16
+- [ ] Step B: settings panel (AI summary, SEO title, slug rules, category, featured/schedule for admin)
+- [ ] Step C: cover and body image upload (device + URL import, crop, compress)
+- [ ] Step D: AI writing assistant (selection only)
+- [ ] Step E: admin editorial publishing at /blog/, publish now, scheduling
+
 ## Verification log
 
 | Date | Check | Result |
@@ -127,4 +135,6 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 | 2026-11-15 | Local: community | /community MISS→HIT; /p/<slug> 200 indexable, HIT after a comment; raise 60 → capped 50; 3 view beacons counted; clean comment published, spam rejected; /top filled by cron; sitemap-community lists the post; writer page 200 |
 | 2026-11-15 | Local: admin | anon → 302 to sign-in; reader → 302 / API 403; admin 200 with queues, settings, log; run_cron, set_settings, invite OK |
 | 2026-11-15 | `npm test` | 10 unit tests pass |
+| 2026-11-16 | Editor step A, `node tests/e2e/editor.e2e.mjs` (headless Chromium) | 50/50: typing stays responsive, slash menu, bubble, block move/duplicate/undo, tables, autosave (one request, URL gains id), templates, block handle, preview/split, focus, dark, shortcuts, submit validation, reload persistence, offline error + local recovery, mobile layout. Found and fixed: endless re-render freeze, BubbleMenu re-registration loop, subtitle focus race, clipped title, mobile Split button, dialog Escape race |
+| 2026-11-16 | `npm test` | 11 unit tests pass |
 | 2026-11-15 | Live Phase 3 on https://trutiai.in | `/signin` 200; `/api/auth/get-session` → null (auth configured); Google sign-in URL generated; `/admin` and `/write` → 302 to sign-in; `/community` 404 (flag closed); `/top`, `/sitemap-community.xml`, `/api/raise` 200; comments island present on editorial posts. First Phase 3 build had failed on `npm ci` until the lock file was regenerated. |

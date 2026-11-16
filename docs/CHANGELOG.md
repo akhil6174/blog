@@ -5,6 +5,22 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Editor redesign, step A
+
+**Added**
+- New block editor in `src/islands/editor/` replacing `src/islands/Editor.tsx`: sticky left rail (headings H2-H4, paragraph, bold, italic, underline, strike, highlight, inline code, lists, quote, code block with language picker, link, image by URL, table, divider, undo/redo, move/duplicate/delete block, templates, shortcuts), selection bubble, "/" block menu, block handle with drag-and-drop, table and code context bars, seven templates, live stats, Write/Split/Preview modes (preview uses the server renderer), focus mode, editor dark theme, status chip with editor feedback, confirmations, keyboard shortcuts dialog, mobile layout (bottom rail, settings sheet).
+- Local draft recovery: every change is kept in the browser and offered back if a save failed or the tab closed.
+- Renderer and sanitizer support underline (`<u>`), highlight (`<mark>`) and tables; unit test added (11 tests).
+- `tests/e2e/editor.e2e.mjs` (Playwright) and `test-results/` in `.gitignore`.
+- `BaseLayout` `wide` option; `#site-header` / `#site-footer` ids (focus mode hides them).
+
+**Changed**
+- Autosave: 2 s after typing stops (at most 30 s apart) and writes only the post row; tags only when changed; a revision at most every 5 minutes (was about 10 D1 writes per save).
+
+**Fixed**
+- Endless re-render that froze the editor on the first keystroke (D-021).
+- `/` menu no longer rebuilds its list on hover.
+
 ### 2026-11-15 · Phase 3: community publishing behind the flag
 
 **Added**

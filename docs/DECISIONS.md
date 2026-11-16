@@ -137,3 +137,24 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** Astro pages cannot easily wrap their own response in the Cache API; the plan wants community HTML cached for 10 minutes and purged on edit.
 - **Decision:** The middleware caches GET responses for `/community`, `/p/*`, `/writer/*`, `/top` and the community sitemap (`src/lib/cache.ts`), and publish/edit/unpublish call `purgePostCaches`. Comments load through a server island and raises through JSON, so those never purge (D-007).
 - **Consequences:** Worker CPU per cached hit is about a millisecond and D1 is not touched. Personal state on those pages is fetched client-side.
+
+## D-020 · Own block handle instead of Tiptap's drag-handle extension
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** `@tiptap/extension-drag-handle` (MIT) imports the real-time collaboration package and Yjs at runtime, which we do not use.
+- **Decision:** `src/islands/editor/blockOps.ts` implements find/move/duplicate/delete/insert-below on ProseMirror directly, and `BlockHandle.tsx` starts a native drag by setting a node selection and `view.dragging`, so ProseMirror's own drop handling moves the block.
+- **Consequences:** No Yjs in the bundle; block operations are shared by the handle menu, the left rail and keyboard shortcuts.
+
+## D-021 · Editor options are built once
+
+- **Date:** 2026-11-16 · **Status:** accepted (bug fix, recorded so it is not reintroduced)
+- **Context:** Passing a new extensions array to `useEditor` on each render makes Tiptap destroy and recreate the editor, which renders again: an endless loop that froze the page on the first keystroke.
+- **Decision:** Extensions are created with `useMemo(..., [])` and `useEditor(options, [])`. Changing callbacks reach the extensions through refs.
+- **Consequences:** Any new editor option that depends on state must also go through a ref, never through the options object. The same applies to `BubbleMenu`'s `shouldShow` (module-level function): a new function per render made it re-register its plugin in a loop that crashed the tab.
+
+## D-022 · Browser end-to-end checks with Playwright
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The editor is interactive (keyboard, selection, drag, timers). The desktop app's hidden browser pane throttles timers and cannot drive it reliably.
+- **Decision:** `tests/e2e/editor.e2e.mjs` runs headless Chromium against `npm run preview` with the local dev login, checks each feature, and saves screenshots. A localhost-only `window.__editor` hook lets the script read the document.
+- **Consequences:** `@playwright/test` is a dev dependency (Chromium downloads once per machine). Run it after every editor change.

@@ -72,6 +72,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `vitest.config.ts` | Unit test config (pure modules only) |
 | `tests/render-doc.test.ts` | Renderer safety and output tests |
 | `tests/moderation.test.ts` | Decision logic and verdict parser tests |
+| `tests/e2e/editor.e2e.mjs` | Playwright browser check of the editor (run against `npm run preview`) |
 | `src/middleware.ts` | Edge cache for public community routes; session loading and protection for /write, /me, /admin and write APIs |
 | `src/lib/db/schema.ts` | All D1 tables (Better Auth + blog) |
 | `src/lib/db/index.ts` | Drizzle client (`db()`) |
@@ -92,7 +93,16 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/moderation/index.ts` | Load targets, log steps, apply decisions (DB, cache purge, email) |
 | `src/cron/hourly.ts` | Hourly job: Top 10 lists into KV, purges, stale drafts |
 | `src/worker.ts` | Worker entry: Astro handler, `ModeratePost` Workflow (5 steps), cron |
-| `src/islands/Editor.tsx` | Tiptap editor island with autosave and submit |
+| `src/islands/editor/Editor.tsx` | The block editor: layout, autosave + local recovery, modes, focus/dark, dialogs, selection bubble, table/code context bars |
+| `src/islands/editor/extensions.ts` | Tiptap extension set and editor shortcuts (keep in sync with `render-doc.ts`) |
+| `src/islands/editor/slash.ts` | "/" block menu (Tiptap suggestion, plain DOM popup) |
+| `src/islands/editor/blockOps.ts` | Move, duplicate, delete, insert-below and drag for top-level blocks |
+| `src/islands/editor/BlockHandle.tsx` | "+" and grip handle beside the hovered block, with its menu |
+| `src/islands/editor/Rail.tsx` | Left formatting toolbar (bottom bar on small screens) |
+| `src/islands/editor/SettingsPanel.tsx` | Right panel: status and feedback, summary, tags, cover, submit |
+| `src/islands/editor/Preview.tsx` | Live preview using the server renderer |
+| `src/islands/editor/Modal.tsx` | Accessible dialog used by link, image, templates, shortcuts and confirmations |
+| `src/islands/editor/templates.ts` | Seven article templates |
 | `src/islands/CommentForm.tsx` | Comment form, reply and report handling |
 | `src/islands/RaiseButton.tsx` | Raise button (cap 50, debounced) |
 | `src/islands/ReportButton.tsx` | Report a post |
@@ -142,6 +152,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `docs/CHANGELOG.md` | Dated history of changes, grouped Added / Changed / Verified / Known limitations |
 | `docs/PROGRESS.md` | Phase checklist, owner tasks, "done when" criteria, verification log |
 | `docs/FILES.md` | This file |
+| `docs/EDITOR-PLAN.md` | Analysis and build plan for the writing-page redesign (proposed, awaiting go-ahead) |
 | `docs/SETUP-GUIDE.md` | Platform registration guidebook: for Google, Cloudflare, domain, GitHub, Google Cloud OAuth, Search Console, Bing, OpenAI, Resend, Sentry, Turnstile, Web Analytics and AdSense, what to enter, what to copy out, where it goes, costs and India notes; includes the credentials vault table |
 
 ## Generated or ignored (not committed)

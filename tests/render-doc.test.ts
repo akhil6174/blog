@@ -35,4 +35,20 @@ describe('render-doc', () => {
     expect(youtubeId('https://www.youtube.com/shorts/xyz')).toBe('xyz');
     expect(youtubeId('https://evil.com/watch?v=1')).toBeNull();
   });
+  it('renders underline, highlight and tables', () => {
+    const d = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'u', marks: [{ type: 'underline' }] }, { type: 'text', text: 'm', marks: [{ type: 'highlight' }] }] },
+        { type: 'table', content: [
+          { type: 'tableRow', content: [{ type: 'tableHeader', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Plan' }] }] }, { type: 'tableHeader', attrs: { colspan: 2 }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Limit' }] }] }] },
+          { type: 'tableRow', content: [{ type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Free' }] }] }, { type: 'tableCell', content: [{ type: 'paragraph', content: [{ type: 'text', text: '100k' }] }] }] },
+        ] },
+      ],
+    };
+    const html = renderNode(d as never);
+    expect(html).toContain('<p><u>u</u><mark>m</mark></p>');
+    expect(html).toContain('<table><tbody><tr><th><p>Plan</p></th><th colspan="2"><p>Limit</p></th></tr><tr><td><p>Free</p></td><td><p>100k</p></td></tr></tbody></table>');
+    expect(plainText(d as never)).toContain('Free 100k');
+  });
 });
