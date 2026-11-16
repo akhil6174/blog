@@ -27,6 +27,10 @@ export const user = sqliteTable(
     bio: text('bio'),
     /** Portfolio or personal site shown on the writer page. */
     website: text('website'),
+    /** Optional, shown on the writer page (Campus Writers Programme). */
+    college: text('college'),
+    /** Comma-separated interests, shown on the writer page. */
+    interests: text('interests'),
     trustScore: integer('trust_score').notNull().default(0),
     bannedAt: integer('banned_at', { mode: 'timestamp' }),
     shadowBanned: integer('shadow_banned', { mode: 'boolean' }).notNull().default(false),
@@ -210,6 +214,8 @@ export const comments = sqliteTable(
     status: text('status', { enum: COMMENT_STATUS }).notNull().default('checking'),
     reportsCount: integer('reports_count').notNull().default(0),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    /** Set when the writer edited the comment (it is checked again). */
+    editedAt: integer('edited_at', { mode: 'timestamp' }),
   },
   (t) => [index('comments_post_idx').on(t.postId, t.status, t.createdAt)],
 );
@@ -271,4 +277,108 @@ export const settings = sqliteTable('settings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
 });
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings };
+// ---------- Readers ----------
+/** Saved articles. postId is a community post id or "editorial:<slug>" (no FK on purpose). */
+export const bookmarks = sqliteTable(
+  'bookmarks',
+  {
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    postId: text('post_id').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.postId] })],
+);
+
+/** In-site notifications shown on /me/notifications. */
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(), // article | comment | reply | reward | ranking | announcement
+    title: text('title').notNull(),
+    link: text('link'),
+    readAt: integer('read_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.readAt, t.createdAt)],
+);
+
+// ---------- Campus Writers Programme (src/lib/programme.ts) ----------
+/** One row per competition month. */
+export const competitions = sqliteTable('competitions', {
+  month: text('month').primaryKey(), // YYYY-MM (India time)
+  status: text('status', { enum: ['open', 'finalised', 'published'] }).notNull().default('open'),
+  finalisedAt: integer('finalised_at', { mode: 'timestamp' }),
+  publishedAt: integer('published_at', { mode: 'timestamp' }),
+  note: text('note'),
+});
+
+/** An article's entry in a month: editor scores (0 to 10 each), genuine upvotes, final score, rank and prize. */
+export const competitionEntries = sqliteTable(
+  'competition_entries',
+  {
+    month: text('month').notNull(),
+    postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    upvotes: integer('upvotes').notNull().default(0),
+    /** Upvotes from accounts younger than two days when they voted, or that only ever voted for this writer. */
+    suspiciousVotes: integer('suspicious_votes').notNull().default(0),
+    accuracy: integer('accuracy'),
+    quality: integer('quality'),
+    originality: integer('originality'),
+    clarity: integer('clarity'),
+    /** Final score out of 100 (one decimal, stored x10). */
+    score: integer('score'),
+    rank: integer('rank'),
+    prize: integer('prize').notNull().default(0),
+    disqualified: integer('disqualified', { mode: 'boolean' }).notNull().default(false),
+    note: text('note'),
+  },
+  (t) => [primaryKey({ columns: [t.month, t.postId] }), index('competition_entries_author_idx').on(t.authorId)],
+);
+
+/**
+ * Reward ledger, in whole rupees. Every credit, adjustment and payment is a row. Payment details are NOT stored
+ * here: the editor collects them by email and records the payment reference (owner decision, D-031).
+ */
+export const rewards = sqliteTable(
+  'rewards',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    /** No foreign key on purpose: financial records survive account deletion. */
+    userId: text('user_id').notNull(),
+    kind: text('kind', { enum: ['first_article', 'monthly_prize', 'adjustment'] }).notNull(),
+    amount: integer('amount').notNull(),
+    status: text('status', { enum: ['pending', 'confirmed', 'paid', 'cancelled'] }).notNull().default('pending'),
+    month: text('month'),
+    postId: text('post_id'),
+    paymentRef: text('payment_ref'),
+    paidAt: integer('paid_at', { mode: 'timestamp' }),
+    note: text('note'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('rewards_user_idx').on(t.userId), index('rewards_status_idx').on(t.status)],
+);
+
+/** Applications from /join-us (internships and contributor requests), separate from sign-up. */
+export const applications = sqliteTable(
+  'applications',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+    track: text('track', { enum: ['internship', 'contributor'] }).notNull(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+    college: text('college'),
+    interests: text('interests'),
+    sampleUrl: text('sample_url'),
+    message: text('message').notNull(),
+    status: text('status', { enum: ['new', 'shortlisted', 'accepted', 'declined'] }).notNull().default('new'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('applications_status_idx').on(t.status, t.createdAt)],
+);
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications };

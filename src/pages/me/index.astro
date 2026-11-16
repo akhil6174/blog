@@ -2,17 +2,32 @@
 /**
  * /me : the writer's dashboard. Totals, articles grouped by stage (needs attention, drafts, in review, scheduled,
  * published, closed, trash), withdraw / trash / restore, profile editing, sign out, delete account.
+ * Links to notifications and saved articles. When the Campus Writers Programme is on: earnings ledger, the
+ * remaining reward allowance and this month's standing.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { db, posts, user as userTable } from '../../lib/db';
-import { desc, eq } from 'drizzle-orm';
+import { db, notifications, posts, raises, user as userTable } from '../../lib/db';
+import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { ledgerFor, monthLabel, monthOf, monthRange, programmeConfig } from '../../lib/programme';
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
 const d = db();
 const mine = await d.select().from(posts).where(eq(posts.authorId, user.id)).orderBy(desc(posts.updatedAt)).limit(200);
-const profile = await d.query.user.findFirst({ where: eq(userTable.id, user.id), columns: { name: true, bio: true, website: true, handle: true } });
+const profile = await d.query.user.findFirst({ where: eq(userTable.id, user.id), columns: { name: true, bio: true, website: true, handle: true, college: true, interests: true } });
+const [{ unread }] = await d.select({ unread: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
+const cfg = await programmeConfig();
+const isAdmin = user.role === 'admin';
+const showProgramme = (cfg.open || isAdmin) && mine.some((p) => p.kind === 'community');
+const ledger = showProgramme ? await ledgerFor(user.id) : null;
+// This month's standing: my published community articles this month by genuine upvotes (other accounts, one each).
+const month = monthOf(new Date());
+const { from } = monthRange(month);
+const thisMonth = mine.filter((p) => p.kind === 'community' && p.status === 'published' && p.publishedAt && p.publishedAt >= from);
+const voteRows = showProgramme && thisMonth.length ? await d.select({ id: raises.postId, n: sql<number>`count(*)` }).from(raises).where(and(inArray(raises.postId, thisMonth.map((p) => p.id)), ne(raises.userId, user.id))).groupBy(raises.postId) : [];
+const votes = new Map(voteRows.map((v) => [v.id, Number(v.n)]));
+const KIND: Record<string, string> = { first_article: 'First article', monthly_prize: 'Monthly prize', adjustment: 'Adjustment' };
 
 type Row = (typeof mine)[number];
 const GROUPS: { id: string; title: string; hint: string; statuses: string[] }[] = [
@@ -53,6 +68,13 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
         <button id="signout" class="rounded border border-line px-4 py-2">Sign out</button>
       </div>
     </div>
+
+    <nav class="mt-4 flex flex-wrap gap-2 text-sm" aria-label="Account">
+      <a href="/me/notifications/" class="rounded border border-line px-3 py-1.5">Notifications{Number(unread) > 0 && <span class="ml-1.5 rounded-full bg-accent px-1.5 text-xs font-semibold text-white">{Number(unread)}</span>}</a>
+      <a href="/me/saved/" class="rounded border border-line px-3 py-1.5">Saved articles</a>
+      {showProgramme && <a href="#programme" class="rounded border border-line px-3 py-1.5">Earnings</a>}
+      <a href="#profile-title" class="rounded border border-line px-3 py-1.5">Profile</a>
+    </nav>
 
     <p id="flash" class="mt-4 min-h-5 text-sm text-accent" role="status"></p>
 
@@ -97,12 +119,46 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
       </section>
     ))}
 
+    {ledger && (
+      <section id="programme" class="mt-12" aria-labelledby="programme-title">
+        <h2 id="programme-title" class="text-xs font-semibold uppercase tracking-wide text-muted">Campus Writers Programme{!cfg.open && ' (hidden from writers until the programme is on)'}</h2>
+        <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {[['Pending', ledger.pending], ['Confirmed', ledger.confirmed], ['Paid', ledger.paid], ['Total earned', ledger.total], ['Still available', ledger.remaining]].map(([k, v]) => (
+            <div class="rounded-lg border border-line bg-surface p-3"><p class="text-xl font-bold">₹{fmt(Number(v))}</p><p class="text-xs text-muted">{k}</p></div>
+          ))}
+        </div>
+        <p class="mt-2 text-xs text-muted">Each writer can receive up to ₹{fmt(cfg.cap)} across the programme. Pending rewards are confirmed by the editor; when a reward is confirmed we email you to arrange payment. We never ask for bank details on the site. <a href="/reward-policy/" class="underline">Reward policy</a> · <a href="/leaderboard/" class="underline">Leaderboard</a></p>
+
+        <h3 class="mt-6 text-sm font-semibold">{monthLabel(month)}: your articles so far</h3>
+        {thisMonth.length === 0 ? <p class="mt-1 text-sm text-muted">No community article published this month yet. Only articles published this month compete this month.</p> : (
+          <ul class="mt-2 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+            {thisMonth.map((p) => <li class="flex justify-between gap-3 p-3"><a href={viewUrl(p)} class="hover:underline">{p.title}</a><span class="shrink-0 text-muted">{votes.get(p.id) ?? 0} upvotes</span></li>)}
+          </ul>
+        )}
+        <p class="mt-1 text-xs text-muted">Final rankings also weigh technical accuracy, depth, originality and clarity, scored by the editor at the end of the month.</p>
+
+        <h3 class="mt-6 text-sm font-semibold">Reward history</h3>
+        {ledger.rows.length === 0 ? <p class="mt-1 text-sm text-muted">No rewards yet. Your first published community article during the programme earns ₹{fmt(cfg.firstArticle)}.</p> : (
+          <div class="mt-2 overflow-x-auto rounded-lg border border-line bg-surface">
+            <table class="w-full text-left text-sm">
+              <thead class="text-xs text-muted"><tr><th class="p-2">Date</th><th class="p-2">Reward</th><th class="p-2">Amount</th><th class="p-2">Status</th><th class="p-2">Note</th></tr></thead>
+              <tbody class="divide-y divide-line">
+                {ledger.rows.map((r) => <tr><td class="p-2">{r.createdAt.toLocaleDateString('en-IN')}</td><td class="p-2">{KIND[r.kind] ?? r.kind}</td><td class="p-2">₹{fmt(r.amount)}</td><td class="p-2 capitalize">{r.status}{r.status === 'paid' && r.paymentRef && <span class="block text-xs text-muted">Ref {r.paymentRef}</span>}</td><td class="p-2 text-xs text-muted">{r.note}</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    )}
+
     <section class="mt-12" aria-labelledby="profile-title">
       <h2 id="profile-title" class="text-xs font-semibold uppercase tracking-wide text-muted">Public profile</h2>
       <p class="mt-1 text-xs text-muted">Shown on {profile?.handle ? <a href={`/writer/${profile.handle}/`} class="underline">your writer page</a> : 'your writer page'} and next to your articles.</p>
       <form id="profile" class="mt-3 grid gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
         <label class="grid gap-1"><span class="font-semibold">Name</span><input name="name" required minlength="2" maxlength="60" value={profile?.name ?? user.name} class="rounded border border-line bg-page px-3 py-2" /></label>
         <label class="grid gap-1"><span class="font-semibold">Short bio</span><textarea name="bio" maxlength="300" rows="3" class="rounded border border-line bg-page px-3 py-2" placeholder="What you work on and write about, in one or two sentences.">{profile?.bio ?? ''}</textarea></label>
+        <label class="grid gap-1"><span class="font-semibold">College <span class="font-normal text-muted">(optional)</span></span><input name="college" maxlength="100" value={profile?.college ?? ''} class="rounded border border-line bg-page px-3 py-2" /></label>
+        <label class="grid gap-1"><span class="font-semibold">Interests <span class="font-normal text-muted">(comma-separated, up to 8)</span></span><input name="interests" maxlength="200" value={profile?.interests ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="Python, RAG, web development" /></label>
         <label class="grid gap-1"><span class="font-semibold">Website or portfolio</span><input name="website" type="url" maxlength="200" value={profile?.website ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="https://github.com/you" /></label>
         <div><button class="rounded bg-accent px-4 py-2 font-semibold text-white">Save profile</button></div>
       </form>

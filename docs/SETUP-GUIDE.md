@@ -258,6 +258,17 @@ bing.com/webmasters → Sign in with the Google account → **Import from Google
 5. **Protect the admin account.** You sign in with Google only, so turn on **2-Step Verification** at myaccount.google.com → Security for the Google account in `ADMIN_EMAILS`. That is the admin's two-factor.
 6. **Quick exports** of articles, writers, reports and the audit log are on `/admin` → Export data.
 
+## 17. Running the Campus Writers Programme (when you are ready; 15 minutes a month)
+
+The programme is built but switched off: its pages show "page not found" to visitors. Everything is in **/admin/programme**.
+
+1. **Before switching on:** open "Programme rules" and set `programme_start` and `programme_end` (YYYY-MM-DD), check the amounts and the ₹1,000 cap, and read `/reward-policy` as a visitor would (you can preview it while signed in). Make sure the money is set aside: the cap times the number of writers you expect is your worst case.
+2. **Switch on.** First-article rewards start being added (as pending) when a writer's first community article is published. Community articles still need `community_open` to be visible to readers.
+3. **Each month, in the first 10 days:** pick last month, press **Refresh entries**, give every article a mark from 0 to 10 for accuracy, quality, originality and clarity (or tick DQ), then **Finalise**. Check the prizes in the ledger, then **Publish results**. Made a mistake before publishing? **Reopen**.
+4. **Paying:** in the ledger, **Confirm** each reward you agree with. Email the writer from your own mail to ask for their UPI ID or bank details (never collect them on the site), pay, then **Mark paid** with the transaction reference. The writer sees each step on their account page.
+5. **Applications** from `/join-us` arrive by email (once Resend is set up) and are listed on the same page. Reply by email and mark them.
+6. **Keep records:** Export → rewards once a month, next to your bank statements.
+
 ## 14. Google AdSense (Phase 3, week 8: not now)
 
 Do not sign up yet. Applying with an empty site wastes the first review. When Phase 2 is complete (25 to 30 posts, indexed), follow Part 4 of the plan. You will need: the same Gmail, your postal address exactly as on an ID, your PAN, an Indian bank account for wire payments, and the meta tag Google gives you (`ca-pub-…`) pasted into `BaseLayout.astro`.

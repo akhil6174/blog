@@ -60,6 +60,7 @@ type SaveState = { state: 'idle' | 'dirty' | 'saving' | 'saved' | 'error'; at: D
 type LocalDraft = { title: string; subtitle: string; settings: Settings; bodyJson: JSONContent; at: number };
 type ModalState =
   | { kind: 'link'; url: string }
+  | { kind: 'table'; rows: number; cols: number; header: boolean }
   | { kind: 'image'; file?: File }
   | { kind: 'cover' }
   | { kind: 'published'; url: string; commitUrl: string | null; dryRun: boolean; first: boolean }
@@ -70,6 +71,25 @@ type ModalState =
   | { kind: 'conflict' }
   | { kind: 'notice'; title: string; items: string[] }
   | { kind: 'confirm'; title: string; body: string; confirmLabel: string; danger?: boolean; run: () => void | Promise<void> };
+
+const TABLE_MAX_ROWS = 50;
+const TABLE_MAX_COLS = 10;
+function clampInt(n: number, min: number, max: number): number {
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : min;
+}
+/** Small picture of the table about to be inserted (capped at 8 x 8 cells so it stays small). */
+function TablePreview({ rows, cols, header }: { rows: number; cols: number; header: boolean }) {
+  const r = Math.min(rows, 8);
+  const c = Math.min(cols, 8);
+  return (
+    <div aria-hidden="true" class="flex items-center gap-3">
+      <div class="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${c}, 1.25rem)` }}>
+        {Array.from({ length: r * c }, (_, i) => <span class={`h-3.5 rounded-sm border border-line ${header && i < c ? 'bg-accent/30' : 'bg-page'}`} />)}
+      </div>
+      <span class="text-xs text-muted">{rows} × {cols}{rows > 8 || cols > 8 ? ' (preview shortened)' : ''}</span>
+    </div>
+  );
+}
 
 const LANGS = ['', 'bash', 'javascript', 'typescript', 'json', 'html', 'css', 'python', 'go', 'rust', 'java', 'sql', 'yaml', 'xml', 'diff', 'plaintext'];
 /** Module-level so its identity never changes (a new function per render makes BubbleMenu re-register its plugin forever). */
@@ -151,6 +171,8 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const [sheet, setSheet] = useState(false);
   const [save, setSave] = useState<SaveState>({ state: 'idle', at: initial.updatedAt ? new Date(initial.updatedAt) : null });
   const [modal, setModal] = useState<ModalState | null>(null);
+  /** The last table size chosen, offered again next time. */
+  const lastTable = useRef({ rows: 3, cols: 3, header: true });
   const [recovery, setRecovery] = useState<LocalDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [canvas, setCanvas] = useState<HTMLDivElement | null>(null);
@@ -358,6 +380,10 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     setModal({ kind: 'link', url: (editor.getAttributes('link').href as string) ?? '' });
   };
   const openImage = (file?: File) => setModal({ kind: 'image', file });
+  const openTable = () => {
+    if (!editor || editor.isActive('table')) return;
+    setModal({ kind: 'table', ...lastTable.current });
+  };
   const confirmDeleteBlock = () => {
     if (!editor) return;
     const b = currentBlock(editor);
@@ -416,7 +442,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       { group: 'Lists', title: 'Numbered list', hint: '1. item', keywords: 'ol ordered number', run: (ed) => c(ed).toggleOrderedList().run() },
       { group: 'Blocks', title: 'Quote', hint: 'Highlighted quotation', keywords: 'blockquote citation', run: (ed) => c(ed).toggleBlockquote().run() },
       { group: 'Blocks', title: 'Code block', hint: 'With syntax highlighting', keywords: 'code pre snippet', run: (ed) => c(ed).toggleCodeBlock().run() },
-      { group: 'Blocks', title: 'Table', hint: '3 × 3 with header row', keywords: 'grid table', run: (ed) => c(ed).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+      { group: 'Blocks', title: 'Table', hint: 'Choose rows, columns and header', keywords: 'grid table', run: () => openTable() },
       { group: 'Blocks', title: 'Divider', hint: 'Horizontal line', keywords: 'hr rule separator', run: (ed) => c(ed).setHorizontalRule().run() },
       { group: 'Media', title: 'Image', hint: 'Upload or paste a link', keywords: 'picture photo img upload', run: () => openImage() },
       { group: 'Media', title: 'YouTube video', hint: 'Embed by URL', keywords: 'video youtube embed', run: () => {
@@ -843,7 +869,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       <div class={`pb-24 lg:pb-8 ${grid}`}>
         {showRail && (
           <div class={mode === 'split' ? '' : ''}>
-            <Rail editor={editor} actions={{ openLink, openImage: () => openImage(), openTemplates: () => setModal({ kind: 'templates' }), openShortcuts: () => setModal({ kind: 'shortcuts' }), confirmDeleteBlock }} />
+            <Rail editor={editor} actions={{ openLink, openTable, openImage: () => openImage(), openTemplates: () => setModal({ kind: 'templates' }), openShortcuts: () => setModal({ kind: 'shortcuts' }), confirmDeleteBlock }} />
           </div>
         )}
 
@@ -901,6 +927,36 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             <input class="field" value={modal.url} placeholder="https://example.com" inputMode="url" onInput={(e) => setModal({ kind: 'link', url: (e.target as HTMLInputElement).value })} />
             <p class="text-xs text-muted">Leave empty and save to remove the link. Links in community articles are marked as user content (nofollow).</p>
             <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" onClick={() => setModal(null)}>Cancel</button><button class="btn-primary">Save link</button></div>
+          </form>
+        </Modal>
+      )}
+
+      {modal?.kind === 'table' && (
+        <Modal title="Insert table" onClose={() => setModal(null)}>
+          <form class="grid gap-4" onSubmit={(e) => {
+            e.preventDefault();
+            const rows = clampInt(modal.rows, 1, TABLE_MAX_ROWS);
+            const cols = clampInt(modal.cols, 1, TABLE_MAX_COLS);
+            lastTable.current = { rows, cols, header: modal.header };
+            setModal(null);
+            // A header row counts as one of the rows, so a 1-row table with a header is just the header.
+            editor.chain().focus().insertTable({ rows, cols, withHeaderRow: modal.header }).run();
+          }}>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="grid gap-1 text-sm"><span class="font-semibold">Rows</span>
+                <input class="field" type="number" min={1} max={TABLE_MAX_ROWS} required value={modal.rows} data-testid="table-rows" onInput={(e) => setModal({ ...modal, rows: Number((e.target as HTMLInputElement).value) })} />
+              </label>
+              <label class="grid gap-1 text-sm"><span class="font-semibold">Columns</span>
+                <input class="field" type="number" min={1} max={TABLE_MAX_COLS} required value={modal.cols} data-testid="table-cols" onInput={(e) => setModal({ ...modal, cols: Number((e.target as HTMLInputElement).value) })} />
+              </label>
+            </div>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={modal.header} data-testid="table-header" onChange={(e) => setModal({ ...modal, header: (e.target as HTMLInputElement).checked })} />
+              First row is a header
+            </label>
+            <TablePreview rows={clampInt(modal.rows, 1, TABLE_MAX_ROWS)} cols={clampInt(modal.cols, 1, TABLE_MAX_COLS)} header={modal.header} />
+            <p class="text-xs text-muted">Up to {TABLE_MAX_ROWS} rows and {TABLE_MAX_COLS} columns. You can add or remove rows and columns later from the table menu.</p>
+            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" onClick={() => setModal(null)}>Cancel</button><button class="btn-primary">Insert table</button></div>
           </form>
         </Modal>
       )}

@@ -1,0 +1,83 @@
+---
+/**
+ * /campus-writers : the Campus Writers Programme explained. Public only while `programme_open` is true.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PreviewBanner from '../../components/PreviewBanner.astro';
+import { prizeBands, programmeGate, rupees } from '../../lib/programme';
+import { CATEGORIES } from '../../lib/site';
+
+export const prerender = false;
+const cfg = await programmeGate(Astro.request.headers);
+if (!cfg) return new Response(null, { status: 404 });
+if (cfg.preview) Astro.response.headers.set('cache-control', 'private, no-store');
+const fmtDay = (s: string) => (s ? new Date(`${s}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '');
+const dates = cfg.start && cfg.end ? `${fmtDay(cfg.start)} to ${fmtDay(cfg.end)}` : cfg.start ? `from ${fmtDay(cfg.start)}` : 'dates announced soon';
+const faqs = [
+  ['Who can take part?', 'Students and anyone who enjoys technology and can explain it clearly. You need a Google account to sign in.'],
+  ['Do I need to be an expert?', 'No. Write about something you built, learned or tested. Accuracy and clarity matter more than seniority.'],
+  ['Can I use AI to write my article?', 'Use tools to check facts or code if you like, but the article must be your own writing and your own experience. Copied or machine-generated articles are rejected and disqualified.'],
+  ['How are winners chosen?', 'An editor scores technical accuracy, depth, originality and clarity; genuine reader upvotes add the rest. See the reward policy for the exact weights.'],
+  ['How do I get paid?', 'When a reward is confirmed, we email you to arrange a UPI or bank transfer. We never ask for payment details on the website.'],
+  ['Can I publish the same article elsewhere?', 'Please publish it here first. You keep the right to share a link to it anywhere.'],
+];
+---
+
+<BaseLayout title="Campus Writers Programme" description="Write about technology, get published after editorial review, build a public portfolio and earn rewards on TrutiAI.">
+  {cfg.preview && <PreviewBanner />}
+  <section class="border-b border-line pb-10">
+    <p class="font-sans text-xs font-semibold uppercase tracking-wide text-accent">Campus Writers Programme</p>
+    <h1 class="mt-2 font-sans text-4xl font-bold leading-tight tracking-tight md:text-5xl">Write. Publish. Build your portfolio. Earn rewards.</h1>
+    <p class="mt-4 max-w-2xl font-serif text-lg text-muted">A programme for students and technology enthusiasts who want to explain what they know. Every article is reviewed by an editor, published under your name, and competes for monthly prizes. Programme dates: {dates}.</p>
+    <p class="mt-6 flex flex-wrap gap-3 font-sans text-sm">
+      <a href="/signin/?next=/write/" class="rounded bg-accent px-5 py-2.5 font-semibold text-white">Register and start writing</a>
+      <a href="/join-us/" class="rounded border border-line px-5 py-2.5">Internships and other ways to join</a>
+    </p>
+  </section>
+
+  <div class="mt-10 grid gap-10 font-sans md:grid-cols-2">
+    <section>
+      <h2 class="text-xl font-bold">How it works</h2>
+      <ol class="mt-3 list-decimal space-y-2 pl-5 font-serif text-base">
+        <li>Sign in with Google and open the editor.</li>
+        <li>Write an original article of at least 600 words on one of the topics below. Your dashboard tracks it from the moment you submit.</li>
+        <li>Automatic checks look for spam and safety problems, then an editor reviews it. The editor may publish it, ask for changes or decline it with a reason.</li>
+        <li>Once published, it appears under your name and joins that month's competition.</li>
+      </ol>
+    </section>
+    <section>
+      <h2 class="text-xl font-bold">Rewards</h2>
+      <table class="mt-3 w-full text-left text-sm">
+        <tbody class="divide-y divide-line">
+          <tr><td class="py-2">First published article</td><td class="py-2 text-right font-semibold">{rupees(cfg.firstArticle)}</td></tr>
+          {prizeBands(cfg.prizes).map((b) => <tr><td class="py-2">Monthly {b.label} position</td><td class="py-2 text-right font-semibold">{rupees(b.amount)}{b.label.includes('–') && ' each'}</td></tr>)}
+        </tbody>
+      </table>
+      <p class="mt-2 text-xs text-muted">Up to {rupees(cfg.cap)} per writer across the programme, one monthly prize per writer. Rewards are paid by TrutiAI; they are not a share of advertising income. <a href="/reward-policy/" class="underline">Full reward policy</a></p>
+    </section>
+    <section>
+      <h2 class="text-xl font-bold">Topics</h2>
+      <ul class="mt-3 flex flex-wrap gap-2 text-sm">{CATEGORIES.map((c) => <li class="rounded-full border border-line bg-surface px-3 py-1">{c.name}</li>)}</ul>
+      <p class="mt-3 font-serif text-base text-muted">Tutorials, things you built, comparisons you tested, and clear explainers work best.</p>
+    </section>
+    <section>
+      <h2 class="text-xl font-bold">Writing guidelines</h2>
+      <ul class="mt-3 list-disc space-y-1.5 pl-5 font-serif text-base">
+        <li>Your own words and your own experience. No copying, no spun or machine-generated text.</li>
+        <li>Show working code and say which versions you used.</li>
+        <li>Credit sources with links.</li>
+        <li>Respectful and helpful. Read the <a href="/community-guidelines/" class="underline">community guidelines</a> and the <a href="/editorial-policy/" class="underline">editorial policy</a>.</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="mt-12 font-sans">
+    <h2 class="text-xl font-bold">Questions</h2>
+    <div class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface">
+      {faqs.map(([q, a]) => (
+        <details class="p-4"><summary class="cursor-pointer font-semibold">{q}</summary><p class="mt-2 font-serif text-base text-muted">{a}</p></details>
+      ))}
+    </div>
+    <p class="mt-8"><a href="/signin/?next=/write/" class="rounded bg-accent px-5 py-2.5 font-semibold text-white">Register and start writing</a> <a href="/leaderboard/" class="ml-3 underline">See the leaderboard</a></p>
+  </section>
+</BaseLayout>

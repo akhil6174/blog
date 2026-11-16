@@ -13,6 +13,12 @@ const w = await getWriter(Astro.params.handle!);
 const open = await getSettingBool('community_open');
 if (!w || w.bannedAt || !open) return new Response(null, { status: 404 });
 const items = await listPublished({ limit: 50, authorId: w.id });
+// Monthly achievements: placings in published competition months.
+const { and, eq, isNotNull } = await import('drizzle-orm');
+const { competitionEntries, competitions, db } = await import('../../lib/db');
+const { monthLabel } = await import('../../lib/programme');
+const awards = (await db().select({ month: competitionEntries.month, rank: competitionEntries.rank, postId: competitionEntries.postId }).from(competitionEntries).innerJoin(competitions, eq(competitions.month, competitionEntries.month)).where(and(eq(competitionEntries.authorId, w.id), isNotNull(competitionEntries.rank), eq(competitions.status, 'published')))).filter((a) => (a.rank ?? 99) <= 10).sort((a, b) => b.month.localeCompare(a.month));
+const titleOf = new Map(items.map((p) => [p.id, p]));
 ---
 
 <BaseLayout title={w.name} description={`${w.name} writes on TrutiAI. ${w.bio ?? ''}`.slice(0, 158)} noindex={items.length === 0} image={w.image ?? '/og-default.png'}>
@@ -22,9 +28,17 @@ const items = await listPublished({ limit: 50, authorId: w.id });
       <h1 class="text-2xl font-bold">{w.name}</h1>
       <p class="text-sm text-muted">Community writer · joined {w.createdAt.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
       {w.bio && <p class="mt-2 font-serif text-base leading-relaxed">{w.bio}</p>}
+      {(w.college || w.interests) && <p class="mt-2 text-sm text-muted">{[w.college, w.interests].filter(Boolean).join(' · ')}</p>}
+      <p class="mt-2 text-sm text-muted">{items.length} {items.length === 1 ? 'article' : 'articles'} · {items.reduce((n, p) => n + p.raisesCount, 0)} raises</p>
       {w.website && <p class="mt-2 text-sm"><a href={w.website} rel="noopener nofollow ugc" target="_blank" class="break-all text-accent underline">{w.website.replace(/^https:\/\//, '').replace(/\/$/, '')}</a></p>}
     </div>
   </div>
+  {awards.length > 0 && (
+    <section class="mx-auto mt-8 max-w-measure font-sans">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-muted">Achievements</h2>
+      <ul class="mt-2 space-y-1 text-sm">{awards.map((a) => <li>🏅 #{a.rank} in {monthLabel(a.month)}{titleOf.get(a.postId) && <> · <a href={`/p/${titleOf.get(a.postId)!.slug}/`} class="underline">{titleOf.get(a.postId)!.title}</a></>}</li>)}</ul>
+    </section>
+  )}
   <section class="mx-auto mt-12 max-w-5xl">
     <h2 class="mb-6 font-sans text-xs font-semibold uppercase tracking-wide text-muted">Articles by {w.name}</h2>
     {items.length === 0 ? <p class="font-serif text-muted">No published articles yet.</p> : <div class="grid gap-10 md:grid-cols-2 lg:grid-cols-3">{items.map((p) => <CommunityCard post={p} />)}</div>}

@@ -24,6 +24,14 @@ export const SETTING_DEFAULTS = {
   reports_to_hide: '3',
   views_sample_threshold: '20000',
   invited_emails: '', // comma-separated; these become writers on first sign-in even when invite-only
+  // Campus Writers Programme (src/lib/programme.ts). Hidden until programme_open is true.
+  programme_open: 'false',
+  programme_start: '', // YYYY-MM-DD
+  programme_end: '', // YYYY-MM-DD
+  reward_first_article: '200',
+  reward_prizes: '700,300,300,300,300,100,100,100,100,100',
+  reward_cap: '1000',
+  competition_weights: '30,25,20,15,10',
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
@@ -83,4 +91,11 @@ export const SETTING_HELP: Record<SettingKey, string> = {
   reports_to_hide: 'Distinct reports that hide a post or comment until reviewed.',
   views_sample_threshold: 'Daily views above which the view beacon samples 1 in 5.',
   invited_emails: 'Comma-separated emails that become writers on first sign-in while writing is invite-only.',
+  programme_open: 'true = the Campus Writers Programme is live: /campus-writers, /join-us, /leaderboard and /reward-policy are public and first-article rewards are credited. false = hidden (admins can still preview).',
+  programme_start: 'First day of the programme (YYYY-MM-DD). Shown on the programme pages. Articles published before it earn no rewards.',
+  programme_end: 'Last day of the programme (YYYY-MM-DD). Articles published after it earn no rewards.',
+  reward_first_article: 'Rupees credited (as pending) when a writer’s first community article is published during the programme.',
+  reward_prizes: 'Monthly prizes in rupees for positions 1, 2, 3 and so on, comma-separated.',
+  reward_cap: 'Most a single writer can receive across the whole programme, in rupees (first-article reward and prizes together).',
+  competition_weights: 'Score weights in percent: technical accuracy, quality and depth, originality, clarity, genuine upvotes. Must add up to 100.',
 };

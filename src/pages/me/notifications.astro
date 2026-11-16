@@ -1,0 +1,39 @@
+---
+/**
+ * /me/notifications : article decisions, comments and replies, rewards and results. Opening the page marks
+ * everything read (one D1 write).
+ */
+import { and, desc, eq, isNull } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { db, notifications } from '../../lib/db';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const d = db();
+const rows = await d.select().from(notifications).where(eq(notifications.userId, user.id)).orderBy(desc(notifications.id)).limit(100);
+if (rows.some((r) => !r.readAt)) await d.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
+const icon: Record<string, string> = { article: 'Article', comment: 'Comment', reply: 'Reply', reward: 'Reward', ranking: 'Results', announcement: 'News' };
+---
+
+<BaseLayout title="Notifications" description="Your notifications on TrutiAI." noindex>
+  <div class="mx-auto max-w-3xl font-sans">
+    <p class="text-sm"><a href="/me/" class="text-muted underline">← My account</a></p>
+    <h1 class="mt-2 text-2xl font-bold">Notifications</h1>
+    {rows.length === 0 ? (
+      <p class="mt-6 font-serif text-muted">Nothing yet. You will see editor decisions, comments, replies and rewards here.</p>
+    ) : (
+      <ul class="mt-4 divide-y divide-line rounded-lg border border-line bg-surface">
+        {rows.map((n) => (
+          <li class:list={['flex gap-3 p-4', !n.readAt && 'bg-amber-50/60']}>
+            <span class="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted">{icon[n.type] ?? n.type}</span>
+            <div class="min-w-0">
+              {n.link ? <a href={n.link} class="hover:underline">{n.title}</a> : <span>{n.title}</span>}
+              <p class="text-xs text-muted">{n.createdAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}{!n.readAt && ' · new'}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</BaseLayout>

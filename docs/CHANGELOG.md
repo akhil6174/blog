@@ -5,6 +5,23 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Editor: choose the table size
+
+- The Table button (toolbar and "/" menu) now opens a dialog: rows (1 to 50), columns (1 to 10) and a "First row is a header" checkbox, with a small preview. It remembers the last size used in the session. Rows and columns can still be added or removed later from the table menu.
+- New test `tests/e2e/table.e2e.mjs` (9 checks); `editor.e2e.mjs` updated for the dialog.
+
+### 2026-11-16 · Campus Writers Programme and reader features (D-031)
+
+- **Explore page** `/articles`: search across title, summary, text, tags and writer; filter by topic and several tags; sort by newest, most upvoted, most viewed; 12 per page. Linked as "Explore" in the header.
+- **Readers:** Save (bookmark), Share and Copy link under every article; `/me/saved`; take back an upvote ("Undo"); writers can no longer upvote their own article; edit and delete your own comments (edits are checked again; a deleted comment with replies keeps its place).
+- **Notifications** (`/me/notifications`, count on `/me`): article decisions, comments and replies on your articles, rewards, results and announcements.
+- **Profiles:** optional college and interests; writer pages show article and raise totals and competition placings.
+- **Campus Writers Programme**, behind the `programme_open` switch (off by default, admins can preview): `/campus-writers`, `/join-us` with an internship application form, `/leaderboard`, `/reward-policy` (built from the live settings).
+- **Rewards:** ₹200 first-article reward credited once as pending; monthly competition with editor scores (accuracy, depth, originality, clarity) plus genuine upvotes, one prize per writer, ₹1,000 cap with automatic cut, tie-breaking; suspicious-vote flags (young accounts, single-writer voters); reward ledger (pending, confirmed, paid with reference, cancelled, adjustments). Payment details are never stored on the site.
+- **Programme admin** `/admin/programme`: switch and rules, money overview, competition steps (refresh, score, finalise, reopen, publish), ledger actions, applications, announcements. Exports for rewards and applications. All actions audited.
+- Migration `drizzle/0004_programme.sql`: tables `bookmarks`, `notifications`, `competitions`, `competition_entries`, `rewards`, `applications`; columns `user.college`, `user.interests`, `comments.edited_at`.
+- New test `tests/e2e/programme.e2e.mjs` (33 checks).
+
 ### 2026-11-16 · Fix: promoted writers still saw "Writing is invite-only"
 
 - Writer checks (`/write`, saving, image upload, AI summary) now use `canWrite()` in `src/lib/auth.ts`. For readers it re-reads the role from the database, because the sign-in cookie caches the role for 5 minutes, so an admin promotion now works at once.

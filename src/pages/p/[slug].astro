@@ -12,6 +12,7 @@ import CommunityCard from '../../components/CommunityCard.astro';
 import CommentList from '../../components/CommentList.astro';
 import CommentForm from '../../islands/CommentForm';
 import RaiseButton from '../../islands/RaiseButton';
+import ArticleActions from '../../islands/ArticleActions';
 import ReportButton from '../../islands/ReportButton';
 import { getPublishedBySlug, relatedCommunity } from '../../lib/community';
 import { getSettingBool } from '../../lib/db/settings';
@@ -85,6 +86,7 @@ const jsonLd = noindex ? [] : [
 
     <footer class="mt-10 flex flex-wrap items-center gap-4 border-t border-line pt-6 font-sans text-sm">
       <RaiseButton client:load postId={post.id} initial={post.raisesCount} />
+      <ArticleActions client:visible postId={post.id} title={post.title} />
       <ReportButton client:visible targetType="post" targetId={post.id} />
       <span class="ml-auto text-muted">Community article · <a href="/community-guidelines/" class="underline">guidelines</a></span>
     </footer>

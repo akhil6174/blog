@@ -1,0 +1,214 @@
+---
+/**
+ * /admin/programme : Campus Writers Programme control room (admin only, via middleware).
+ * Switch and rules, money overview, monthly competition (refresh, score, finalise, publish), reward ledger
+ * (confirm, mark paid, cancel, adjust), internship applications and announcements.
+ * Actions post to /api/admin/programme (or /api/admin/action for settings) and the page reloads.
+ */
+import { desc, eq, inArray, sql } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { applications, competitions, db, rewards, user } from '../../lib/db';
+import { getSettings, SETTING_HELP, type SettingKey } from '../../lib/db/settings';
+import { listEntries, monthLabel, monthOf, programmeConfig, rupees } from '../../lib/programme';
+
+export const prerender = false;
+
+const d = db();
+const settings = await getSettings();
+const cfg = await programmeConfig();
+const thisMonth = monthOf(new Date());
+const [ty, tm] = thisMonth.split('-').map(Number);
+const lastMonth = tm === 1 ? `${ty - 1}-12` : `${ty}-${String(tm - 1).padStart(2, '0')}`;
+const requested = Astro.url.searchParams.get('month') ?? '';
+const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(requested) ? requested : new Date().getUTCDate() <= 10 ? lastMonth : thisMonth;
+const comp = await d.query.competitions.findFirst({ where: eq(competitions.month, month) });
+const knownMonths = [...new Set([thisMonth, lastMonth, ...(await d.select({ m: competitions.month }).from(competitions)).map((r) => r.m)])].sort().reverse();
+const entries = await listEntries(month);
+const status = comp?.status ?? 'not started';
+
+const filter = Astro.url.searchParams.get('rewards') ?? 'open';
+const rewardRows = await d.select().from(rewards).where(filter === 'all' ? sql`1` : filter === 'paid' ? eq(rewards.status, 'paid') : inArray(rewards.status, ['pending', 'confirmed'])).orderBy(desc(rewards.id)).limit(200);
+const people = rewardRows.length ? await d.select({ id: user.id, name: user.name, email: user.email }).from(user).where(inArray(user.id, [...new Set(rewardRows.map((r) => r.userId))])) : [];
+const pm = new Map(people.map((p) => [p.id, p]));
+const [money] = await d.select({
+  pending: sql<number>`coalesce(sum(case when status='pending' then amount end), 0)`,
+  confirmed: sql<number>`coalesce(sum(case when status='confirmed' then amount end), 0)`,
+  paid: sql<number>`coalesce(sum(case when status='paid' then amount end), 0)`,
+  monthPrizes: sql<number>`coalesce(sum(case when status!='cancelled' and kind='monthly_prize' and month=${month} then amount end), 0)`,
+}).from(rewards);
+const apps = await d.select().from(applications).orderBy(desc(applications.id)).limit(100);
+const progKeys = ['programme_open', 'programme_start', 'programme_end', 'reward_first_article', 'reward_prizes', 'reward_cap', 'competition_weights'] as SettingKey[];
+const pts = (s: number | null) => (s === null ? '–' : (s / 10).toFixed(1));
+const editable = status === 'open' || status === 'not started';
+---
+
+<BaseLayout title="Programme admin" description="Campus Writers Programme administration." noindex wide>
+  <div class="font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+      <h1 class="text-2xl font-bold tracking-tight">Campus Writers Programme</h1>
+      <p id="flash" class="text-sm text-accent" role="status"></p>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+      <span class:list={['rounded-full px-3 py-1', cfg.open ? 'bg-green-100 text-green-900' : 'bg-amber-100 text-amber-900']}>Programme {cfg.open ? 'LIVE' : 'off (hidden)'}</span>
+      <button class="act rounded-full border border-line px-3 py-1" data-endpoint="/api/admin/action" data-body={JSON.stringify({ action: 'set_settings', values: { programme_open: cfg.open ? 'false' : 'true' } })} data-confirm={cfg.open ? 'Hide the programme pages and stop first-article rewards?' : 'Make the programme public? Check the dates and amounts below first. Your earlier rule was to wait for AdSense approval.'}>{cfg.open ? 'Switch off' : 'Switch on'}</button>
+      <span class="text-muted">Preview: <a href="/campus-writers/" class="underline">/campus-writers</a> · <a href="/join-us/" class="underline">/join-us</a> · <a href="/leaderboard/" class="underline">/leaderboard</a> · <a href="/reward-policy/" class="underline">/reward-policy</a></span>
+    </div>
+
+    <section class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+      {[['Pending (to check)', money.pending], ['Confirmed (owed)', money.confirmed], ['Paid so far', money.paid], [`Prizes for ${monthLabel(month)}`, money.monthPrizes]].map(([k, v]) => (
+        <div class="rounded-lg border border-line bg-surface p-3"><p class="text-2xl font-bold">{rupees(Number(v))}</p><p class="text-xs text-muted">{k}</p></div>
+      ))}
+    </section>
+
+    <details class="mt-6 rounded-lg border border-line bg-surface p-4">
+      <summary class="cursor-pointer font-semibold">Programme rules (dates, amounts, cap, weights)</summary>
+      <form id="rules" class="mt-3 grid gap-3 md:grid-cols-2">
+        {progKeys.filter((k) => k !== 'programme_open').map((k) => (
+          <label class="grid gap-1 text-sm">
+            <span class="font-mono text-xs">{k}</span>
+            <input name={k} value={settings[k]} class="rounded border border-line px-2 py-1 font-mono text-sm" />
+            <span class="text-xs text-muted">{SETTING_HELP[k]}</span>
+          </label>
+        ))}
+        <div class="md:col-span-2"><button class="rounded bg-accent px-4 py-2 text-sm font-semibold text-white">Save rules</button></div>
+      </form>
+    </details>
+
+    <section class="mt-10" id="competition">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 class="text-lg font-bold">Competition: {monthLabel(month)}</h2>
+        <span class="rounded-full bg-page px-3 py-1 text-xs">{status}</span>
+        <form method="get" class="flex items-center gap-2 text-sm">
+          <select name="month" class="rounded border border-line px-2 py-1">{knownMonths.map((m) => <option value={m} selected={m === month}>{monthLabel(m)}</option>)}</select>
+          <button class="rounded border border-line px-3 py-1">Open</button>
+        </form>
+      </div>
+      <p class="mt-1 text-xs text-muted">Steps: 1) Refresh after the month ends to load articles and upvotes. 2) Score each article 0 to 10 (or disqualify). 3) Finalise: ranks are set, one prize per writer, the cap applied, prizes added to the ledger as pending. 4) Publish results. Reopen undoes a finalisation before publishing.</p>
+      <div class="mt-3 flex flex-wrap gap-2 text-sm">
+        {editable && <button class="act rounded border border-line px-3 py-1.5" data-body={JSON.stringify({ action: 'refresh', month })}>1. Refresh entries</button>}
+        {editable && entries.length > 0 && <button class="act rounded bg-accent px-3 py-1.5 font-semibold text-white" data-body={JSON.stringify({ action: 'finalise', month })} data-confirm={`Finalise ${monthLabel(month)}? Prizes are added to the ledger as pending.`}>3. Finalise</button>}
+        {status === 'finalised' && <button class="act rounded bg-accent px-3 py-1.5 font-semibold text-white" data-body={JSON.stringify({ action: 'publish', month })} data-confirm="Publish the results on /leaderboard and notify the writers?">4. Publish results</button>}
+        {status === 'finalised' && <button class="act rounded border border-line px-3 py-1.5" data-body={JSON.stringify({ action: 'reopen', month })} data-confirm="Reopen? Unpaid prizes for this month are cancelled.">Reopen</button>}
+      </div>
+
+      {entries.length === 0 ? <p class="mt-4 text-sm text-muted">No entries loaded. Press Refresh entries.</p> : (
+        <div class="mt-4 overflow-x-auto rounded-lg border border-line bg-surface">
+          <table class="w-full text-left text-sm">
+            <thead class="text-xs text-muted"><tr><th class="p-2">Article</th><th class="p-2" title="Upvotes from other accounts, one each">Upvotes</th><th class="p-2">Accuracy</th><th class="p-2">Quality</th><th class="p-2">Originality</th><th class="p-2">Clarity</th><th class="p-2">DQ</th><th class="p-2">Note</th><th class="p-2">Score</th><th class="p-2">Rank</th><th class="p-2">Prize</th><th class="p-2"></th></tr></thead>
+            <tbody class="divide-y divide-line">
+              {entries.map((e) => (
+                <tr class="score-row" data-post={e.postId}>
+                  <td class="max-w-64 p-2"><a href={`/p/${e.slug}/`} class="font-semibold hover:underline">{e.title}</a><span class="block text-xs text-muted">{e.authorName} · {e.publishedAt?.toLocaleDateString('en-IN')}</span></td>
+                  <td class="p-2">{e.upvotes}{e.suspiciousVotes > 0 && <span class="block text-xs text-red-700" title="From accounts younger than two days when voting, or that only upvote this writer. Not counted.">{e.suspiciousVotes} suspicious</span>}</td>
+                  {(['accuracy', 'quality', 'originality', 'clarity'] as const).map((k) => <td class="p-2"><input name={k} type="number" min="0" max="10" value={e[k] ?? ''} disabled={!editable} class="w-14 rounded border border-line px-1 py-0.5" aria-label={`${k} for ${e.title}`} /></td>)}
+                  <td class="p-2"><input name="disqualified" type="checkbox" checked={e.disqualified} disabled={!editable} aria-label={`Disqualify ${e.title}`} /></td>
+                  <td class="p-2"><input name="note" value={e.note ?? ''} maxlength="300" disabled={!editable} class="w-32 rounded border border-line px-1 py-0.5" aria-label={`Note for ${e.title}`} /></td>
+                  <td class="p-2 font-semibold">{pts(e.score)}</td>
+                  <td class="p-2">{e.rank ? `#${e.rank}` : '–'}</td>
+                  <td class="p-2">{e.prize ? rupees(e.prize) : '–'}</td>
+                  <td class="p-2">{editable && <button class="save-score rounded border border-line px-2 py-1 text-xs">Save</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+
+    <section class="mt-10" id="ledger">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 class="text-lg font-bold">Reward ledger</h2>
+        <span class="text-sm">{[['open', 'Unpaid'], ['paid', 'Paid'], ['all', 'All']].map(([k, l]) => <a href={`?month=${month}&rewards=${k}#ledger`} class:list={['mr-2', filter === k ? 'font-semibold underline' : 'text-muted']}>{l}</a>)}</span>
+      </div>
+      <p class="mt-1 text-xs text-muted">Pending → Confirm after checking → email the writer for UPI or bank details (never stored here) → pay → Mark paid with the transaction reference. <a href="/api/admin/export?type=rewards" class="underline">Export ledger</a></p>
+      {rewardRows.length === 0 ? <p class="mt-3 text-sm text-muted">Nothing here.</p> : (
+        <div class="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+          <table class="w-full text-left text-sm">
+            <thead class="text-xs text-muted"><tr><th class="p-2">#</th><th class="p-2">Writer</th><th class="p-2">Kind</th><th class="p-2">Amount</th><th class="p-2">Status</th><th class="p-2">Note</th><th class="p-2">Actions</th></tr></thead>
+            <tbody class="divide-y divide-line">
+              {rewardRows.map((r) => (
+                <tr>
+                  <td class="p-2 text-muted">{r.id}</td>
+                  <td class="p-2">{pm.get(r.userId)?.name ?? 'Deleted account'}<span class="block text-xs text-muted">{pm.get(r.userId)?.email}</span></td>
+                  <td class="p-2">{r.kind.replace('_', ' ')}{r.month && <span class="block text-xs text-muted">{r.month}</span>}</td>
+                  <td class="p-2 font-semibold">{rupees(r.amount)}</td>
+                  <td class="p-2">{r.status}{r.paymentRef && <span class="block text-xs text-muted">Ref {r.paymentRef}</span>}</td>
+                  <td class="max-w-64 p-2 text-xs text-muted">{r.note}</td>
+                  <td class="p-2 text-xs">
+                    {r.status === 'pending' && <button class="act mr-1 rounded border border-line px-2 py-1" data-body={JSON.stringify({ action: 'reward_confirm', id: r.id })}>Confirm</button>}
+                    {r.status === 'confirmed' && r.amount > 0 && <button class="act mr-1 rounded border border-line px-2 py-1" data-body={JSON.stringify({ action: 'reward_pay', id: r.id })} data-ask="ref" data-prompt="Payment reference (UPI or bank transaction id):">Mark paid</button>}
+                    {['pending', 'confirmed'].includes(r.status) && <button class="act rounded border border-red-300 px-2 py-1 text-red-700" data-body={JSON.stringify({ action: 'reward_cancel', id: r.id })} data-ask="note" data-prompt="Why is this reward cancelled? (the writer sees this)">Cancel</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <form id="adjust" class="mt-3 flex flex-wrap items-end gap-2 text-sm">
+        <label class="grid gap-1"><span class="text-xs text-muted">Writer email</span><input name="email" type="email" required class="rounded border border-line px-2 py-1" /></label>
+        <label class="grid gap-1"><span class="text-xs text-muted">Amount (₹, negative to deduct)</span><input name="amount" type="number" required class="w-28 rounded border border-line px-2 py-1" /></label>
+        <label class="grid gap-1"><span class="text-xs text-muted">Reason</span><input name="note" required minlength="5" maxlength="200" class="w-64 rounded border border-line px-2 py-1" /></label>
+        <button class="rounded border border-line px-3 py-1.5">Add adjustment</button>
+      </form>
+    </section>
+
+    <section class="mt-10" id="applications">
+      <h2 class="text-lg font-bold">Applications ({apps.filter((a) => a.status === 'new').length} new)</h2>
+      {apps.length === 0 ? <p class="mt-2 text-sm text-muted">No applications yet.</p> : (
+        <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+          {apps.map((a) => (
+            <li class="p-3">
+              <p><strong>{a.name}</strong> · <a href={`mailto:${a.email}`} class="underline">{a.email}</a> · {a.track} · <span class="text-muted">{a.createdAt.toLocaleDateString('en-IN')}</span> · <span class="font-semibold">{a.status}</span></p>
+              <p class="text-xs text-muted">{[a.college, a.interests].filter(Boolean).join(' · ')}{a.sampleUrl && <> · <a href={a.sampleUrl} rel="noopener nofollow" target="_blank" class="underline">sample</a></>}</p>
+              <p class="mt-1 whitespace-pre-line font-serif">{a.message}</p>
+              <p class="mt-2 flex gap-1 text-xs">{(['shortlisted', 'accepted', 'declined'] as const).filter((s) => s !== a.status).map((s) => <button class="act rounded border border-line px-2 py-1" data-body={JSON.stringify({ action: 'application_status', id: a.id, status: s })}>Mark {s}</button>)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="mt-10" id="announce">
+      <h2 class="text-lg font-bold">Send an announcement</h2>
+      <p class="mt-1 text-xs text-muted">Appears in each person's notifications on the site (no email).</p>
+      <form id="announce-form" class="mt-3 grid gap-2 text-sm md:max-w-xl">
+        <input name="title" required minlength="5" maxlength="200" placeholder="November competition is open: publish by 30 November" class="rounded border border-line px-3 py-1.5" />
+        <input name="link" maxlength="200" placeholder="/campus-writers/ (optional link)" class="rounded border border-line px-3 py-1.5" />
+        <div class="flex items-center gap-3">
+          <select name="audience" class="rounded border border-line px-2 py-1.5"><option value="writers">Writers</option><option value="all">Everyone with an account</option></select>
+          <button class="rounded bg-accent px-3 py-1.5 font-semibold text-white">Send</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script is:inline>
+    const flash = document.getElementById('flash');
+    async function post(body, endpoint = '/api/admin/programme') {
+      const r = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      flash.textContent = r.ok ? d.message || 'Done.' : d.error || 'Failed.';
+      flash.className = r.ok ? 'text-sm text-accent' : 'text-sm text-red-700';
+      return r.ok;
+    }
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', async () => {
+      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+      const body = JSON.parse(b.dataset.body);
+      if (b.dataset.ask) { const v = prompt(b.dataset.prompt || ''); if (!v) return; body[b.dataset.ask] = v; }
+      b.disabled = true;
+      if (await post(body, b.dataset.endpoint)) setTimeout(() => location.reload(), 600); else b.disabled = false;
+    }));
+    document.querySelectorAll('button.save-score').forEach((b) => b.addEventListener('click', async () => {
+      const tr = b.closest('tr');
+      const num = (n) => { const v = tr.querySelector(`[name=${n}]`).value; return v === '' ? null : Number(v); };
+      const ok = await post({ action: 'score', month: new URL(location.href).searchParams.get('month') || document.querySelector('select[name=month]').value, postId: tr.dataset.post, accuracy: num('accuracy'), quality: num('quality'), originality: num('originality'), clarity: num('clarity'), disqualified: tr.querySelector('[name=disqualified]').checked, note: tr.querySelector('[name=note]').value || null });
+      if (ok) setTimeout(() => location.reload(), 400);
+    }));
+    document.getElementById('rules')?.addEventListener('submit', async (e) => { e.preventDefault(); if (await post({ action: 'set_settings', values: Object.fromEntries(new FormData(e.target).entries()) }, '/api/admin/action')) setTimeout(() => location.reload(), 400); });
+    document.getElementById('adjust')?.addEventListener('submit', async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target).entries()); if (await post({ action: 'reward_adjust', email: f.email, amount: Number(f.amount), note: f.note })) setTimeout(() => location.reload(), 600); });
+    document.getElementById('announce-form')?.addEventListener('submit', async (e) => { e.preventDefault(); if (!confirm('Send this announcement?')) return; const f = Object.fromEntries(new FormData(e.target).entries()); if (await post({ action: 'announce', ...f })) e.target.reset(); });
+  </script>
+</BaseLayout>

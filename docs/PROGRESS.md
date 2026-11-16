@@ -134,6 +134,16 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [ ] Production: apply migration `0003_essentials` (`npx wrangler d1 migrations apply tech-blog-db --remote`) before or right after the push
 - [ ] Owner: turn on Google 2-Step Verification for the admin Google account; run `npm run db:backup` once a week
 
+## Campus Writers Programme and reader features (D-031)
+
+- [x] Explore page `/articles` with search, topic, tags, sort and pages (2026-11-16)
+- [x] Bookmarks, share, copy link, upvote undo, no self-upvotes, edit/delete own comments, notifications
+- [x] Programme pages behind `programme_open`: campus writers, join us (internship form), leaderboard, reward policy
+- [x] Rewards: first-article reward, monthly competition, cap, one prize per writer, suspicious votes, ledger, programme admin
+- [x] Local tests: programme 33/33, essentials 33/33, editor 64/64, writer access 5/5
+- [ ] Production: apply migration `0004_programme` (`npx wrangler d1 migrations apply tech-blog-db --remote`) before or right after the push
+- [ ] Owner: decide programme dates and budget, then set them in `/admin/programme` and switch it on (SETUP-GUIDE §17)
+
 ## Verification log
 
 | Date | Check | Result |

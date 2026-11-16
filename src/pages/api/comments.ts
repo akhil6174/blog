@@ -1,6 +1,9 @@
 /**
  * POST /api/comments : create a comment (status "checking") and start the moderation Workflow for it.
  * Works for community posts (post id) and editorial posts ("editorial:<slug>").
+ * PATCH  { id, body } : the writer edits their own comment; it is checked again by moderation.
+ * DELETE { id }       : the writer deletes their own comment (or an admin). A comment with replies keeps its
+ *                       place as "This comment was deleted." so the discussion still reads.
  */
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
@@ -64,4 +67,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
   await d.insert(comments).values({ id, postId: b.postId, userId: user.id, parentId: b.parentId ?? null, body: b.body.trim(), bodyHtml: commentHtml(b.body), status: 'checking' });
   await env.MODERATION.create({ id: `comment-${id}`, params: { postId: id, kind: 'comment' } });
   return json({ id, status: 'checking' });
+};
+
+/** Take a live comment out of the article's comment count (before an edit re-checks it, or on delete). */
+async function uncount(c: { postId: string; status: string }) {
+  if (c.status !== 'published' || c.postId.startsWith('editorial:')) return;
+  await db().update(posts).set({ commentsCount: sql`max(0, ${posts.commentsCount} - 1)` }).where(eq(posts.id, c.postId));
+}
+
+export const PATCH: APIRoute = async ({ request, locals }) => {
+  const user = locals.user;
+  if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (!(await getSettingBool('comments_open'))) return json({ error: 'Comments are paused right now. Please try again later.' }, 503);
+  const parsed = z.object({ id: z.string().min(8).max(32), body: z.string().min(2).max(2000) }).safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return json({ error: 'Invalid comment.' }, 400);
+  const d = db();
+  const c = await d.query.comments.findFirst({ where: eq(comments.id, parsed.data.id) });
+  if (!c || c.userId !== user.id) return json({ error: 'Comment not found.' }, 404);
+  if (c.body === DELETED) return json({ error: 'This comment was deleted.' }, 400);
+  await uncount(c);
+  await d.update(comments).set({ body: parsed.data.body.trim(), bodyHtml: commentHtml(parsed.data.body), status: 'checking', editedAt: new Date() }).where(eq(comments.id, c.id));
+  await env.MODERATION.create({ id: `comment-${c.id}-e${Date.now()}`, params: { postId: c.id, kind: 'comment' } });
+  return json({ id: c.id, status: 'checking', message: 'Saved. Your edit is being checked.' });
+};
+
+const DELETED = 'This comment was deleted.';
+
+export const DELETE: APIRoute = async ({ request, locals }) => {
+  const user = locals.user;
+  if (!user) return json({ error: 'Please sign in.' }, 401);
+  const parsed = z.object({ id: z.string().min(8).max(32) }).safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return json({ error: 'Invalid request.' }, 400);
+  const d = db();
+  const c = await d.query.comments.findFirst({ where: eq(comments.id, parsed.data.id) });
+  if (!c || (c.userId !== user.id && user.role !== 'admin')) return json({ error: 'Comment not found.' }, 404);
+  const [{ n }] = await d.select({ n: sql<number>`count(*)` }).from(comments).where(eq(comments.parentId, c.id));
+  if (Number(n) > 0) {
+    await d.update(comments).set({ body: DELETED, bodyHtml: `<p><em>${DELETED}</em></p>`, editedAt: new Date() }).where(eq(comments.id, c.id));
+  } else {
+    await uncount(c);
+    await d.delete(comments).where(eq(comments.id, c.id));
+  }
+  return json({ message: 'Comment deleted.' });
 };

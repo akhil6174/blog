@@ -109,6 +109,7 @@ check('undo', count2 === count0, `${count1} -> ${count2}`);
 
 // --- rail: table + highlight ---
 await page.click('.rail-btn[aria-label^="Table"]');
+await page.click('button:has-text("Insert table")'); // the size dialog (3 x 3 with header by default)
 check('table inserted from rail', await page.evaluate(() => window.__editor.isActive('table')));
 check('table context bar shown', !!(await page.$('.context-bar[aria-label="Table"]')));
 await page.click('.context-bar button:has-text("Row below")');

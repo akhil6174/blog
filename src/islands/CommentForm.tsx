@@ -1,13 +1,14 @@
 /**
  * Comment form island. Shows a sign-in prompt for anonymous readers; posts to /api/comments and reports the
- * moderation result (published within seconds, or held for review).
+ * moderation result (published within seconds, or held for review). Also shows Edit/Delete on the signed-in
+ * reader's own comments (rendered hidden by CommentList) and handles them inline.
  */
 import { useEffect, useState } from 'preact/hooks';
 
 type Props = { postId: string; turnstileSiteKey?: string };
 
 export default function CommentForm({ postId, turnstileSiteKey }: Props) {
-  const [user, setUser] = useState<{ name: string } | null | undefined>(undefined);
+  const [user, setUser] = useState<{ id: string; name: string } | null | undefined>(undefined);
   const [body, setBody] = useState('');
   const [parentId, setParentId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
@@ -20,6 +21,35 @@ export default function CommentForm({ postId, turnstileSiteKey }: Props) {
       if (t.classList.contains('reply-btn')) {
         setParentId(t.dataset.id ?? null);
         document.getElementById('comment-body')?.focus();
+      }
+      if (t.classList.contains('delete-comment')) {
+        if (!window.confirm('Delete your comment?')) return;
+        fetch('/api/comments', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: t.dataset.id }) })
+          .then((r) => r.json()).then((d) => { if (d.error) alert(d.error); else location.reload(); }).catch(() => alert('Could not delete.'));
+      }
+      if (t.classList.contains('edit-comment')) {
+        const li = document.getElementById(`c-${t.dataset.id}`);
+        const body = li?.querySelector<HTMLElement>(':scope > .comment-body');
+        if (!li || !body || li.querySelector('.comment-editor')) return;
+        const form = document.createElement('form');
+        form.className = 'comment-editor mt-2 grid gap-2';
+        const ta = document.createElement('textarea');
+        ta.rows = 3; ta.maxLength = 2000; ta.value = body.innerText.trim();
+        ta.className = 'rounded border border-line px-3 py-2 font-serif';
+        ta.setAttribute('aria-label', 'Edit your comment');
+        const row = document.createElement('div');
+        row.className = 'flex gap-2 text-sm';
+        row.innerHTML = '<button class="rounded bg-accent px-3 py-1.5 font-semibold text-white">Save</button><button type="button" class="cancel rounded border border-line px-3 py-1.5">Cancel</button>';
+        form.append(ta, row);
+        body.after(form);
+        body.hidden = true;
+        row.querySelector('.cancel')!.addEventListener('click', () => { form.remove(); body.hidden = false; });
+        form.addEventListener('submit', (ev) => {
+          ev.preventDefault();
+          fetch('/api/comments', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: t.dataset.id, body: ta.value }) })
+            .then((r) => r.json()).then((d) => { if (d.error) alert(d.error); else { form.remove(); body.hidden = false; body.innerHTML = '<p><em>Your edit is being checked and will appear shortly.</em></p>'; setTimeout(() => location.reload(), 4000); } })
+            .catch(() => alert('Could not save.'));
+        });
       }
       if (t.classList.contains('report-comment')) {
         const reason = window.prompt('Why are you reporting this comment? (spam, abuse, off-topic, other)');
@@ -66,6 +96,17 @@ export default function CommentForm({ postId, turnstileSiteKey }: Props) {
       window.turnstile?.reset?.();
     }
   }
+
+  // Reveal Edit/Delete on this reader's own comments. The list is a server island that may arrive later.
+  useEffect(() => {
+    if (!user) return;
+    const show = () => document.querySelectorAll<HTMLElement>('.own-actions').forEach((el) => { if (el.dataset.owner === user.id) el.classList.remove('hidden'); });
+    show();
+    const root = document.getElementById('comments')?.parentElement ?? document.body;
+    const obs = new MutationObserver(show);
+    obs.observe(root, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, [user]);
 
   if (user === undefined) return null;
   if (user === null) {

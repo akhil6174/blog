@@ -1,0 +1,64 @@
+---
+/**
+ * /reward-policy : the programme's money rules, built from the live settings so the page never disagrees with
+ * what the code pays. Public only while `programme_open` is true.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PreviewBanner from '../../components/PreviewBanner.astro';
+import { prizeBands, programmeGate, rupees } from '../../lib/programme';
+import { SITE } from '../../lib/site';
+
+export const prerender = false;
+const cfg = await programmeGate(Astro.request.headers);
+if (!cfg) return new Response(null, { status: 404 });
+if (cfg.preview) Astro.response.headers.set('cache-control', 'private, no-store');
+const w = cfg.weights;
+const fmtDay = (s: string) => (s ? new Date(`${s}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'to be announced');
+---
+
+<BaseLayout title="Reward policy" description="How TrutiAI's Campus Writers Programme rewards are earned, capped, confirmed and paid.">
+  {cfg.preview && <PreviewBanner />}
+  <article class="prose prose-article mx-auto">
+    <h1>Reward policy</h1>
+    <p>This policy covers the Campus Writers Programme from <strong>{fmtDay(cfg.start)}</strong> to <strong>{fmtDay(cfg.end)}</strong>. Rewards are paid by {SITE.name} from its own funds. They are not a share of advertising income.</p>
+
+    <h2>What you can earn</h2>
+    <ul>
+      <li>First published community article during the programme: <strong>{rupees(cfg.firstArticle)}</strong>, once per writer.</li>
+      {prizeBands(cfg.prizes).map((b) => <li>Monthly {b.label} position: <strong>{rupees(b.amount)}</strong>{b.label.includes('–') && ' each'}.</li>)}
+    </ul>
+    <p>Each writer can receive at most <strong>{rupees(cfg.cap)}</strong> across the whole programme, first-article reward and prizes together. If a prize is larger than what you have left under this limit, you receive what is left. A writer can win at most one monthly prize per month; only their best-scoring article is ranked.</p>
+
+    <h2>Who is eligible</h2>
+    <ul>
+      <li>Community articles published (after editorial review) during the competition month, in India time, and inside the programme dates.</li>
+      <li>Articles must be original, your own work, and follow the <a href="/community-guidelines/">community guidelines</a> and <a href="/editorial-policy/">editorial policy</a>.</li>
+      <li>Suspended accounts and removed articles are not eligible.</li>
+    </ul>
+
+    <h2>How articles are scored</h2>
+    <p>An editor gives each eligible article a mark from 0 to 10 for four qualities. Reader upvotes are scaled so the month's most upvoted article gets 10. The final score out of 100 uses these weights:</p>
+    <ul>
+      <li>Technical accuracy: {w[0]}%</li>
+      <li>Content quality and depth: {w[1]}%</li>
+      <li>Originality: {w[2]}%</li>
+      <li>Clarity and readability: {w[3]}%</li>
+      <li>Genuine reader upvotes: {w[4]}%</li>
+    </ul>
+    <p>Only upvotes from other accounts count, one per account. Upvotes from accounts created shortly before voting, or from accounts that only ever upvote one writer, are treated as suspicious and do not count toward the score. Writers cannot upvote their own articles.</p>
+    <p><strong>Ties</strong> are decided by more genuine upvotes, then by the earlier publication.</p>
+
+    <h2>Disqualification</h2>
+    <p>We may disqualify an article or a writer for copied or machine-generated content, factual errors that make the article misleading, organised or fake voting, multiple accounts, or abuse. A disqualified article earns nothing; rewards already paid for it may be withheld from future payments.</p>
+
+    <h2>Confirmation and payment</h2>
+    <ol>
+      <li>Rewards are first recorded as <em>pending</em>. Monthly results are normally published within 10 days after the month ends.</li>
+      <li>The editor checks each reward and marks it <em>confirmed</em>.</li>
+      <li>We then email you to arrange payment by UPI or bank transfer, usually within 30 days of confirmation. We never ask for payment or bank details on the website.</li>
+      <li>Once paid, the reward shows as <em>paid</em> with a payment reference on your account page.</li>
+    </ol>
+    <p>Rewards may be subject to applicable tax rules. Questions: <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.</p>
+    <p>We may change these rules for future months; changes are posted here before the month they apply to. A month that has already started keeps its rules.</p>
+  </article>
+</BaseLayout>

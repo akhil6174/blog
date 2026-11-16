@@ -226,3 +226,29 @@ Format: context (the situation), decision (what we do), consequences (what it co
   - Everything in the list's "postpone" section (RAG, knowledge graph, playgrounds, AI writing agents, Q&A, gamification).
 - **Consequences:** One more migration (`0003_essentials`) for production. The trash is purged by the hourly cron after 30 days. Technical reports go to `CONTACT_TO` by email once `RESEND_API_KEY` is set; until then they appear only on `/admin`.
 
+## D-031 · Campus Writers Programme: paid off-site, hidden behind a switch, current URLs kept
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The owner shared a full product plan: a student contributor programme with rewards (₹200 first article, monthly prizes, ₹1,000 cap), a leaderboard, writer and admin dashboards, bookmarks, notifications and an explore page, using new URLs (`/articles/:slug`, `/author/:username`, `/writer/dashboard`).
+- **Owner decisions (asked 2026-11-16):**
+  1. **Ledger on the site, payment off-site.** Rewards are tracked (pending, confirmed, paid with reference, cancelled, adjustments) but no UPI or bank details are stored. The editor emails the writer to pay. Less to protect, no payment-data obligations.
+  2. **Keep current URLs.** Articles stay at `/blog/:slug` and `/p/:slug`, writers at `/writer/:handle`, the dashboard at `/me`. New pages are added (`/articles`, `/leaderboard`, `/campus-writers`, `/join-us`, `/reward-policy`, `/admin/programme`). No indexed URL changes before AdSense review.
+  3. **Build now, switch on later.** Everything sits behind `programme_open` (default false); the pages 404 for visitors and admins can preview. Consistent with D-011 (AdSense first).
+- **Choices made in building it:**
+  - Upvotes reuse raises: competition upvotes count accounts, not raises (one per account), excluding the writer. Writers cannot raise their own article; readers can take their raises back.
+  - Suspicious votes (account younger than two days when voting, or a voter who only ever upvoted this writer) are shown to the editor and left out of the score, not deleted.
+  - Score = weights from `competition_weights` (default 30/25/20/15/10) over editor marks 0 to 10 and upvotes scaled to the month's best. Ties: more genuine upvotes, then earlier publication. One prize per writer per month (best article only).
+  - The cap counts everything not cancelled (first-article reward, prizes, adjustments). A prize above what is left is cut, and the ledger note says so.
+  - Months follow India time. Only community articles published in the month and inside `programme_start`..`programme_end` qualify.
+  - The `rewards` table has no foreign key to `user`, so financial records survive account deletion.
+  - Notifications are in-site only (no email digest yet), one D1 write each; announcements are capped at 5,000 accounts.
+  - Rewards are publisher-funded and the policy page says they are not advertising revenue sharing.
+- **Not built, and why:**
+  - Withdrawal requests and stored payment details: decision 1.
+  - Separate `/writer/*` dashboard routes and an `/editor` workspace: `/me` and `/admin` already hold these; one editor today (D-030).
+  - Homepage sections for trending, leaderboard and contributors: the homepage is static for speed and AdSense; dynamic sections would make it per-request. Linked from the header (Explore) and, once the programme is on, from the programme pages.
+  - Newsletter and email digests: need Resend set up and an audience.
+  - Topic pages with descriptions per topic: `/topics`, `/tag/:slug` and `/articles?category=` cover browsing; revisit with more articles.
+  - Writer analytics charts and per-month comparisons: totals and per-article numbers are on `/me`; charts wait for real traffic.
+- **Consequences:** Migration `0004_programme` for production. Turning the programme on is one switch in `/admin/programme` after setting the dates. The editor scores each month's articles before finalising.
+

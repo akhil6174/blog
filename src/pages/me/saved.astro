@@ -1,0 +1,60 @@
+---
+/**
+ * /me/saved : the reader's saved articles (bookmarks), newest first.
+ */
+import { getCollection } from 'astro:content';
+import { desc, eq, inArray } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { bookmarks, db, posts } from '../../lib/db';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const d = db();
+const rows = await d.select().from(bookmarks).where(eq(bookmarks.userId, user.id)).orderBy(desc(bookmarks.createdAt)).limit(500);
+const communityIds = rows.map((r) => r.postId).filter((id) => !id.startsWith('editorial:'));
+const community = communityIds.length ? await d.select({ id: posts.id, title: posts.title, slug: posts.slug, status: posts.status, description: posts.description }).from(posts).where(inArray(posts.id, communityIds)) : [];
+const cm = new Map(community.map((p) => [p.id, p]));
+const editorial = new Map((await getCollection('posts', ({ data }) => !data.draft)).map((p) => [p.id, p.data]));
+const items = rows
+  .map((r) => {
+    if (r.postId.startsWith('editorial:')) {
+      const slug = r.postId.slice(10);
+      const e = editorial.get(slug);
+      return e ? { id: r.postId, title: e.title, description: e.description, url: `/blog/${slug}/`, at: r.createdAt } : null;
+    }
+    const p = cm.get(r.postId);
+    return p && p.status === 'published' ? { id: r.postId, title: p.title, description: p.description ?? '', url: `/p/${p.slug}/`, at: r.createdAt } : null;
+  })
+  .filter((x): x is NonNullable<typeof x> => !!x);
+---
+
+<BaseLayout title="Saved articles" description="Articles you saved on TrutiAI." noindex>
+  <div class="mx-auto max-w-3xl font-sans">
+    <p class="text-sm"><a href="/me/" class="text-muted underline">← My account</a></p>
+    <h1 class="mt-2 text-2xl font-bold">Saved articles</h1>
+    <p id="flash" class="mt-2 min-h-5 text-sm text-accent" role="status"></p>
+    {items.length === 0 ? (
+      <p class="mt-6 font-serif text-muted">Nothing saved yet. Use <strong>Save</strong> under any article to keep it here.</p>
+    ) : (
+      <ul class="mt-4 divide-y divide-line rounded-lg border border-line bg-surface">
+        {items.map((i) => (
+          <li class="flex flex-wrap items-start justify-between gap-3 p-4">
+            <div class="min-w-0 flex-1">
+              <a href={i.url} class="font-semibold hover:underline">{i.title}</a>
+              <p class="mt-1 line-clamp-2 font-serif text-sm text-muted">{i.description}</p>
+              <p class="mt-1 text-xs text-muted">Saved {i.at.toLocaleDateString('en-IN')}</p>
+            </div>
+            <button class="unsave rounded border border-line px-3 py-1.5 text-sm" data-id={i.id}>Remove</button>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+  <script is:inline>
+    document.querySelectorAll('button.unsave').forEach((b) => b.addEventListener('click', async () => {
+      const r = await fetch('/api/bookmarks', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ postId: b.dataset.id }) });
+      if (r.ok) b.closest('li').remove(); else document.getElementById('flash').textContent = 'Could not remove.';
+    }));
+  </script>
+</BaseLayout>

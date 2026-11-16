@@ -27,6 +27,7 @@ const replies = (id: string) => rows.filter((r) => r.parentId === id);
 const fmt = (d: Date) => d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
 ---
 
+<!-- Edit/Delete buttons start hidden; CommentForm shows them on the signed-in writer's own comments (data-owner). -->
 <div class="mt-4 font-sans" id="comments" data-count={rows.length}>
   {rows.length === 0 ? (
     <p class="text-sm text-muted">No comments yet. Start the conversation.</p>
@@ -40,9 +41,10 @@ const fmt = (d: Date) => d.toLocaleDateString('en-IN', { year: 'numeric', month:
               {a?.image && <img src={a.image} alt="" width="24" height="24" class="h-6 w-6 rounded-full" referrerpolicy="no-referrer" />}
               <span class="font-semibold">{a?.name ?? 'Former member'}</span>
               <time class="text-muted" datetime={c.createdAt.toISOString()}>{fmt(c.createdAt)}</time>
+              {c.editedAt && <span class="text-xs text-muted">(edited)</span>}
             </p>
-            <div class="prose prose-sm mt-2 max-w-none font-serif" set:html={c.bodyHtml} />
-            <p class="mt-2 text-xs text-muted"><button type="button" class="reply-btn underline" data-id={c.id}>Reply</button> · <button type="button" class="report-comment underline" data-id={c.id}>Report</button></p>
+            <div class="comment-body prose prose-sm mt-2 max-w-none font-serif" set:html={c.bodyHtml} />
+            <p class="mt-2 text-xs text-muted"><button type="button" class="reply-btn underline" data-id={c.id}>Reply</button> · <button type="button" class="report-comment underline" data-id={c.id}>Report</button><span class="own-actions hidden" data-owner={c.userId}> · <button type="button" class="edit-comment underline" data-id={c.id}>Edit</button> · <button type="button" class="delete-comment underline" data-id={c.id}>Delete</button></span></p>
             {replies(c.id).length > 0 && (
               <ol class="mt-4 space-y-4 border-l-2 border-line pl-4">
                 {replies(c.id).map((r) => {
@@ -53,9 +55,10 @@ const fmt = (d: Date) => d.toLocaleDateString('en-IN', { year: 'numeric', month:
                         {ra?.image && <img src={ra.image} alt="" width="20" height="20" class="h-5 w-5 rounded-full" referrerpolicy="no-referrer" />}
                         <span class="font-semibold">{ra?.name ?? 'Former member'}</span>
                         <time class="text-muted" datetime={r.createdAt.toISOString()}>{fmt(r.createdAt)}</time>
+                        {r.editedAt && <span class="text-xs text-muted">(edited)</span>}
                       </p>
-                      <div class="prose prose-sm mt-1 max-w-none font-serif" set:html={r.bodyHtml} />
-                      <p class="mt-1 text-xs text-muted"><button type="button" class="report-comment underline" data-id={r.id}>Report</button></p>
+                      <div class="comment-body prose prose-sm mt-1 max-w-none font-serif" set:html={r.bodyHtml} />
+                      <p class="mt-1 text-xs text-muted"><button type="button" class="report-comment underline" data-id={r.id}>Report</button><span class="own-actions hidden" data-owner={r.userId}> · <button type="button" class="edit-comment underline" data-id={r.id}>Edit</button> · <button type="button" class="delete-comment underline" data-id={r.id}>Delete</button></span></p>
                     </li>
                   );
                 })}

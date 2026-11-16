@@ -68,5 +68,5 @@ async function hydrate(rows: (typeof posts.$inferSelect)[]): Promise<PublicPost[
 }
 
 export async function getWriter(handle: string) {
-  return db().query.user.findFirst({ where: eq(user.handle, handle), columns: { id: true, name: true, handle: true, image: true, bio: true, website: true, createdAt: true, role: true, bannedAt: true } });
+  return db().query.user.findFirst({ where: eq(user.handle, handle), columns: { id: true, name: true, handle: true, image: true, bio: true, website: true, college: true, interests: true, createdAt: true, role: true, bannedAt: true } });
 }

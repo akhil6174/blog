@@ -16,6 +16,7 @@ import TechDetails from '../../components/TechDetails.astro';
 import CommentList from '../../components/CommentList.astro';
 import CommentForm from '../../islands/CommentForm';
 import RaiseButton from '../../islands/RaiseButton';
+import ArticleActions from '../../islands/ArticleActions';
 import ReportButton from '../../islands/ReportButton';
 import { formatDate, getAuthor, getPublishedPosts, postUrl, readingMinutes, relatedPosts, tagSlug, wordCount } from '../../lib/posts';
 import { articleJsonLd, breadcrumbJsonLd } from '../../lib/seo';
@@ -119,6 +120,7 @@ const jsonLd = [
 
     <div class="mt-10 flex flex-wrap items-center gap-4 border-t border-line pt-6 font-sans text-sm">
       <RaiseButton client:load postId={interactionId} initial={0} />
+      <ArticleActions client:visible postId={interactionId} title={post.data.title} />
       <ReportButton client:visible targetType="post" targetId={interactionId} />
     </div>
 

@@ -1,0 +1,190 @@
+---
+/**
+ * /articles : explore every article. Editorial articles (Markdown) and, when the community is open, community
+ * articles, with search (title, summary, text, tags, author), category, several tags, sort (newest, most upvoted,
+ * most viewed) and pages of 12. On-demand and edge-cached 10 minutes per URL by the middleware.
+ * noindex for filtered/searched views; the plain first page is indexable.
+ */
+import { getCollection } from 'astro:content';
+import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { db, posts, postStats, postTags, raises, tags as tagTable, user } from '../../lib/db';
+import { getSettingBool } from '../../lib/db/settings';
+import { CATEGORIES, categoryName } from '../../lib/site';
+import { formatDate, readingMinutes, tagSlug } from '../../lib/posts';
+
+export const prerender = false;
+const PER_PAGE = 12;
+
+const sp = Astro.url.searchParams;
+const q = (sp.get('q') ?? '').trim().slice(0, 80);
+const category = sp.get('category') ?? '';
+const wantTags = [...new Set(sp.getAll('tag').map((t) => tagSlug(t)).filter(Boolean))].slice(0, 5);
+const author = (sp.get('author') ?? '').trim().slice(0, 60);
+const sort = ['new', 'upvoted', 'viewed'].includes(sp.get('sort') ?? '') ? (sp.get('sort') as string) : 'new';
+const page = Math.max(1, Math.min(200, Number(sp.get('page')) || 1));
+
+type Card = { id: string; url: string; title: string; description: string; cover: string | null; coverAlt: string; authorName: string; authorImage: string | null; authorUrl: string | null; category: string | null; tags: { slug: string; name: string }[]; date: Date; minutes: number; upvotes: number; views: number };
+const lower = q.toLowerCase();
+const has = (s: string | null | undefined) => !!s && s.toLowerCase().includes(lower);
+
+// ---- Editorial (content collection) ----
+const authorsCol = new Map((await getCollection('authors')).map((a) => [a.id, a.data]));
+const editorialAll = await getCollection('posts', ({ data }) => !data.draft);
+const edIds = editorialAll.map((p) => `editorial:${p.id}`);
+const d = db();
+const edRaises = edIds.length ? await d.select({ id: raises.postId, n: sql<number>`count(*)` }).from(raises).where(inArray(raises.postId, edIds)).groupBy(raises.postId) : [];
+const edViews = edIds.length ? await d.select({ id: postStats.postId, n: sql<number>`sum(${postStats.views})` }).from(postStats).where(inArray(postStats.postId, edIds)).groupBy(postStats.postId) : [];
+const er = new Map(edRaises.map((r) => [r.id, Number(r.n)]));
+const ev = new Map(edViews.map((r) => [r.id, Number(r.n)]));
+
+const editorial: Card[] = editorialAll
+  .map((p) => {
+    const a = authorsCol.get(p.data.author.id);
+    return {
+      id: `editorial:${p.id}`, url: `/blog/${p.id}/`, title: p.data.title, description: p.data.description,
+      cover: p.data.cover?.src ?? p.data.coverUrl ?? null, coverAlt: p.data.coverAlt ?? '',
+      authorName: a?.name ?? 'TrutiAI', authorImage: a?.avatar.src ?? null, authorUrl: a ? `/author/${a.handle}/` : null,
+      category: p.data.category ?? null, tags: p.data.tags.map((t) => ({ slug: tagSlug(t), name: t })),
+      date: p.data.pubDate, minutes: readingMinutes(p.body), upvotes: er.get(`editorial:${p.id}`) ?? 0, views: ev.get(`editorial:${p.id}`) ?? 0,
+      body: p.body ?? '',
+    };
+  })
+  .filter((c) => (!q || has(c.title) || has(c.description) || has(c.body) || has(c.authorName) || c.tags.some((t) => has(t.name)))
+    && (!category || c.category === category)
+    && wantTags.every((t) => c.tags.some((x) => x.slug === t))
+    && (!author || c.authorName.toLowerCase().includes(author.toLowerCase())))
+  .map(({ body: _b, ...c }) => c);
+
+// ---- Community (D1), only when the community is open ----
+let community: Card[] = [];
+if (await getSettingBool('community_open')) {
+  const where = [eq(posts.status, 'published'), eq(posts.kind, 'community')];
+  if (category) where.push(eq(posts.category, category));
+  if (q) {
+    const pat = `%${q.replace(/[%_]/g, '')}%`;
+    const tagHits = await d.select({ id: postTags.postId }).from(postTags).innerJoin(tagTable, eq(tagTable.slug, postTags.tagSlug)).where(like(tagTable.name, pat));
+    const ors = [like(posts.title, pat), like(posts.description, pat), like(posts.bodyText, pat), like(user.name, pat)];
+    if (tagHits.length) ors.push(inArray(posts.id, tagHits.map((t) => t.id)));
+    where.push(or(...ors)!);
+  }
+  if (author) where.push(like(user.name, `%${author.replace(/[%_]/g, '')}%`));
+  for (const t of wantTags) {
+    const ids = (await d.select({ id: postTags.postId }).from(postTags).where(eq(postTags.tagSlug, t))).map((r) => r.id);
+    where.push(ids.length ? inArray(posts.id, ids) : sql`0`);
+  }
+  const rows = await d
+    .select({ id: posts.id, slug: posts.slug, title: posts.title, description: posts.description, cover: posts.coverImage, coverAlt: posts.coverAlt, category: posts.category, publishedAt: posts.publishedAt, minutes: posts.readingMinutes, raises: posts.raisesCount, views: posts.viewsCount, authorName: user.name, authorImage: user.image, authorHandle: user.handle })
+    .from(posts)
+    .innerJoin(user, eq(user.id, posts.authorId))
+    .where(and(...where))
+    .orderBy(desc(posts.publishedAt))
+    .limit(500);
+  const voters = rows.length ? await d.select({ id: raises.postId, n: sql<number>`count(*)` }).from(raises).where(inArray(raises.postId, rows.map((r) => r.id))).groupBy(raises.postId) : [];
+  const vm = new Map(voters.map((v) => [v.id, Number(v.n)]));
+  const tagRows = rows.length ? await d.select({ postId: postTags.postId, slug: tagTable.slug, name: tagTable.name }).from(postTags).innerJoin(tagTable, eq(tagTable.slug, postTags.tagSlug)).where(inArray(postTags.postId, rows.map((r) => r.id))) : [];
+  community = rows.map((r) => ({
+    id: r.id, url: `/p/${r.slug}/`, title: r.title, description: r.description ?? '', cover: r.cover, coverAlt: r.coverAlt ?? '',
+    authorName: r.authorName, authorImage: r.authorImage, authorUrl: r.authorHandle ? `/writer/${r.authorHandle}/` : null,
+    category: r.category, tags: tagRows.filter((t) => t.postId === r.id).map((t) => ({ slug: t.slug, name: t.name })),
+    date: r.publishedAt ?? new Date(0), minutes: r.minutes, upvotes: vm.get(r.id) ?? 0, views: r.views,
+  }));
+}
+
+const all = [...editorial, ...community].sort((a, b) =>
+  sort === 'upvoted' ? b.upvotes - a.upvotes || b.date.valueOf() - a.date.valueOf()
+  : sort === 'viewed' ? b.views - a.views || b.date.valueOf() - a.date.valueOf()
+  : b.date.valueOf() - a.date.valueOf());
+const pages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+const items = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+// Tag chips: the most used tags across everything listed before filtering by tag.
+const tagCount = new Map<string, { slug: string; name: string; n: number }>();
+for (const c of [...editorial, ...community]) for (const t of c.tags) tagCount.set(t.slug, { ...t, n: (tagCount.get(t.slug)?.n ?? 0) + 1 });
+const topTags = [...tagCount.values()].sort((a, b) => b.n - a.n).slice(0, 16);
+
+const link = (change: Record<string, string | string[] | null>) => {
+  const u = new URL(Astro.url.pathname, Astro.url);
+  const cur: Record<string, string | string[] | null> = { q: q || null, category: category || null, tag: wantTags, author: author || null, sort: sort === 'new' ? null : sort, page: null, ...change };
+  for (const [k, v] of Object.entries(cur)) {
+    if (Array.isArray(v)) v.forEach((x) => u.searchParams.append(k, x));
+    else if (v) u.searchParams.set(k, v);
+  }
+  return u.pathname + u.search;
+};
+const filtered = !!(q || category || wantTags.length || author || sort !== 'new' || page > 1);
+---
+
+<BaseLayout title="Explore articles" description="Search and browse every TrutiAI article by topic, tag, author and popularity." noindex={filtered}>
+  <h1 class="font-sans text-3xl font-bold tracking-tight md:text-4xl">Explore articles</h1>
+  <p class="mt-2 max-w-2xl font-serif text-lg text-muted">Search by title, text, tag or writer, then narrow down by topic.</p>
+
+  <form method="get" class="mt-6 grid gap-3 font-sans text-sm md:grid-cols-[1fr_auto_auto_auto]" role="search">
+    <label class="sr-only" for="q">Search</label>
+    <input id="q" name="q" value={q} type="search" placeholder="Search articles, tags or writers" class="rounded border border-line bg-surface px-3 py-2" />
+    <label class="sr-only" for="category">Topic</label>
+    <select id="category" name="category" class="rounded border border-line bg-surface px-3 py-2">
+      <option value="">All topics</option>
+      {CATEGORIES.map((c) => <option value={c.slug} selected={c.slug === category}>{c.name}</option>)}
+    </select>
+    <label class="sr-only" for="sort">Sort</label>
+    <select id="sort" name="sort" class="rounded border border-line bg-surface px-3 py-2">
+      <option value="new" selected={sort === 'new'}>Newest</option>
+      <option value="upvoted" selected={sort === 'upvoted'}>Most upvoted</option>
+      <option value="viewed" selected={sort === 'viewed'}>Most viewed</option>
+    </select>
+    {wantTags.map((t) => <input type="hidden" name="tag" value={t} />)}
+    {author && <input type="hidden" name="author" value={author} />}
+    <button class="rounded bg-accent px-4 py-2 font-semibold text-white">Search</button>
+  </form>
+
+  {topTags.length > 0 && (
+    <p class="mt-4 flex flex-wrap gap-2 font-sans text-xs" aria-label="Filter by tag">
+      {topTags.map((t) => {
+        const on = wantTags.includes(t.slug);
+        return <a href={link({ tag: on ? wantTags.filter((x) => x !== t.slug) : [...wantTags, t.slug] })} aria-pressed={on} class:list={['rounded-full border px-3 py-1', on ? 'border-accent bg-accent text-white' : 'border-line bg-surface text-muted hover:text-ink']}>{t.name}</a>;
+      })}
+    </p>
+  )}
+  {(author || wantTags.length > 0) && (
+    <p class="mt-3 font-sans text-sm text-muted">
+      {author && <>Writer: <strong class="text-ink">{author}</strong> · </>}
+      <a href={link({ author: null, tag: [] })} class="underline">clear filters</a>
+    </p>
+  )}
+
+  <p class="mt-6 font-sans text-sm text-muted" role="status">{all.length} {all.length === 1 ? 'article' : 'articles'}{q && <> for “{q}”</>}</p>
+
+  {items.length === 0 ? (
+    <p class="mt-6 font-serif text-muted">Nothing matches. Try fewer words or <a href="/articles/" class="underline">clear the filters</a>.</p>
+  ) : (
+    <div class="mt-4 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      {items.map((c) => (
+        <article class="flex flex-col overflow-hidden rounded-lg border border-line bg-surface font-sans">
+          {c.cover && <a href={c.url} tabindex="-1" aria-hidden="true"><img src={c.cover} alt={c.coverAlt} loading="lazy" class="aspect-[16/9] w-full object-cover" referrerpolicy="no-referrer" /></a>}
+          <div class="flex flex-1 flex-col p-4">
+            {c.category && <a href={link({ category: c.category })} class="text-xs font-semibold uppercase tracking-wide text-accent hover:underline">{categoryName(c.category) ?? c.category}</a>}
+            <h2 class="mt-1 text-lg font-bold leading-snug"><a href={c.url} class="hover:underline">{c.title}</a></h2>
+            <p class="mt-2 line-clamp-3 font-serif text-sm text-muted">{c.description}</p>
+            {c.tags.length > 0 && <p class="mt-3 flex flex-wrap gap-1.5 text-xs">{c.tags.slice(0, 4).map((t) => <a href={link({ tag: [t.slug] })} class="rounded-full bg-page px-2 py-0.5 text-muted hover:text-ink">{t.name}</a>)}</p>}
+            <div class="mt-auto flex items-center gap-2 pt-4 text-xs text-muted">
+              {c.authorImage && <img src={c.authorImage} alt="" width="24" height="24" class="h-6 w-6 rounded-full object-cover" referrerpolicy="no-referrer" />}
+              {c.authorUrl ? <a href={c.authorUrl} class="font-medium text-ink hover:underline">{c.authorName}</a> : <span class="font-medium text-ink">{c.authorName}</span>}
+              <span aria-hidden="true">·</span><time datetime={c.date.toISOString()}>{formatDate(c.date)}</time>
+              <span aria-hidden="true">·</span><span>{c.minutes} min</span>
+              <span class="ml-auto" title="Upvotes (one per reader)">▲ {c.upvotes}</span>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  )}
+
+  {pages > 1 && (
+    <nav aria-label="Pages" class="mt-10 flex items-center justify-center gap-3 font-sans text-sm">
+      {page > 1 && <a href={link({ page: page - 1 === 1 ? null : String(page - 1) })} class="rounded border border-line px-3 py-1.5">← Newer</a>}
+      <span class="text-muted">Page {page} of {pages}</span>
+      {page < pages && <a href={link({ page: String(page + 1) })} class="rounded border border-line px-3 py-1.5">Older →</a>}
+    </nav>
+  )}
+</BaseLayout>

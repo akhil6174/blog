@@ -57,6 +57,7 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Editor dashboard</h1>
+        <p class="text-sm"><a href="/admin/programme/" class="font-semibold text-accent underline">Campus Writers Programme →</a> competition, rewards, payments, applications, announcements</p>
         <p class="text-sm text-muted">Signed in as {me.email}</p>
       </div>
       <p id="flash" class="text-sm text-accent" role="status"></p>
@@ -216,7 +217,7 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
       <h2 class="text-lg font-bold">Export data</h2>
       <p class="text-sm text-muted">Download a JSON copy. For a full database backup, run <code>npm run db:backup</code> on your computer.</p>
       <div class="mt-3 flex flex-wrap gap-2 text-sm">
-        {['articles', 'writers', 'reports', 'audit'].map((t) => <a href={`/api/admin/export?type=${t}`} class="rounded border border-line px-3 py-1.5 capitalize hover:border-accent" download>{t}</a>)}
+        {['articles', 'writers', 'reports', 'audit', 'rewards', 'applications'].map((t) => <a href={`/api/admin/export?type=${t}`} class="rounded border border-line px-3 py-1.5 capitalize hover:border-accent" download>{t}</a>)}
       </div>
     </section>
 

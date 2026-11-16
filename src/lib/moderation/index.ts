@@ -7,6 +7,8 @@ import { comments, db, moderationLog, posts, postStats, postTags, tags, user } f
 import { todayUTC } from '../content';
 import { purgePostCaches } from '../cache';
 import { postDecisionEmail, sendEmail } from '../email';
+import { notify } from '../notify';
+import { creditFirstArticle } from '../programme';
 import type { Decision } from './decide';
 import type { ModerationTarget, StepResult } from './types';
 
@@ -78,7 +80,13 @@ export async function applyDecision(kind: 'post' | 'comment', id: string, dec: D
         const t = await d.select({ slug: postTags.tagSlug }).from(postTags).where(eq(postTags.postId, id));
         for (const x of t) await d.update(tags).set({ postsCount: sql`${tags.postsCount} + 1` }).where(eq(tags.slug, x.slug));
         await d.update(user).set({ trustScore: sql`${user.trustScore} + 1` }).where(eq(user.id, p.authorId));
+        await creditFirstArticle({ id: p.id, authorId: p.authorId, title: p.title, publishedAt: p.publishedAt ?? now, kind: p.kind });
       }
+    }
+    const NOTICE: Record<string, string> = { published: 'Published', pending_review: 'Waiting for an editor', changes_requested: 'Changes requested', rejected: 'Not published' };
+    if (NOTICE[dec.status] && p.status !== dec.status) {
+      const link = dec.status === 'published' ? (p.kind === 'editorial' ? `/blog/${p.slug}/` : `/p/${p.slug}/`) : `/write/?id=${p.id}`;
+      await notify(p.authorId, 'article', `${NOTICE[dec.status]}: ${p.title}`, link);
     }
     const author = await d.query.user.findFirst({ where: eq(user.id, p.authorId) });
     await purgePostCaches(p.slug, author?.handle);
@@ -95,9 +103,37 @@ export async function applyDecision(kind: 'post' | 'comment', id: string, dec: D
       if (c && !c.postId.startsWith('editorial:')) {
         await d.update(posts).set({ commentsCount: sql`${posts.commentsCount} + 1` }).where(eq(posts.id, c.postId));
       }
+      if (c) await tellAboutComment(id);
       if (c) {
         await d.insert(postStats).values({ postId: c.postId, day: todayUTC(), comments: 1 }).onConflictDoUpdate({ target: [postStats.postId, postStats.day], set: { comments: sql`${postStats.comments} + 1` } });
       }
     }
+  }
+}
+
+/** A comment went live: tell the article's writer and, for a reply, the person replied to. */
+async function tellAboutComment(commentId: string): Promise<void> {
+  const d = db();
+  const c = await d.query.comments.findFirst({ where: eq(comments.id, commentId) });
+  if (!c || c.editedAt) return; // edits do not notify again
+  const who = await d.query.user.findFirst({ where: eq(user.id, c.userId), columns: { name: true } });
+  const name = who?.name ?? 'Someone';
+  let title = 'your article';
+  let link = c.postId.startsWith('editorial:') ? `/blog/${c.postId.slice(10)}/` : '';
+  let authorId: string | null = null;
+  if (!c.postId.startsWith('editorial:')) {
+    const p = await d.query.posts.findFirst({ where: eq(posts.id, c.postId), columns: { title: true, slug: true, authorId: true } });
+    if (!p) return;
+    title = p.title;
+    link = `/p/${p.slug}/`;
+    authorId = p.authorId;
+  }
+  link += `#c-${c.id}`;
+  if (c.parentId) {
+    const parent = await d.query.comments.findFirst({ where: eq(comments.id, c.parentId), columns: { userId: true } });
+    if (parent && parent.userId !== c.userId) await notify(parent.userId, 'reply', `${name} replied to your comment on "${title}"`, link);
+    if (authorId && authorId !== c.userId && authorId !== parent?.userId) await notify(authorId, 'comment', `${name} replied in a discussion on "${title}"`, link);
+  } else if (authorId && authorId !== c.userId) {
+    await notify(authorId, 'comment', `${name} commented on "${title}"`, link);
   }
 }

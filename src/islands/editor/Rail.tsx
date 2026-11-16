@@ -15,6 +15,7 @@ type Btn = { icon: ComponentType<{ size?: number; strokeWidth?: number }>; label
 
 export type RailActions = {
   openLink: () => void;
+  openTable: () => void;
   openImage: () => void;
   openTemplates: () => void;
   openShortcuts: () => void;
@@ -60,7 +61,7 @@ export default function Rail({ editor, actions }: { editor: Editor; actions: Rai
     [
       { icon: Link, label: 'Link', keys: 'Ctrl K', run: actions.openLink, active: editor.isActive('link') },
       { icon: Image, label: 'Image', run: actions.openImage },
-      { icon: Table, label: 'Table', run: () => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), disabled: editor.isActive('table') },
+      { icon: Table, label: 'Table', run: actions.openTable, disabled: editor.isActive('table') },
       { icon: Minus, label: 'Divider', run: () => c().setHorizontalRule().run() },
     ],
     [
