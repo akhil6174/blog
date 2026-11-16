@@ -7,13 +7,13 @@ import Editor from '../../islands/editor/Editor';
 import { parseTech } from '../../lib/tech';
 import { db, posts, postTags } from '../../lib/db';
 import { getSettingInt } from '../../lib/db/settings';
-import { hasRole } from '../../lib/auth';
+import { canWrite, hasRole } from '../../lib/auth';
 import { eq } from 'drizzle-orm';
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
-const canWrite = hasRole(user, 'writer');
+const allowed = await canWrite(user);
 const minWords = await getSettingInt('min_words');
 const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY ?? '';
 
@@ -36,7 +36,7 @@ if (id) {
 
 <BaseLayout title={initial ? 'Edit article' : 'Write an article'} description="Write for TrutiAI." noindex wide>
   <div>
-    {!canWrite ? (
+    {!allowed ? (
       <div class="mx-auto mt-10 max-w-measure rounded-lg border border-line bg-surface p-6 font-sans">
         <h1 class="text-xl font-bold">Writing is invite-only right now</h1>
         <p class="mt-2 text-muted">We are opening community publishing gradually. <a href="/contact/" class="underline">Ask for an invite</a> and tell us what you would like to write about.</p>

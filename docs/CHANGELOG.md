@@ -5,6 +5,12 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Fix: promoted writers still saw "Writing is invite-only"
+
+- Writer checks (`/write`, saving, image upload, AI summary) now use `canWrite()` in `src/lib/auth.ts`. For readers it re-reads the role from the database, because the sign-in cookie caches the role for 5 minutes, so an admin promotion now works at once.
+- Readers who signed up while writing was invite-only become writers automatically once `community_invite_only` is set to false or their email is invited.
+- New test `tests/e2e/writer-access.e2e.mjs` (5 checks).
+
 ### 2026-11-16 · Essential improvements (reliability, editorial flow, admin)
 
 Reviewed the "Essential Product Improvements" list against the code (D-030). Most of it already existed; these were missing and worth building now.

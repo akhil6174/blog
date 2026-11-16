@@ -6,7 +6,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { z } from 'zod';
-import { hasRole } from '../../../lib/auth';
+import { canWrite, hasRole } from '../../../lib/auth';
 import { getSetting } from '../../../lib/db/settings';
 import { todayUTC } from '../../../lib/content';
 import { basisOf } from '../../../lib/fingerprint';
@@ -20,7 +20,7 @@ const json = (b: unknown, status = 200) => Response.json(b, { status, headers: {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return json({ error: 'Please sign in.' }, 401);
-  if (!hasRole(user, 'writer')) return json({ error: 'Your account cannot use the writing tools yet.' }, 403);
+  if (!(await canWrite(user))) return json({ error: 'Your account cannot use the writing tools yet.' }, 403);
   const parsed = z.object({ title: z.string().max(200).default(''), text: z.string().min(1) }).safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json({ error: 'Write some of the article first.' }, 400);
   const { title, text } = parsed.data;

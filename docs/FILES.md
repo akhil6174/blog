@@ -85,6 +85,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `tests/e2e/images.e2e.mjs` | Playwright check of URL import (API safety and both dialogs) |
 | `tests/markdown.test.ts` | Markdown conversion and front matter tests |
 | `tests/e2e/essentials.e2e.mjs` | Playwright check of version history, conflicts, technical details, My articles, admin tools and reader reports |
+| `tests/e2e/writer-access.e2e.mjs` | Playwright check that admin promotions and opening writing to all take effect immediately |
 | `tests/e2e/publish.e2e.mjs` | Playwright check of publishing, updating, unpublishing, scheduling and permissions (dry run) |
 | `tests/e2e/editor.e2e.mjs` | Playwright browser check of the editor (run against `npm run preview`) |
 | `src/middleware.ts` | Edge cache for public community routes; session loading and protection for /write, /me, /admin and write APIs |

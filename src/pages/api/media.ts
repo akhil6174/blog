@@ -6,7 +6,7 @@
  */
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { hasRole } from '../../lib/auth';
+import { canWrite, hasRole } from '../../lib/auth';
 import { newId, todayUTC } from '../../lib/content';
 import { EXT, MEDIA_DAILY_LIMIT, MEDIA_MAX_BYTES, sniffImage } from '../../lib/media';
 
@@ -16,7 +16,7 @@ const json = (b: unknown, status = 200) => Response.json(b, { status, headers: {
 export const POST: APIRoute = async ({ request, url, locals }) => {
   const user = locals.user;
   if (!user) return json({ error: 'Please sign in.' }, 401);
-  if (!hasRole(user, 'writer')) return json({ error: 'Your account cannot upload images yet.' }, 403);
+  if (!(await canWrite(user))) return json({ error: 'Your account cannot upload images yet.' }, 403);
 
   const declared = Number(request.headers.get('content-length') ?? 0);
   if (declared > MEDIA_MAX_BYTES) return json({ error: 'Image is too large (max 2 MB after compression).' }, 413);

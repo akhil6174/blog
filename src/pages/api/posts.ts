@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { db, posts, postRevisions, postTags, tags } from '../../lib/db';
 import { getSettingBool, getSettingInt } from '../../lib/db/settings';
 import { cleanTech, hasTech } from '../../lib/tech';
-import { hasRole } from '../../lib/auth';
+import { canWrite, hasRole } from '../../lib/auth';
 import { contentHash, excerpt, isTiptapDoc, newId, readingMinutes, renderDoc, slugify } from '../../lib/content';
 import { tagSlug } from '../../lib/posts';
 import { verifyTurnstile } from '../../lib/turnstile';
@@ -53,7 +53,7 @@ const json = (b: unknown, status = 200) => Response.json(b, { status, headers: {
 export const POST: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return json({ error: 'Please sign in.' }, 401);
-  if (!hasRole(user, 'writer')) return json({ error: 'Your account cannot publish yet.' }, 403);
+  if (!(await canWrite(user))) return json({ error: 'Your account cannot publish yet.' }, 403);
 
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json({ error: 'Invalid data: ' + parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ') }, 400);

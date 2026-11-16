@@ -8,7 +8,7 @@
  * 3 redirects, 10 s timeout, 8 MB cap enforced while streaming, real file type checked from the first bytes.
  */
 import type { APIRoute } from 'astro';
-import { hasRole } from '../../../lib/auth';
+import { canWrite } from '../../../lib/auth';
 import { checkImportUrl, IMPORT_MAX_BYTES, sniffImportable } from '../../../lib/media';
 
 export const prerender = false;
@@ -17,7 +17,7 @@ const json = (b: unknown, status = 200) => Response.json(b, { status, headers: {
 export const GET: APIRoute = async ({ url, locals }) => {
   const user = locals.user;
   if (!user) return json({ error: 'Please sign in.' }, 401);
-  if (!hasRole(user, 'writer')) return json({ error: 'Your account cannot add images yet.' }, 403);
+  if (!(await canWrite(user))) return json({ error: 'Your account cannot add images yet.' }, 403);
 
   const checked = checkImportUrl(url.searchParams.get('url') ?? '');
   if ('error' in checked) return json({ error: checked.error }, 400);

@@ -104,3 +104,30 @@ export function hasRole(user: { role?: string | null } | null | undefined, min: 
   if (!user) return false;
   return (ROLE_RANK[user.role ?? 'reader'] ?? 0) >= ROLE_RANK[min];
 }
+
+/**
+ * Can this user write? Roles are set at sign-up, so a reader who joined while writing was invite-only would stay a
+ * reader forever. For readers only, this re-reads the role from D1 (the session cookie may be up to 5 minutes stale
+ * after an admin promotion) and re-checks the current rules: if writing is now open to all, or the admin invited
+ * this email, the reader is promoted to writer on the spot (one D1 write, once).
+ */
+export async function canWrite(u: { id: string; email?: string | null; role?: string | null; bannedAt?: Date | null } | null | undefined): Promise<boolean> {
+  if (!u || u.bannedAt) return false;
+  if (hasRole(u, 'writer')) return true;
+  // The session cookie caches the role for 5 minutes, so an admin promotion would not show yet: read it fresh.
+  const { db, user } = await import('./db');
+  const { and, eq } = await import('drizzle-orm');
+  const row = await db().query.user.findFirst({ where: eq(user.id, u.id), columns: { role: true, bannedAt: true } });
+  if (!row || row.bannedAt) return false;
+  if (hasRole(row, 'writer')) {
+    u.role = row.role;
+    return true;
+  }
+  const email = (u.email || '').toLowerCase();
+  const open = !(await getSettingBool('community_invite_only'));
+  const invited = !!email && (await getSetting('invited_emails' as SettingKey)).split(',').map((x) => x.trim().toLowerCase()).includes(email);
+  if (!open && !invited) return false;
+  await db().update(user).set({ role: 'writer', updatedAt: new Date() }).where(and(eq(user.id, u.id), eq(user.role, 'reader')));
+  u.role = 'writer';
+  return true;
+}
