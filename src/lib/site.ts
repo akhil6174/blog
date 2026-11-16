@@ -22,3 +22,10 @@ export const SITE = {
   /** Legal pages carry this "last updated" date; bump it when the text changes. */
   legalUpdated: '12 November 2026',
 } as const;
+
+/** Article categories: one per article, from the site's fixed topics (keeps the site's focus clear for readers and AdSense). */
+export const CATEGORIES = SITE.topics.map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }));
+
+export function categoryName(slug: string | null | undefined): string | null {
+  return CATEGORIES.find((c) => c.slug === slug)?.name ?? null;
+}

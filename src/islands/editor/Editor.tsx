@@ -26,6 +26,8 @@ import SettingsPanel, { STATUS_LABEL, type Settings } from './SettingsPanel';
 import { TEMPLATES, type Template } from './templates';
 import { BodyImageDialog, CoverDialog } from './ImageDialogs';
 import { isImageSrc } from '../../lib/media';
+import { slugify } from '../../lib/slug';
+import { changedFraction } from '../../lib/fingerprint';
 
 type InitialPost = {
   id?: string;
@@ -39,9 +41,16 @@ type InitialPost = {
   status?: string;
   rejectReason?: string | null;
   updatedAt?: string;
+  seoTitle?: string | null;
+  category?: string | null;
+  slug?: string | null;
+  summarySource?: string | null;
+  summaryBasis?: string | null;
+  featured?: boolean;
+  publishedAt?: string | null;
 };
 
-type Props = { initial?: InitialPost; authorName: string; minWords: number; maxTags: number; turnstileSiteKey?: string };
+type Props = { initial?: InitialPost; authorName: string; minWords: number; maxTags: number; turnstileSiteKey?: string; isAdmin?: boolean; host?: string };
 type Mode = 'write' | 'split' | 'preview';
 type SaveState = { state: 'idle' | 'dirty' | 'saving' | 'saved' | 'error'; at: Date | null; msg?: string };
 type LocalDraft = { title: string; subtitle: string; settings: Settings; bodyJson: JSONContent; at: number };
@@ -96,7 +105,7 @@ function BubbleBtn({ active, label, run, children }: { active?: boolean; label: 
   );
 }
 
-export default function Editor({ initial = {}, authorName, minWords, maxTags, turnstileSiteKey }: Props) {
+export default function Editor({ initial = {}, authorName, minWords, maxTags, turnstileSiteKey, isAdmin = false, host = 'trutiai.in' }: Props) {
   const idRef = useRef<string | undefined>(initial.id);
   const [title, setTitle] = useState(initial.title && initial.title !== 'Untitled draft' ? initial.title : '');
   const [subtitle, setSubtitle] = useState(initial.subtitle ?? '');
@@ -105,7 +114,22 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     tags: (initial.tags ?? []).join(', '),
     coverImage: initial.coverImage ?? '',
     coverAlt: initial.coverAlt ?? '',
+    seoTitle: initial.seoTitle ?? '',
+    category: initial.category ?? '',
+    slug: initial.slug ?? '',
+    summarySource: (initial.summarySource === 'ai' || initial.summarySource === 'user' ? initial.summarySource : '') as Settings['summarySource'],
+    summaryBasis: initial.summaryBasis ?? '',
+    featured: !!initial.featured,
   });
+  // The URL follows the title until the writer edits it (or the post is published, which locks it).
+  const [slugTouched, setSlugTouched] = useState(!!initial.slug && initial.slug !== slugify(initial.title ?? '') && initial.slug !== 'untitled-draft');
+  const [slugLocked, setSlugLocked] = useState(!!initial.publishedAt);
+  const [slugError, setSlugError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [summaryStale, setSummaryStale] = useState(false);
+  const autoTried = useRef(false);
+  const lastAutoRegen = useRef(0);
   const [status, setStatus] = useState(initial.status ?? 'draft');
   const [mode, setMode] = useState<Mode>('write');
   const [focus, setFocus] = useState(false);
@@ -117,8 +141,9 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const [busy, setBusy] = useState(false);
   const [canvas, setCanvas] = useState<HTMLDivElement | null>(null);
 
-  const latest = useRef({ title, subtitle, settings });
-  latest.current = { title, subtitle, settings };
+  const effectiveSlug = slugLocked || slugTouched ? settings.slug : title.trim() ? slugify(title) : settings.slug;
+  const latest = useRef({ title, subtitle, settings, effectiveSlug });
+  latest.current = { title, subtitle, settings, effectiveSlug };
   const version = useRef(0);
   const savedVersion = useRef(0);
   const inflight = useRef(false);
@@ -144,6 +169,12 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       coverImage: isImageSrc(s.coverImage.trim()) ? s.coverImage.trim() : null,
       coverAlt: s.coverAlt.trim().slice(0, 200) || null,
       bodyJson: editorRef.current?.getJSON() ?? { type: 'doc', content: [] },
+      seoTitle: s.seoTitle.trim().slice(0, 70),
+      category: s.category,
+      slug: latest.current.effectiveSlug,
+      summarySource: s.summarySource,
+      summaryBasis: s.summaryBasis,
+      ...(isAdmin ? { featured: s.featured } : {}),
       submit,
       autosave: !submit,
       turnstileToken: submit ? document.querySelector<HTMLInputElement>('input[name="cf-turnstile-response"]')?.value ?? '' : '',
@@ -164,7 +195,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     setSave((s) => ({ ...s, state: 'saving' }));
     try {
       const res = await fetch('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload(submit)) });
-      const data = (await res.json().catch(() => ({}))) as { id?: string; status?: string; redirect?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { id?: string; status?: string; redirect?: string; error?: string; slug?: string; slugLocked?: boolean; slugError?: string | null };
       if (!res.ok) throw new Error(data.error ?? `Save failed (${res.status})`);
       if (data.id && !idRef.current) {
         const oldKey = localKey();
@@ -173,6 +204,9 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
         lsDel(oldKey);
       }
       if (data.status) setStatus(data.status);
+      if (data.slug) setSettings((cur) => (cur.slug === data.slug ? cur : { ...cur, slug: data.slug! }));
+      if (typeof data.slugLocked === 'boolean') setSlugLocked(data.slugLocked);
+      setSlugError(data.slugError ?? null);
       savedVersion.current = v;
       if (version.current === v) {
         lsDel(localKey());
@@ -274,6 +308,38 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     confirmDeleteBlock,
   };
   imageFileRef.current = (f) => openImage(f);
+
+  // ---------- AI summary ----------
+  const runGenerate = async (auto = false) => {
+    const ed = editorRef.current;
+    if (!ed || aiBusy) return;
+    setAiBusy(true);
+    setAiError('');
+    try {
+      const text = ed.getText();
+      const res = await fetch('/api/ai/summary', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: latest.current.title, text }) });
+      const data = (await res.json().catch(() => ({}))) as { summary?: string; basis?: string; error?: string };
+      if (!res.ok || !data.summary) throw new Error(data.error ?? 'Could not generate a summary.');
+      // Never replace a summary the writer edited while this request was running.
+      const cur = latest.current.settings;
+      if (auto && cur.summarySource === 'user' && cur.description.trim()) return;
+      setSettings((c) => ({ ...c, description: data.summary!, summarySource: 'ai', summaryBasis: data.basis ?? '' }));
+      setSummaryStale(false);
+      markDirty();
+    } catch (e) {
+      if (!auto) setAiError((e as Error).message);
+      // An automatic attempt that failed may try again after a minute of further writing.
+      else window.setTimeout(() => (autoTried.current = false), 60_000);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+  const generateSummary = () => {
+    const cur = latest.current.settings;
+    if (cur.summarySource === 'user' && cur.description.trim()) {
+      setModal({ kind: 'confirm', title: 'Replace your summary?', body: 'You wrote or edited this summary yourself. Generating a new one replaces it (you can undo by typing it again).', confirmLabel: 'Replace with AI summary', run: () => runGenerate(false) });
+    } else void runGenerate(false);
+  };
   slashRef.current = () => {
     const c = (ed: TEditor) => ed.chain().focus();
     return [
@@ -354,6 +420,28 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     [idleTimer, maxTimer, retryTimer, localTimer].forEach((t) => window.clearTimeout(t.current));
   }, []);
 
+  // Summary upkeep, 4 s after typing pauses: first summary at 300 words; refresh AI summaries after big changes;
+  // flag (never overwrite) a writer's own summary when the article changed a lot.
+  const wordsNow = editor ? (editor.storage.characterCount.words() as number) : 0;
+  useEffect(() => {
+    if (!editor) return;
+    const t = window.setTimeout(() => {
+      const cur = latest.current.settings;
+      if (wordsNow >= 300 && !cur.description.trim() && !autoTried.current) {
+        autoTried.current = true;
+        void runGenerate(true);
+        return;
+      }
+      if (!cur.description.trim() || !cur.summaryBasis) return setSummaryStale(false);
+      const changed = changedFraction(cur.summaryBasis, editor.getText()) > 0.3;
+      if (changed && cur.summarySource === 'ai' && Date.now() - lastAutoRegen.current > 120_000) {
+        lastAutoRegen.current = Date.now();
+        void runGenerate(true);
+      } else setSummaryStale(changed && cur.summarySource === 'user');
+    }, 4000);
+    return () => window.clearTimeout(t);
+  }, [editor, wordsNow]);
+
   // Grow the title and subtitle boxes to fit their text (on load, restore, mode switch and typing).
   useLayoutEffect(() => {
     for (const el of document.querySelectorAll<HTMLTextAreaElement>('.editor-title, .editor-subtitle')) {
@@ -382,8 +470,9 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const requestSubmit = () => {
     const p: string[] = [];
     if (title.trim().length < 10) p.push('Give the article a title of at least 10 characters.');
-    if (settings.description.trim().length < 50) p.push('Write a summary of at least 50 characters (right panel).');
+    if (settings.description.trim().length < 50) p.push('Add a summary of at least 50 characters: click "Generate with AI" or write it (right panel).');
     if (tagList.length < 1) p.push('Add at least one tag.');
+    if (!settings.category) p.push('Choose a category (right panel).');
     if (words < minWords) p.push(`Write at least ${minWords} words (now ${words}).`);
     if (settings.coverImage && !isImageSrc(settings.coverImage)) p.push('The cover image address is not valid. Upload the image or use a full https:// address.');
     if (settings.coverImage && !settings.coverAlt.trim()) p.push('Describe the cover image (alt text).');
@@ -420,7 +509,20 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const st = STATUS_LABEL[status] ?? STATUS_LABEL.draft;
 
   const settingsPanel = (
-    <SettingsPanel value={settings} onChange={updateSettings} onEditCover={() => { setSheet(false); setModal({ kind: 'cover' }); }} status={status} rejectReason={initial.rejectReason ?? null} onSubmit={requestSubmit} onSaveDraft={() => void persist(false)} busy={busy} maxTags={maxTags} turnstileSiteKey={turnstileSiteKey} />
+    <SettingsPanel
+      value={settings}
+      title={title}
+      effectiveSlug={effectiveSlug}
+      slugLocked={slugLocked}
+      slugError={slugError}
+      onSlugInput={(v) => { setSlugTouched(true); setSlugError(null); updateSettings({ slug: v }); }}
+      onGenerate={generateSummary}
+      aiBusy={aiBusy}
+      aiError={aiError}
+      summaryStale={summaryStale}
+      isAdmin={isAdmin}
+      host={host}
+      onChange={updateSettings} onEditCover={() => { setSheet(false); setModal({ kind: 'cover' }); }} status={status} rejectReason={initial.rejectReason ?? null} onSubmit={requestSubmit} onSaveDraft={() => void persist(false)} busy={busy} maxTags={maxTags} turnstileSiteKey={turnstileSiteKey} />
   );
 
   const canvasEl = (

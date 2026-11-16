@@ -172,3 +172,17 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** AdSense rejects thin content; the site already required 600 words before a community article is indexable.
 - **Decision:** `min_words` default is 600 for submission, the editor shows a progress bar toward it, and `npm run check:content` fails editorial posts under 600. Article length has no upper limit (only title, subtitle and summary are capped, for search-result display).
 - **Consequences:** Every published article meets the indexing length. The welcome post (241 words) must be expanded before the AdSense application.
+
+## D-025 · AI summary: one field, writer's edits are protected
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The brief asked for an AI-generated SEO summary that refreshes when the article changes but never overwrites the writer's own text.
+- **Decision:** One summary field (meta description and card text). `POST /api/ai/summary` uses the settings model with a generous output budget and one retry; answers are cleaned (forbidden openers, dangling endings, cut at a sentence or clause under 160 characters). The post stores `summary_source` (`ai` or `user`) and `summary_basis` (sentence fingerprints). After a 4-second pause the editor generates the first summary at 300 words, silently refreshes an AI summary when more than 30 % of the sentences changed (at most every 2 minutes), and only shows a "refresh?" note for a writer's own summary. Manual regenerate over a writer's summary asks first. 30 generations per writer per day.
+- **Consequences:** About 45 to 90 neurons per generation. gpt-oss needs a large output budget because hidden reasoning counts against it; the moderation quality step was raised to the same budget.
+
+## D-026 · URL slug follows the title until edited, locked after publishing
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** Changing a published URL breaks links and loses search ranking.
+- **Decision:** The editor derives the slug from the title until the writer edits it; the server applies requested slugs only while `published_at` is empty, and a taken slug keeps the previous one with a warning instead of failing the save. No redirects yet, so even admins cannot change a published slug.
+- **Consequences:** Stable public URLs. A redirect table can be added later if admins need to rename published posts.

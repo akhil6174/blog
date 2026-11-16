@@ -6,10 +6,11 @@ import { db, posts, postTags, tags, user } from './db';
 
 export type PublicPost = typeof posts.$inferSelect & { author: { id: string; name: string; handle: string | null; image: string | null; bio: string | null }; tags: { slug: string; name: string }[] };
 
-export async function listPublished(opts: { limit: number; offset?: number; tag?: string; authorId?: string } ): Promise<PublicPost[]> {
+export async function listPublished(opts: { limit: number; offset?: number; tag?: string; authorId?: string; category?: string }): Promise<PublicPost[]> {
   const d = db();
   const where = [eq(posts.status, 'published')];
   if (opts.authorId) where.push(eq(posts.authorId, opts.authorId));
+  if (opts.category) where.push(eq(posts.category, opts.category));
   let ids: string[] | null = null;
   if (opts.tag) {
     const rows = await d.select({ id: postTags.postId }).from(postTags).where(eq(postTags.tagSlug, opts.tag));
@@ -17,7 +18,7 @@ export async function listPublished(opts: { limit: number; offset?: number; tag?
     if (ids.length === 0) return [];
     where.push(inArray(posts.id, ids));
   }
-  const rows = await d.select().from(posts).where(and(...where)).orderBy(desc(posts.publishedAt)).limit(opts.limit).offset(opts.offset ?? 0);
+  const rows = await d.select().from(posts).where(and(...where)).orderBy(desc(posts.featured), desc(posts.publishedAt)).limit(opts.limit).offset(opts.offset ?? 0);
   return hydrate(rows);
 }
 

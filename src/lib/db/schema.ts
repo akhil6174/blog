@@ -93,6 +93,16 @@ export const posts = sqliteTable(
     title: text('title').notNull(),
     subtitle: text('subtitle'),
     description: text('description'),
+    /** Optional <title> override for search results (defaults to the article title). */
+    seoTitle: text('seo_title'),
+    /** One of SITE.topics, stored as a slug (e.g. "web-development"). */
+    category: text('category'),
+    /** Who wrote the summary: 'ai' (generated) or 'user' (typed or edited). Protects user edits from regeneration. */
+    summarySource: text('summary_source'),
+    /** Sentence fingerprints of the text the AI summary was made from; detects big content changes. */
+    summaryBasis: text('summary_basis'),
+    /** Admin-only: pinned at the top of the community listing. */
+    featured: integer('featured', { mode: 'boolean' }).notNull().default(false),
     bodyJson: text('body_json').notNull(), // Tiptap document (source of truth)
     bodyHtml: text('body_html').notNull().default(''), // rendered once on save, sanitised
     bodyText: text('body_text').notNull().default(''), // plain text for moderation and search

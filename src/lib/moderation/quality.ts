@@ -41,7 +41,7 @@ quality_score: 0-100 for relevance and civility. reason: one sentence.`;
   return { instructions, input };
 }
 
-function extractText(out: unknown): string {
+export function extractText(out: unknown): string {
   const o = out as { response?: unknown; output_text?: string; output?: { type?: string; content?: { type?: string; text?: string }[] }[] };
   if (typeof o.response === 'string') return o.response;
   if (o.response && typeof o.response === 'object') return JSON.stringify(o.response);
@@ -65,7 +65,7 @@ export async function runQuality(t: ModerationTarget): Promise<StepResult & { qu
         instructions,
         input: `${input}\n\nRespond with JSON only, matching this schema: ${JSON.stringify(SCHEMA)}`,
         reasoning: { effort: 'low' },
-        max_output_tokens: 400,
+        max_output_tokens: 900,
       } as never);
     } else {
       out = await env.AI.run(model as Parameters<typeof env.AI.run>[0], {

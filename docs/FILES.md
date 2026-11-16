@@ -68,10 +68,13 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | File | What it does |
 |---|---|
 | `drizzle.config.ts` | Drizzle Kit config: generates SQL migrations from the schema into `drizzle/` |
+| `drizzle/0001_step_b_seo_fields.sql` | Adds `seo_title`, `category`, `summary_source`, `summary_basis`, `featured` to `posts` |
 | `drizzle/0000_init.sql` (+ `meta/`) | The database migration; applied with `npm run db:migrate:local` or `npm run deploy` |
 | `vitest.config.ts` | Unit test config (pure modules only) |
 | `tests/render-doc.test.ts` | Renderer safety and output tests |
 | `tests/moderation.test.ts` | Decision logic and verdict parser tests |
+| `tests/settings.test.ts` | Fingerprint, summary clean-up and slug tests |
+| `tests/e2e/settings.e2e.mjs` | Playwright check of the settings panel with the real AI model (mocked if unreachable) |
 | `tests/e2e/editor.e2e.mjs` | Playwright browser check of the editor (run against `npm run preview`) |
 | `src/middleware.ts` | Edge cache for public community routes; session loading and protection for /write, /me, /admin and write APIs |
 | `src/lib/db/schema.ts` | All D1 tables (Better Auth + blog) |
@@ -130,6 +133,10 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/report.ts` | Reports with auto-hide |
 | `src/pages/api/media.ts` | Image upload: type sniffing, size and daily limits, store in KV |
 | `src/pages/media/[file].ts` | Serves uploaded images with a one-year edge cache |
+| `src/lib/fingerprint.ts` | Sentence fingerprints for detecting big article changes; summary and SEO title length constants |
+| `src/lib/ai-summary.ts` | Summary prompt and clean-up (openers, dangling endings, trimming) |
+| `src/lib/slug.ts` | Shared slug rules for the editor and the posts API |
+| `src/pages/api/ai/summary.ts` | AI summary endpoint (Workers AI, rate-limited) |
 | `src/lib/media.ts` | Image upload constants, file-type sniffing, `isImageSrc` |
 | `src/pages/api/admin/action.ts` | All admin actions |
 

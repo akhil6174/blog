@@ -5,6 +5,19 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Editor step B: article settings
+
+**Added**
+- AI summary: "Generate with AI" / "Regenerate", automatic first summary at 300 words, silent refresh of AI summaries after big rewrites, a "refresh?" note (never an overwrite) for hand-written summaries, confirmation before replacing a hand-written one, length guidance (120 to 160).
+- Search result preview, SEO title (60-character guidance), editable URL slug (follows the title until edited, locked after publishing), category (one of the five site topics, required to submit), admin-only Featured.
+- Community pages: SEO title in `<title>` and share cards, category label and breadcrumb, category filter, featured posts pinned first.
+- Migration `0001_step_b_seo_fields`; `POST /api/ai/summary`; unit and browser tests.
+
+**Changed**
+- gpt-oss output budget raised to 900 tokens for summaries and the moderation quality step (hidden reasoning used up the old budget).
+- `posts.ts` line endings normalised.
+
+
 ### 2026-11-16 · Image uploads, 600-word minimum, toolbar fixes
 
 **Added**

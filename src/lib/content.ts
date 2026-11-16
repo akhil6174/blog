@@ -42,17 +42,7 @@ export function renderDoc(doc: TiptapDoc): { html: string; text: string; words: 
   return { html, text, words };
 }
 
-export function slugify(title: string): string {
-  return (
-    title
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-      .slice(0, 72) || 'post'
-  );
-}
+export { slugify } from './slug';
 
 export function externalLinks(html: string, ownHost: string): string[] {
   const out: string[] = [];

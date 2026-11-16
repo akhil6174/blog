@@ -26,6 +26,7 @@ if (id) {
   initial = {
     id: p.id, title: p.title, subtitle: p.subtitle ?? '', description: p.description ?? '', tags: t.map((x) => x.slug),
     coverImage: p.coverImage, coverAlt: p.coverAlt, bodyJson: JSON.parse(p.bodyJson), status: p.status, rejectReason: p.rejectReason, updatedAt: p.updatedAt.toISOString(),
+    seoTitle: p.seoTitle, category: p.category, slug: p.slug, summarySource: p.summarySource, summaryBasis: p.summaryBasis, featured: p.featured, publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
   };
 }
 ---
@@ -39,7 +40,7 @@ if (id) {
       </div>
     ) : (
       <>
-        <Editor client:only="preact" initial={initial} authorName={user.name} minWords={minWords} maxTags={5} turnstileSiteKey={turnstileSiteKey} />
+        <Editor client:only="preact" initial={initial} authorName={user.name} isAdmin={hasRole(user, 'admin')} host={new URL(Astro.site ?? 'https://trutiai.in').host} minWords={minWords} maxTags={5} turnstileSiteKey={turnstileSiteKey} />
         <noscript><p class="font-sans">The editor needs JavaScript.</p></noscript>
       </>
     )}
