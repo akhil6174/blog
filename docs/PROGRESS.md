@@ -119,7 +119,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Step B: settings panel with AI summary (auto at 300 words, refresh after big changes, writer edits protected), search preview, SEO title, slug rules, category, featured for admin (2026-11-16). Scheduling moves to step E
 - [ ] Production: apply migration `0001_step_b_seo_fields` before the step B code is pushed
 - [x] Step C (main part): cover and body image upload from the device with crop, zoom and compression, plus paste/drop into the article (2026-11-16). Completed 2026-11-16: image URLs are imported and copied to TrutiAI (cover and body), with link-as-is only as a fallback
-- [ ] Step D: AI writing assistant (selection only)
+- [~] Step D: AI writing assistant — **dropped by the owner (2026-11-16)**: no AI writing inside the article body (D-028)
 - [ ] Step E: admin editorial publishing at /blog/, publish now, scheduling
 
 ## Verification log

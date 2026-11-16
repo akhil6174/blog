@@ -5,6 +5,11 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Plan change
+
+- Step D (AI writing assistant) dropped by the owner: no AI writing in the article body (D-028). The AI summary in the settings panel stays.
+
+
 ### 2026-11-16 · Editor step C completed: import images by URL
 
 **Added**

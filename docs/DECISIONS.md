@@ -193,3 +193,10 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** Hotlinked images break when the other site changes, let that site track readers, and skip our compression.
 - **Decision:** `GET /api/media/import?url=` (signed-in writers) fetches the image server-side and returns the bytes; the browser then crops/compresses it and uploads a copy through the normal `POST /api/media`. Safety: http(s) on standard ports only, no credentials, no IP literals or local names (`checkImportUrl`), the Worker's `global_fetch_strictly_public` flag blocks private destinations, redirects re-checked (max 3), 10 s timeout, 8 MB cap enforced while streaming, real file type checked (JPG, PNG, WebP, GIF; GIF becomes WebP). Linking as-is stays available only after a failed import, with a warning.
 - **Consequences:** Imported images count toward the writer's daily upload limit and KV storage (D-023). Writers are reminded to use only images they have the right to publish.
+
+## D-028 · No AI writing assistant in the article body
+
+- **Date:** 2026-11-16 · **Status:** accepted (owner decision; cancels step D of EDITOR-PLAN.md)
+- **Context:** The plan proposed a selection-only assistant (grammar, rewrite, simplify, titles, headings). The owner does not want AI writing inside articles.
+- **Decision:** The article body stays entirely human-written; no assistant is built. AI remains only where it does not write article text: the summary/meta description in the settings panel (D-025) and moderation (D-004).
+- **Consequences:** Simpler editor and no extra Workers AI spend. Supports the editorial policy and AdSense's preference for original, human-edited content. Revisit only if the owner asks.

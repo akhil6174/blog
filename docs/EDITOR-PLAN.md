@@ -1,6 +1,6 @@
 # Writing page redesign: analysis and plan
 
-Status: **steps A, B and C done** (C completed 2026-11-16 with URL import). Steps D and E pending.
+Status: **steps A, B and C done** (C completed 2026-11-16 with URL import). **Step D dropped** by the owner (D-028). Step E pending.
 Earlier: **steps A and B done** (B: 2026-11-16, 25/25 settings checks with the real model).
 Previous status: **step A done** (2026-11-16, 50/50 browser checks in `tests/e2e/editor.e2e.mjs`). Steps B to E pending. Defaults approved by the owner: R2 if enabled else D1 storage, editorial posts from the editor, selection-only AI assistant.
 Source: the owner's 10-section brief for a Notion/Medium-style block editor.
@@ -89,7 +89,7 @@ Defaults if the owner just says "go": R2 if enabled by then, otherwise D1 fallba
 | A | New layout, icon rail, bubble menu, slash menu, block handle, tables/highlight/underline, templates, stats, cheaper autosave + local recovery, write/preview/split, focus mode, status banner, confirmations, mobile layout, editor dark mode | 1-2 |
 | B | Settings panel: AI summary, SEO title, slug rules, category, tags, featured/schedule (admin); D1 migration for `seo_title`, `category`, `summary_source`, `summary_hash`, `scheduled_at`, `featured` | 1 |
 | C | Image pipeline: device + URL import, crop, compress, storage, alt text, in-body images | 1 |
-| D | AI assistant (selection actions with Accept/Discard, title and heading ideas, SEO check, local repetition check, per-user caps, admin on/off) | 1 |
+| D | ~~AI assistant~~ dropped by the owner on 2026-11-16 (D-028): no AI writing in the article body | 0 |
 | E | Admin editorial publishing at `/blog/`, publish now, scheduling via cron | 1 |
 
 Each step ends with a build, unit tests for any new renderer nodes, a local end-to-end run, docs updates and a push.
