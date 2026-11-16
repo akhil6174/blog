@@ -44,7 +44,7 @@ const items = rows
             <div class="min-w-0 flex-1">
               <a href={i.url} class="font-semibold hover:underline">{i.title}</a>
               <p class="mt-1 line-clamp-2 font-serif text-sm text-muted">{i.description}</p>
-              <p class="mt-1 text-xs text-muted">Saved {i.at.toLocaleDateString('en-IN')}</p>
+              <p class="mt-1 text-xs text-muted">Saved {i.at.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
             </div>
             <button class="unsave rounded border border-line px-3 py-1.5 text-sm" data-id={i.id}>Remove</button>
           </li>

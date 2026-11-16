@@ -48,7 +48,7 @@ const am = new Map(authors.map((a) => [a.id, a]));
 const logFor = async (type: 'post' | 'comment', id: string) => d.select().from(moderationLog).where(and(eq(moderationLog.targetType, type), eq(moderationLog.targetId, id))).orderBy(desc(moderationLog.id)).limit(6);
 const postLogs = new Map<string, Awaited<ReturnType<typeof logFor>>>();
 for (const p of queuePosts) postLogs.set(p.id, await logFor('post', p.id));
-const fmt = (x: Date | null) => (x ? x.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+const fmt = (x: Date | null) => (x ? x.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '');
 const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
 ---
 

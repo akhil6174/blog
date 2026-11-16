@@ -110,7 +110,8 @@ export function renderNode(n: Node): string {
       if (!src) return '';
       const alt = attr(n.attrs?.alt);
       const title = n.attrs?.title ? ` title="${attr(n.attrs.title)}"` : '';
-      return `<figure><img src="${attr(src)}" alt="${alt}"${title} loading="lazy">${alt ? `<figcaption>${alt}</figcaption>` : ''}</figure>`;
+      // The alt text is for screen readers and search engines only; it is not shown as a visible caption.
+      return `<figure><img src="${attr(src)}" alt="${alt}"${title} loading="lazy"></figure>`;
     }
     case 'youtube': {
       const src = String(n.attrs?.src ?? '');

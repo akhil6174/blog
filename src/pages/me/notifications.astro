@@ -29,7 +29,7 @@ const icon: Record<string, string> = { article: 'Article', comment: 'Comment', r
             <span class="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted">{icon[n.type] ?? n.type}</span>
             <div class="min-w-0">
               {n.link ? <a href={n.link} class="hover:underline">{n.title}</a> : <span>{n.title}</span>}
-              <p class="text-xs text-muted">{n.createdAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}{!n.readAt && ' · new'}</p>
+              <p class="text-xs text-muted">{n.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}{!n.readAt && ' · new'}</p>
             </div>
           </li>
         ))}

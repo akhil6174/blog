@@ -83,16 +83,19 @@ export async function applyDecision(kind: 'post' | 'comment', id: string, dec: D
         await creditFirstArticle({ id: p.id, authorId: p.authorId, title: p.title, publishedAt: p.publishedAt ?? now, kind: p.kind });
       }
     }
+    // An edit to an article that was already live goes through review again; when it comes back it is an update,
+    // not a second publication (one "Published" per article).
+    const isUpdate = dec.status === 'published' && !!p.publishedAt;
     const NOTICE: Record<string, string> = { published: 'Published', pending_review: 'Waiting for an editor', changes_requested: 'Changes requested', rejected: 'Not published' };
     if (NOTICE[dec.status] && p.status !== dec.status) {
       const link = dec.status === 'published' ? (p.kind === 'editorial' ? `/blog/${p.slug}/` : `/p/${p.slug}/`) : `/write/?id=${p.id}`;
-      await notify(p.authorId, 'article', `${NOTICE[dec.status]}: ${p.title}`, link);
+      await notify(p.authorId, 'article', isUpdate ? `Your changes are live: ${p.title}` : `${NOTICE[dec.status]}: ${p.title}`, link);
     }
     const author = await d.query.user.findFirst({ where: eq(user.id, p.authorId) });
     await purgePostCaches(p.slug, author?.handle);
 
     if (opts.notify !== false && author?.email) {
-      const m = postDecisionEmail({ authorName: author.name, title: p.title, status: dec.status, reason: dec.reason, url: `${env.SITE_URL}/p/${p.slug}/`, editUrl: `${env.SITE_URL}/write/?id=${p.id}` });
+      const m = postDecisionEmail({ authorName: author.name, title: p.title, status: dec.status, reason: dec.reason, url: `${env.SITE_URL}/p/${p.slug}/`, editUrl: `${env.SITE_URL}/write/?id=${p.id}`, update: isUpdate });
       await sendEmail({ to: author.email, ...m });
     }
   } else {

@@ -284,3 +284,11 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Emails:** `akhilendrad@trutiai.in` is the main address and `CONTACT_TO`; `trutiai@proton.me` is listed as the second address. This replaces `hello@trutiai.in` and the Gmail forwarding plan (D-014).
 - **Consequences:** Search results can be up to 10 minutes old (edge cache). With no editorial articles, the home page shows a short notice; it fills automatically as articles are published. The `/search/` (Pagefind) page still exists but is no longer linked.
 
+## D-035 · Compact article rhythm; alt text is not a caption
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The owner found too much space between dividers and text, in tables and between list points, both while writing and on the site, and saw the image file name appear with uploaded images.
+- **Decision:** Override the Typography plugin's default margins inside `prose-article` (used by both the editor and article pages) with a compact rhythm. Stop pre-filling alt text from the file name, and stop rendering alt text as a `<figcaption>`.
+- **Why:** The plugin's defaults are sized for 16px text and double up inside lists and table cells because the editor wraps each item in a paragraph. Alt text describes the image for screen readers and search; showing it as a caption duplicated it, and a file name is a poor description anyway.
+- **Consequences:** Writers must type a short description for every image (it is still required). Articles saved before this change keep their old caption until they are saved again.
+

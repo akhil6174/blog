@@ -164,6 +164,13 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Local tests: editor 64/64, essentials 33/33, internship 18/18, table 9/9, writer access 5/5, settings 25/25, images 16/16, publish 22/22, programme 32/32
 - [ ] Owner: make sure akhilendrad@trutiai.in receives mail (contact form and reports are delivered there once RESEND_API_KEY is set)
 
+## Article spacing (D-035)
+
+- [x] Compact spacing for dividers, lists, tables and headings; no file name under images (2026-11-16)
+- [x] Local tests: editor 64/64, images 16/16, table 9/9, publish 22/22, unit 28/28
+- [x] Image insert keeps the cursor in place and below the image (image-cursor 9/9, settings 25/25)
+- [x] India time on all pages; edits announced as updates, not a second publish (notifications 4/4)
+
 ## Verification log
 
 | Date | Check | Result |

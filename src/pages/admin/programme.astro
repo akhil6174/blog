@@ -100,7 +100,7 @@ const editable = status === 'open' || status === 'not started';
             <tbody class="divide-y divide-line">
               {entries.map((e) => (
                 <tr class="score-row" data-post={e.postId}>
-                  <td class="max-w-64 p-2"><a href={`/p/${e.slug}/`} class="font-semibold hover:underline">{e.title}</a><span class="block text-xs text-muted">{e.authorName} · {e.publishedAt?.toLocaleDateString('en-IN')}</span></td>
+                  <td class="max-w-64 p-2"><a href={`/p/${e.slug}/`} class="font-semibold hover:underline">{e.title}</a><span class="block text-xs text-muted">{e.authorName} · {e.publishedAt?.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</span></td>
                   <td class="p-2">{e.upvotes}{e.suspiciousVotes > 0 && <span class="block text-xs text-red-700" title="From accounts younger than two days when voting, or that only upvote this writer. Not counted.">{e.suspiciousVotes} suspicious</span>}</td>
                   {(['accuracy', 'quality', 'originality', 'clarity'] as const).map((k) => <td class="p-2"><input name={k} type="number" min="0" max="10" value={e[k] ?? ''} disabled={!editable} class="w-14 rounded border border-line px-1 py-0.5" aria-label={`${k} for ${e.title}`} /></td>)}
                   <td class="p-2"><input name="disqualified" type="checkbox" checked={e.disqualified} disabled={!editable} aria-label={`Disqualify ${e.title}`} /></td>

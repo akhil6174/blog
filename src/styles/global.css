@@ -71,14 +71,37 @@
   @media (min-width: 768px) { font-size: 1.25rem; }
 
   & h2, & h3, & h4 { font-family: var(--font-sans); letter-spacing: -0.01em; scroll-margin-top: 5rem; }
-  & h2 { margin-top: 2em; }
+
+  /* Compact rhythm (D-035): the Typography defaults are generous at 20px and double up inside lists and table
+     cells, where the editor wraps every item in a paragraph. Same rules in the editor and on published pages. */
+  & p { margin-top: 0.85em; margin-bottom: 0.85em; }
+  & h2 { margin-top: 1.6em; margin-bottom: 0.5em; }
+  & h3 { margin-top: 1.4em; margin-bottom: 0.4em; }
+  & h4 { margin-top: 1.2em; margin-bottom: 0.3em; }
+  & h2 + *, & h3 + *, & h4 + * { margin-top: 0; }
+  & hr { margin-top: 1.5em; margin-bottom: 1.5em; }
+  & ul, & ol { margin-top: 0.6em; margin-bottom: 0.6em; }
+  & li { margin-top: 0.2em; margin-bottom: 0.2em; }
+  & li > p { margin-top: 0; margin-bottom: 0; }
+  & li > ul, & li > ol { margin-top: 0.2em; margin-bottom: 0.2em; }
+  & blockquote { margin-top: 1em; margin-bottom: 1em; }
+  & blockquote > p { margin-top: 0.3em; margin-bottom: 0.3em; }
+  & pre { margin-top: 1em; margin-bottom: 1em; }
+  & figure, & img, & iframe { margin-top: 1.25em; margin-bottom: 1.25em; }
+  & figure > img { margin-top: 0; margin-bottom: 0; }
+  & figcaption { margin-top: 0.4em; }
+  & table { margin-top: 1em; margin-bottom: 1em; font-size: 0.85em; line-height: 1.45; }
+  & th, & td { padding: 0.4em 0.6em; }
+  & td > p, & th > p { margin: 0; }
+  & thead th { padding-top: 0.4em; padding-bottom: 0.4em; }
+  & > :first-child { margin-top: 0; }
   & a { text-decoration-thickness: 1px; text-underline-offset: 3px; }
   & a:hover { color: var(--color-accent); }
   & img { border-radius: 0.5rem; }
   & pre { font-family: var(--font-mono); font-size: 0.85em; border-radius: 0.5rem; }
   & code:not(pre code) { font-family: var(--font-mono); font-size: 0.9em; background: #f0eef7; padding: 0.1em 0.35em; border-radius: 0.3em; font-weight: 500; }
   & code:not(pre code)::before, & code:not(pre code)::after { content: none; }
-  & table { font-family: var(--font-sans); font-size: 0.85em; }
+  & table { font-family: var(--font-sans); }
   & tbody tr:nth-child(even) { background: var(--color-surface); }
 }
 
@@ -117,7 +140,8 @@ html.editor-focus .editor-topbar { top: 0; }
 .editor-title::placeholder, .editor-subtitle::placeholder { color: color-mix(in srgb, var(--color-muted) 70%, transparent); }
 
 .editor-body { outline: none; min-height: 50vh; }
-.editor-body > * + * { margin-top: 0.9em; }
+.editor-body > * + * { margin-top: 0.85em; }
+.editor-body > hr { margin-top: 1.5em; margin-bottom: 1.5em; }
 .tiptap .is-empty::before, .tiptap .is-editor-empty::before {
   content: attr(data-placeholder); float: left; height: 0; pointer-events: none;
   color: color-mix(in srgb, var(--color-muted) 75%, transparent); font-style: normal;

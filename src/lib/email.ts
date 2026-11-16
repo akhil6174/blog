@@ -19,8 +19,14 @@ export async function sendEmail(opts: { to: string; subject: string; text: strin
   return res.ok;
 }
 
-export function postDecisionEmail(p: { authorName: string; title: string; status: string; reason: string; url: string; editUrl: string }): { subject: string; text: string } {
+export function postDecisionEmail(p: { authorName: string; title: string; status: string; reason: string; url: string; editUrl: string; update?: boolean }): { subject: string; text: string } {
   const hi = `Hi ${p.authorName.split(' ')[0]},\n\n`;
+  if (p.status === 'published' && p.update) {
+    return { subject: `Updated: ${p.title}`, text: `${hi}Your changes to "${p.title}" are live:
+${p.url}
+
+— ${SITE.name}` };
+  }
   if (p.status === 'published') {
     return { subject: `Published: ${p.title}`, text: `${hi}Your article "${p.title}" is live on ${SITE.name}:\n${p.url}\n\nThank you for writing with us.\n— ${SITE.name}` };
   }

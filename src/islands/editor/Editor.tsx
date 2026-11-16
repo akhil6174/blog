@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import { NodeSelection } from '@tiptap/pm/state';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import type { Editor as TEditor, JSONContent } from '@tiptap/core';
 import {
   Bold, Check, Code, Columns2, Eye, Highlighter, Italic, LayoutTemplate, Link as LinkIcon, Maximize2, Minimize2, Moon,
@@ -969,7 +969,16 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
           initialFile={modal.file}
           onClose={() => setModal(null)}
           onInsert={(src, alt) => {
-            editor.chain().focus().setImage({ src, alt }).run();
+            // After inserting, put the cursor on the line below the image (adding an empty line if the image is
+            // last). Left as a selected node, the next keystroke would replace the image with text.
+            editor.chain().focus(null, { scrollIntoView: false }).setImage({ src, alt }).command(({ tr, state }) => {
+              const sel = tr.selection;
+              if (!(sel instanceof NodeSelection) || sel.node.type.name !== 'image') return true;
+              const after = sel.to;
+              if (!tr.doc.resolve(after).nodeAfter?.isTextblock) tr.insert(after, state.schema.nodes.paragraph.create());
+              tr.setSelection(TextSelection.create(tr.doc, after + 1)).scrollIntoView();
+              return true;
+            }).run();
             setModal(null);
           }}
         />

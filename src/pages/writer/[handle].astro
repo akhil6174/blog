@@ -26,7 +26,7 @@ const titleOf = new Map(items.map((p) => [p.id, p]));
     {w.image && <img src={w.image} alt="" width="80" height="80" class="h-20 w-20 shrink-0 rounded-full" referrerpolicy="no-referrer" />}
     <div>
       <h1 class="text-2xl font-bold">{w.name}</h1>
-      <p class="text-sm text-muted">Community writer · joined {w.createdAt.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
+      <p class="text-sm text-muted">Community writer · joined {w.createdAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' })}</p>
       {w.bio && <p class="mt-2 font-serif text-base leading-relaxed">{w.bio}</p>}
       {(w.college || w.interests) && <p class="mt-2 text-sm text-muted">{[w.college, w.interests].filter(Boolean).join(' · ')}</p>}
       <p class="mt-2 text-sm text-muted">{items.length} {items.length === 1 ? 'article' : 'articles'} · {items.reduce((n, p) => n + p.raisesCount, 0)} raises</p>

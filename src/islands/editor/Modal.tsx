@@ -33,7 +33,14 @@ export default function Modal({ title, onClose, children, wide = false }: { titl
     document.addEventListener('keydown', onKey, true);
     return () => {
       document.removeEventListener('keydown', onKey, true);
-      prev?.focus?.();
+      // Returning focus to the article body with a plain DOM focus() makes the browser put the caret at the start
+      // of the article (and scroll there), throwing away where the writer was. Use the editor's own focus, which
+      // restores the saved cursor; skip it when the dialog's action already focused the editor.
+      if (document.activeElement?.closest?.('.ProseMirror')) return; // the action already put the cursor in the article
+      const editorEl = prev?.closest?.('.ProseMirror') as (HTMLElement & { editor?: { isFocused: boolean; commands: { focus: (p?: null, o?: { scrollIntoView?: boolean }) => boolean } } }) | null;
+      if (editorEl) {
+        if (!editorEl.contains(document.activeElement)) editorEl.editor?.commands.focus(null, { scrollIntoView: false });
+      } else prev?.focus?.({ preventScroll: true });
     };
   }, []);
   return (

@@ -16,7 +16,7 @@ const ready = rows.filter((r) => r.published >= need && !r.certificateSentAt);
 const working = rows.filter((r) => r.published < need && !r.certificateSentAt);
 const done = rows.filter((r) => r.certificateSentAt);
 const STATUS: Record<string, string> = { published: 'published', pending_review: 'waiting for you', submitted: 'checking', checking: 'checking', changes_requested: 'changes requested', rejected: 'declined', hidden: 'hidden', unpublished: 'unpublished', scheduled: 'scheduled' };
-const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const fmt = (d: Date) => d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
 const groups = [
   { id: 'ready', title: `Ready for certificate (${ready.length})`, hint: `${need} or more published articles. Email the certificate, then mark it sent.`, items: ready },
   { id: 'working', title: `In progress (${working.length})`, hint: '', items: working },

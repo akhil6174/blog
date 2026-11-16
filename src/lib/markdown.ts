@@ -146,7 +146,8 @@ export type EditorialMeta = {
 };
 
 const yaml = (v: string) => JSON.stringify(v); // JSON strings are valid YAML scalars
-const day = (d: Date) => d.toISOString().slice(0, 10);
+// Calendar day in India time (the site's audience), so an article published at 1 am IST is not dated the day before.
+const day = (d: Date) => new Date(d.getTime() + 330 * 60 * 1000).toISOString().slice(0, 10);
 
 export function frontmatter(m: EditorialMeta): string {
   const lines = [

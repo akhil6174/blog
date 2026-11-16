@@ -66,7 +66,7 @@ export function relatedPosts(post: Post, all: Post[], limit = 3): Post[] {
 }
 
 export function formatDate(d: Date): string {
-  return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function postUrl(post: Post): string {

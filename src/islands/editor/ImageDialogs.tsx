@@ -94,7 +94,6 @@ export function BodyImageDialog({ initialFile, onInsert, onClose }: { initialFil
       bmp.close();
       setBlob(b);
       setPreview(URL.createObjectURL(b));
-      if (!alt) setAlt(f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').slice(0, 120));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -242,7 +241,6 @@ export function CoverDialog({ current, currentAlt, onSave, onClose }: { current:
       const b = await decode(f);
       setBmp(b);
       setCrop({ zoom: 1, x: 0, y: 0 });
-      if (!alt) setAlt(f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').slice(0, 120));
       if (b.width < 600 || b.height < 315) setError('This image is small; it may look blurry. 1200 × 630 or larger works best.');
     } catch (e) {
       setError((e as Error).message);

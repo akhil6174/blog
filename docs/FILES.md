@@ -183,6 +183,8 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/admin/programme.ts` | Programme admin actions |
 | `tests/e2e/programme.e2e.mjs` | Playwright check of the programme, rewards, bookmarks, comments, notifications and explore |
 | `tests/e2e/table.e2e.mjs` | Playwright check of the table size dialog (rows, columns, header row, limits) |
+| `tests/e2e/image-cursor.e2e.mjs` | Playwright check that inserting an image keeps the cursor in place and below the image |
+| `tests/e2e/notifications.e2e.mjs` | Playwright check: one Published notification per article, updates announced as such, times in India time |
 
 ## Internships (D-032)
 

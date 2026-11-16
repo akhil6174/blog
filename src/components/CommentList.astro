@@ -24,7 +24,7 @@ try {
 const am = new Map(authors.map((a) => [a.id, a]));
 const top = rows.filter((r) => !r.parentId);
 const replies = (id: string) => rows.filter((r) => r.parentId === id);
-const fmt = (d: Date) => d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+const fmt = (d: Date) => d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' });
 ---
 
 <!-- Edit/Delete buttons start hidden; CommentForm shows them on the signed-in writer's own comments (data-owner). -->

@@ -96,7 +96,7 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
               <div class="min-w-0">
                 <p class="font-semibold">{p.title}</p>
                 <p class="text-xs text-muted">
-                  {label[p.status] ?? p.status} · {fmt(p.wordCount)} words · updated {p.updatedAt.toLocaleDateString('en-IN')}
+                  {label[p.status] ?? p.status} · {fmt(p.wordCount)} words · updated {p.updatedAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
                   {p.status === 'published' && ` · ${fmt(p.viewsCount)} views · ${fmt(p.raisesCount)} raises · ${fmt(p.commentsCount)} comments`}
                 </p>
                 {['rejected', 'changes_requested'].includes(p.status) && p.rejectReason && <p class="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">Editor: {p.rejectReason}</p>}
@@ -143,7 +143,7 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
             <table class="w-full text-left text-sm">
               <thead class="text-xs text-muted"><tr><th class="p-2">Date</th><th class="p-2">Reward</th><th class="p-2">Amount</th><th class="p-2">Status</th><th class="p-2">Note</th></tr></thead>
               <tbody class="divide-y divide-line">
-                {ledger.rows.map((r) => <tr><td class="p-2">{r.createdAt.toLocaleDateString('en-IN')}</td><td class="p-2">{KIND[r.kind] ?? r.kind}</td><td class="p-2">₹{fmt(r.amount)}</td><td class="p-2 capitalize">{r.status}{r.status === 'paid' && r.paymentRef && <span class="block text-xs text-muted">Ref {r.paymentRef}</span>}</td><td class="p-2 text-xs text-muted">{r.note}</td></tr>)}
+                {ledger.rows.map((r) => <tr><td class="p-2">{r.createdAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</td><td class="p-2">{KIND[r.kind] ?? r.kind}</td><td class="p-2">₹{fmt(r.amount)}</td><td class="p-2 capitalize">{r.status}{r.status === 'paid' && r.paymentRef && <span class="block text-xs text-muted">Ref {r.paymentRef}</span>}</td><td class="p-2 text-xs text-muted">{r.note}</td></tr>)}
               </tbody>
             </table>
           </div>

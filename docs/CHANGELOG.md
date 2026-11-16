@@ -5,6 +5,24 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · India time everywhere; one "Published" per article
+
+- Fixed: times on server-rendered pages (notifications, admin, My articles, saved, comments, article dates) were in UTC, 5½ hours behind. They now use India time (`Asia/Kolkata`). Editorial Markdown dates (`pubDate`, `updatedDate`) also use the India calendar day.
+- Fixed: editing a live article sent it through review again and announced it as "Published" a second time (notification and email). It now says "Your changes are live" (email subject "Updated: …").
+- New test `tests/e2e/notifications.e2e.mjs` (4 checks).
+
+### 2026-11-16 · Editor: inserting an image keeps your place
+
+- Fixed: after inserting an image (or a link), the cursor jumped to the top of the article. The dialog returned focus with a plain DOM `focus()`, which puts the caret at the start; it now uses the editor's own focus, which restores the saved cursor, without scrolling.
+- Fixed: the new image stayed selected, so the next keystroke replaced it with text. The cursor now moves to the line below the image (a new empty line is added when the image is last).
+- New test `tests/e2e/image-cursor.e2e.mjs` (9 checks: toolbar, "/" menu, last block, cancel).
+
+### 2026-11-16 · Tighter article spacing; no file names under images (D-035)
+
+- Article body spacing tightened in the editor and on published pages: paragraphs 0.85em, dividers 1.5em, list items 0.2em with no extra paragraph gap inside items, tables with compact cells and no paragraph margins inside cells, smaller gaps around headings, quotes, code and images.
+- Images: the description (alt text) is no longer pre-filled from the file name, and community articles no longer print the description as a visible caption under the picture. Alt text is still required for accessibility and search.
+- Tests: the editor, images and publish tests type a description; the publish test waits for the server reply instead of a background listener (it could miss it).
+
 ### 2026-11-16 · Brighter design, live search, account menu, new emails (D-034)
 
 - **Colours:** white page instead of cream, with lavender tint bands (`--color-tint #f6f4fc`, `--color-tint-strong #ece8f9`) and the purple accent; ink `#1f1d29`, muted `#5c596b`, lines `#e6e3ef`.

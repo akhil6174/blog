@@ -60,10 +60,11 @@ check('admin sees "Publish to blog" instead of "Submit for review"', await page.
 check('top bar says Publish', await page.isVisible('.editor-topbar button:text-is("Publish")'));
 await page.click('aside[aria-label="Article settings"] button:has-text("Publish to blog")');
 check('confirmation shows the final address', await waitFor(() => document.querySelector('[role="dialog"]')?.textContent?.includes('/blog/static-pages-on-workers-')));
+const pubResp = page.waitForResponse((r) => r.url().endsWith('/api/editorial'), { timeout: 20000 }).then((r) => r.json()).catch(() => ({}));
 await page.click('[role="dialog"] button:has-text("Publish now")');
 const published = await waitFor(() => !!document.querySelector('[role="dialog"][aria-label="Published"]'), null, 20000);
-check('publish succeeds (dry run)', published, JSON.stringify(editorialResponses.at(-1)?.errors ?? ''));
-const pub = editorialResponses.at(-1) ?? {};
+const pub = await pubResp;
+check('publish succeeds (dry run)', published, JSON.stringify(pub?.errors ?? ''));
 check('dry run: nothing sent to GitHub', pub.dryRun === true && pub.commitUrl === null);
 const md = pub.markdown ?? '';
 writeFileSync(`${OUT}/published.md`, md);
@@ -82,9 +83,11 @@ await page.keyboard.press('Control+End');
 await page.keyboard.type(' A late correction.');
 check('edits after publishing are flagged as not live', await waitFor(() => document.body.innerText.includes('changes that are not live yet')));
 await page.click('aside[aria-label="Article settings"] button:has-text("Update article")');
+const updResp = page.waitForResponse((r) => r.url().endsWith('/api/editorial'), { timeout: 20000 }).then((r) => r.json()).catch(() => ({}));
 await page.click('[role="dialog"] button:has-text("Update article")');
 check('update sent', await waitFor(() => !!document.querySelector('[role="dialog"][aria-label="Update sent"]'), null, 20000));
-check('updated Markdown has updatedDate and the edit', /updatedDate: \d{4}-\d{2}-\d{2}/.test(editorialResponses.at(-1)?.markdown ?? '') && (editorialResponses.at(-1)?.markdown ?? '').includes('A late correction.'));
+const upd = await updResp;
+check('updated Markdown has updatedDate and the edit', /updatedDate: \d{4}-\d{2}-\d{2}/.test(upd?.markdown ?? '') && (upd?.markdown ?? '').includes('A late correction.'));
 await page.click('[role="dialog"] button:has-text("Done")');
 
 // ---- 3. Unpublish ----
