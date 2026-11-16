@@ -29,7 +29,7 @@ if (id) {
     id: p.id, title: p.title, subtitle: p.subtitle ?? '', description: p.description ?? '', tags: t.map((x) => x.slug),
     coverImage: p.coverImage, coverAlt: p.coverAlt, bodyJson: JSON.parse(p.bodyJson), status: p.status, rejectReason: p.rejectReason, updatedAt: p.updatedAt.toISOString(),
     seoTitle: p.seoTitle, category: p.category, slug: p.slug, summarySource: p.summarySource, summaryBasis: p.summaryBasis, featured: p.featured, publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null, kind: p.kind, scheduledAt: p.scheduledAt ? p.scheduledAt.toISOString() : null,
-    tech: parseTech(p.techMeta), version: p.version,
+    tech: parseTech(p.techMeta), version: p.version, internCode: p.internCode ?? '',
   };
 }
 ---

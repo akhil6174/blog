@@ -32,6 +32,8 @@ export const SETTING_DEFAULTS = {
   reward_prizes: '700,300,300,300,300,100,100,100,100,100',
   reward_cap: '1000',
   competition_weights: '30,25,20,15,10',
+  // Internships (src/lib/internship.ts). Interns are recruited off-site (LinkedIn, email).
+  internship_articles: '3',
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
@@ -98,4 +100,5 @@ export const SETTING_HELP: Record<SettingKey, string> = {
   reward_prizes: 'Monthly prizes in rupees for positions 1, 2, 3 and so on, comma-separated.',
   reward_cap: 'Most a single writer can receive across the whole programme, in rupees (first-article reward and prizes together).',
   competition_weights: 'Score weights in percent: technical accuracy, quality and depth, originality, clarity, genuine upvotes. Must add up to 100.',
+  internship_articles: 'Published articles an intern needs (with their internship code) before the certificate is due. /admin/internships highlights them.',
 };

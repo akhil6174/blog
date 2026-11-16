@@ -15,9 +15,12 @@ export async function notify(userId: string | null | undefined, type: NoticeType
   }
 }
 
-/** Many users at once (announcements), in batches of 50 rows per statement. */
+/**
+ * Many users at once (announcements). D1 allows at most 100 bound values per statement and each row binds 4,
+ * so rows go in batches of 20.
+ */
 export async function notifyMany(userIds: string[], type: NoticeType, title: string, link?: string | null): Promise<number> {
   const rows = [...new Set(userIds)].map((userId) => ({ userId, type, title: title.slice(0, 200), link: link ?? null }));
-  for (let i = 0; i < rows.length; i += 50) await db().insert(notifications).values(rows.slice(i, i + 50));
+  for (let i = 0; i < rows.length; i += 20) await db().insert(notifications).values(rows.slice(i, i + 20));
   return rows.length;
 }

@@ -144,6 +144,14 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [ ] Production: apply migration `0004_programme` (`npx wrangler d1 migrations apply tech-blog-db --remote`) before or right after the push
 - [ ] Owner: decide programme dates and budget, then set them in `/admin/programme` and switch it on (SETUP-GUIDE §17)
 
+## Internships (D-032)
+
+- [x] Intern codes, "Internship code" box in the editor, `/admin/internships` with counts and certificate tracking (2026-11-16)
+- [x] D1 100-value limit: announcements batched, long id lists chunked
+- [x] Local tests: internship 18/18, programme 31/31, essentials 33/33, editor 64/64, table 9/9, settings 25/25, images 16/16, publish 22/22, writer access 5/5
+- [ ] Production: apply migration `0005_intern_codes` (`npx wrangler d1 migrations apply tech-blog-db --remote`) before the push
+- [ ] Owner: write project briefs, recruit the first interns, add them on `/admin/internships` (SETUP-GUIDE §18)
+
 ## Verification log
 
 | Date | Check | Result |

@@ -25,6 +25,8 @@ export type Settings = {
   summaryBasis: string;
   featured: boolean;
   tech: TechFields;
+  /** Internship code (interns only; optional). */
+  internCode: string;
 };
 
 type Props = {
@@ -240,6 +242,11 @@ export default function SettingsPanel(p: Props) {
       {p.turnstileSiteKey && <div class="cf-turnstile" data-sitekey={p.turnstileSiteKey} data-theme="auto" />}
 
       <div class="grid min-w-0 grid-cols-1 gap-2 border-t border-line pt-4">
+        <label class="grid gap-1">
+          <span class="font-semibold">Internship code <span class="font-normal text-muted">(interns only)</span></span>
+          <input value={v.internCode} maxLength={30} autoComplete="off" spellcheck={false} placeholder="INT-XXXX-XXXX" data-testid="intern-code" onInput={(e) => p.onChange({ internCode: (e.target as HTMLInputElement).value.toUpperCase() })} class="rounded-lg border border-line bg-page px-3 py-2 font-mono uppercase" />
+          <span class="text-xs text-muted">Paste the code the editor sent you, so this article counts toward your internship. Leave empty otherwise.</span>
+        </label>
         <button type="button" disabled={p.busy} onClick={p.onSubmit} class="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 font-semibold text-white hover:bg-accent-strong disabled:opacity-60">
           <Send size={16} /> {p.busy ? 'Submitting…' : p.status === 'published' ? 'Resubmit changes' : 'Submit for review'}
         </button>

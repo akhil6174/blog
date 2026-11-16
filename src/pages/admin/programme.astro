@@ -2,14 +2,15 @@
 /**
  * /admin/programme : Campus Writers Programme control room (admin only, via middleware).
  * Switch and rules, money overview, monthly competition (refresh, score, finalise, publish), reward ledger
- * (confirm, mark paid, cancel, adjust), internship applications and announcements.
+ * (confirm, mark paid, cancel, adjust) and announcements.
  * Actions post to /api/admin/programme (or /api/admin/action for settings) and the page reloads.
  */
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { applications, competitions, db, rewards, user } from '../../lib/db';
+import { competitions, db, rewards, user } from '../../lib/db';
 import { getSettings, SETTING_HELP, type SettingKey } from '../../lib/db/settings';
 import { listEntries, monthLabel, monthOf, programmeConfig, rupees } from '../../lib/programme';
+import { chunked } from '../../lib/db/chunk';
 
 export const prerender = false;
 
@@ -28,7 +29,7 @@ const status = comp?.status ?? 'not started';
 
 const filter = Astro.url.searchParams.get('rewards') ?? 'open';
 const rewardRows = await d.select().from(rewards).where(filter === 'all' ? sql`1` : filter === 'paid' ? eq(rewards.status, 'paid') : inArray(rewards.status, ['pending', 'confirmed'])).orderBy(desc(rewards.id)).limit(200);
-const people = rewardRows.length ? await d.select({ id: user.id, name: user.name, email: user.email }).from(user).where(inArray(user.id, [...new Set(rewardRows.map((r) => r.userId))])) : [];
+const people = await chunked([...new Set(rewardRows.map((r) => r.userId))], (part) => d.select({ id: user.id, name: user.name, email: user.email }).from(user).where(inArray(user.id, part)));
 const pm = new Map(people.map((p) => [p.id, p]));
 const [money] = await d.select({
   pending: sql<number>`coalesce(sum(case when status='pending' then amount end), 0)`,
@@ -36,7 +37,6 @@ const [money] = await d.select({
   paid: sql<number>`coalesce(sum(case when status='paid' then amount end), 0)`,
   monthPrizes: sql<number>`coalesce(sum(case when status!='cancelled' and kind='monthly_prize' and month=${month} then amount end), 0)`,
 }).from(rewards);
-const apps = await d.select().from(applications).orderBy(desc(applications.id)).limit(100);
 const progKeys = ['programme_open', 'programme_start', 'programme_end', 'reward_first_article', 'reward_prizes', 'reward_cap', 'competition_weights'] as SettingKey[];
 const pts = (s: number | null) => (s === null ? '–' : (s / 10).toFixed(1));
 const editable = status === 'open' || status === 'not started';
@@ -154,23 +154,6 @@ const editable = status === 'open' || status === 'not started';
         <button class="rounded border border-line px-3 py-1.5">Add adjustment</button>
       </form>
     </section>
-
-    <section class="mt-10" id="applications">
-      <h2 class="text-lg font-bold">Applications ({apps.filter((a) => a.status === 'new').length} new)</h2>
-      {apps.length === 0 ? <p class="mt-2 text-sm text-muted">No applications yet.</p> : (
-        <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
-          {apps.map((a) => (
-            <li class="p-3">
-              <p><strong>{a.name}</strong> · <a href={`mailto:${a.email}`} class="underline">{a.email}</a> · {a.track} · <span class="text-muted">{a.createdAt.toLocaleDateString('en-IN')}</span> · <span class="font-semibold">{a.status}</span></p>
-              <p class="text-xs text-muted">{[a.college, a.interests].filter(Boolean).join(' · ')}{a.sampleUrl && <> · <a href={a.sampleUrl} rel="noopener nofollow" target="_blank" class="underline">sample</a></>}</p>
-              <p class="mt-1 whitespace-pre-line font-serif">{a.message}</p>
-              <p class="mt-2 flex gap-1 text-xs">{(['shortlisted', 'accepted', 'declined'] as const).filter((s) => s !== a.status).map((s) => <button class="act rounded border border-line px-2 py-1" data-body={JSON.stringify({ action: 'application_status', id: a.id, status: s })}>Mark {s}</button>)}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-
     <section class="mt-10" id="announce">
       <h2 class="text-lg font-bold">Send an announcement</h2>
       <p class="mt-1 text-xs text-muted">Appears in each person's notifications on the site (no email).</p>

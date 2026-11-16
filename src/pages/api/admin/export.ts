@@ -1,11 +1,12 @@
 /**
- * GET /api/admin/export?type=articles|writers|reports|audit|rewards|applications : download site data as JSON (admin only, via middleware).
+ * GET /api/admin/export?type=articles|writers|reports|audit|rewards|internships : download site data as JSON (admin only, via middleware).
  * For keeping your own copy or moving elsewhere. Article bodies are included as Tiptap JSON and plain text.
  * Full database backups are separate: `npm run db:backup` (docs/SETUP-GUIDE.md).
  */
 import type { APIRoute } from 'astro';
 import { desc, eq } from 'drizzle-orm';
-import { applications, auditLog, db, posts, reports, rewards, user } from '../../../lib/db';
+import { auditLog, db, posts, reports, rewards, user } from '../../../lib/db';
+import { codeOverview } from '../../../lib/internship';
 import { audit } from '../../../lib/audit';
 
 export const prerender = false;
@@ -24,10 +25,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     data = await d.select().from(auditLog).orderBy(desc(auditLog.id)).limit(5000);
   } else if (type === 'rewards') {
     data = await d.select({ r: rewards, name: user.name, email: user.email }).from(rewards).leftJoin(user, eq(user.id, rewards.userId)).orderBy(desc(rewards.id));
-  } else if (type === 'applications') {
-    data = await d.select().from(applications).orderBy(desc(applications.id));
+  } else if (type === 'internships') {
+    data = await codeOverview();
   } else {
-    return Response.json({ error: 'type must be articles, writers, reports, audit, rewards or applications' }, { status: 400 });
+    return Response.json({ error: 'type must be articles, writers, reports, audit, rewards or internships' }, { status: 400 });
   }
   await audit(locals.user!.id, 'export', type, null);
   const day = new Date().toISOString().slice(0, 10);

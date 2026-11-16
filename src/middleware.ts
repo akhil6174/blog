@@ -8,7 +8,7 @@
  */
 import { defineMiddleware } from 'astro:middleware';
 
-const PROTECTED = /^\/(write|admin|me|api\/(posts|comments|raise|report|upload|media|ai|editorial|admin|me|bookmarks|notifications|apply))(\/|$|\?)/;
+const PROTECTED = /^\/(write|admin|me|api\/(posts|comments|raise|report|upload|media|ai|editorial|admin|me|bookmarks|notifications))(\/|$|\?)/;
 const CACHEABLE = /^\/(community(\/|$)|p\/|writer\/|top(\/|$)|articles(\/|$)|sitemap-community\.xml$)/;
 
 export const onRequest = defineMiddleware(async (context, next) => {

@@ -11,13 +11,8 @@ export async function listPublished(opts: { limit: number; offset?: number; tag?
   const where = [eq(posts.status, 'published'), eq(posts.kind, 'community')];
   if (opts.authorId) where.push(eq(posts.authorId, opts.authorId));
   if (opts.category) where.push(eq(posts.category, opts.category));
-  let ids: string[] | null = null;
-  if (opts.tag) {
-    const rows = await d.select({ id: postTags.postId }).from(postTags).where(eq(postTags.tagSlug, opts.tag));
-    ids = rows.map((r) => r.id);
-    if (ids.length === 0) return [];
-    where.push(inArray(posts.id, ids));
-  }
+  // Subquery, not an id list: D1 caps bound values per statement, and a tag can have hundreds of posts.
+  if (opts.tag) where.push(inArray(posts.id, d.select({ id: postTags.postId }).from(postTags).where(eq(postTags.tagSlug, opts.tag))));
   const rows = await d.select().from(posts).where(and(...where)).orderBy(desc(posts.featured), desc(posts.publishedAt)).limit(opts.limit).offset(opts.offset ?? 0);
   return hydrate(rows);
 }

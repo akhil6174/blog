@@ -52,6 +52,7 @@ type InitialPost = {
   scheduledAt?: string | null;
   tech?: Partial<TechFields> | null;
   version?: number;
+  internCode?: string;
 };
 
 type Props = { initial?: InitialPost; authorName: string; minWords: number; maxTags: number; turnstileSiteKey?: string; isAdmin?: boolean; host?: string };
@@ -149,6 +150,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     summaryBasis: initial.summaryBasis ?? '',
     featured: !!initial.featured,
     tech: emptyTech(initial.tech),
+    internCode: initial.internCode ?? '',
   });
   // The URL follows the title until the writer edits it (or the post is published, which locks it).
   const [slugTouched, setSlugTouched] = useState(!!initial.slug && initial.slug !== slugify(initial.title ?? '') && initial.slug !== 'untitled-draft');
@@ -216,6 +218,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       summaryBasis: s.summaryBasis,
       ...(isAdmin ? { featured: s.featured } : {}),
       tech: s.tech,
+      ...(isAdmin ? {} : { internCode: (s.internCode ?? '').trim() }),
       ...(idRef.current ? { baseVersion: serverVersion.current } : {}),
       force: forceNext.current,
       submit,
@@ -711,7 +714,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             editor.commands.setContent(recovery.bodyJson);
             setTitle(recovery.title);
             setSubtitle(recovery.subtitle);
-            setSettings({ ...recovery.settings, tech: emptyTech(recovery.settings.tech) });
+            setSettings({ ...recovery.settings, tech: emptyTech(recovery.settings.tech), internCode: recovery.settings.internCode ?? '' });
             setRecovery(null);
             markDirty();
           }}>Restore</button>

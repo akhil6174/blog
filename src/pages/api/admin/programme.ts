@@ -1,12 +1,12 @@
 /**
  * POST /api/admin/programme : Campus Writers Programme operations (admin only, via middleware).
  * Competition: refresh, score, finalise, reopen, publish. Ledger: confirm, pay, cancel, adjust.
- * Applications: set status. Announcements: notify writers. Every success goes to the audit log.
+ * Announcements: notify writers. Every success goes to the audit log.
  */
 import type { APIRoute } from 'astro';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { applications, db, rewards, user } from '../../../lib/db';
+import { db, rewards, user } from '../../../lib/db';
 import { audit } from '../../../lib/audit';
 import { notify, notifyMany } from '../../../lib/notify';
 import { finalise, publishResults, refreshEntries, reopen, saveScores } from '../../../lib/programme';
@@ -26,7 +26,6 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('reward_pay'), id: z.number().int(), ref: z.string().trim().min(3, 'Enter the payment reference (UPI or bank transaction id).').max(80) }),
   z.object({ action: z.literal('reward_cancel'), id: z.number().int(), note: z.string().trim().min(5, 'Say why (at least 5 characters).').max(200) }),
   z.object({ action: z.literal('reward_adjust'), email: z.string().trim().toLowerCase().email(), amount: z.number().int().min(-5000).max(5000).refine((n) => n !== 0, 'Amount cannot be 0.'), note: z.string().trim().min(5, 'Say why (at least 5 characters).').max(200) }),
-  z.object({ action: z.literal('application_status'), id: z.number().int(), status: z.enum(['new', 'shortlisted', 'accepted', 'declined']) }),
   z.object({ action: z.literal('announce'), title: z.string().trim().min(5).max(200), link: z.union([z.literal(''), z.string().trim().max(200).regex(/^(\/|https:\/\/)\S*$/, 'Link must start with / or https://')]).default(''), audience: z.enum(['writers', 'all']) }),
 ]);
 
@@ -98,11 +97,6 @@ async function run(b: z.infer<typeof Body>): Promise<{ message: string; detail?:
       await d.insert(rewards).values({ userId: u.id, kind: 'adjustment', amount: b.amount, status: 'confirmed', note: b.note });
       await notify(u.id, 'reward', `Reward adjustment of ₹${b.amount}: ${b.note}`, '/me/#programme');
       return { message: 'Adjustment added (confirmed).', detail: `${b.email} ₹${b.amount}: ${b.note}` };
-    }
-    case 'application_status': {
-      const r = await d.update(applications).set({ status: b.status }).where(eq(applications.id, b.id)).returning({ id: applications.id });
-      if (!r.length) throw new Error('Application not found.');
-      return { message: `Marked ${b.status}. Reply to the applicant by email.`, detail: b.status };
     }
     case 'announce': {
       const roles = b.audience === 'writers' ? ['writer', 'trusted', 'admin'] : ['reader', 'writer', 'trusted', 'admin'];

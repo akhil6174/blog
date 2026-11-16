@@ -172,7 +172,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/components/PreviewBanner.astro` | "Admin preview" notice on programme pages while the programme is off |
 | `src/pages/articles/index.astro` | Explore page: search, topic, tags, sort, pages |
 | `src/pages/campus-writers/index.astro` | Programme landing page |
-| `src/pages/join-us/index.astro` | Contributor and internship options, application form |
+| `src/pages/join-us/index.astro` | Contributor and internship information (internships are offered on LinkedIn and by email) |
 | `src/pages/leaderboard/index.astro` | Published monthly results, earlier winners, this month so far |
 | `src/pages/reward-policy/index.astro` | Reward rules built from the live settings |
 | `src/pages/me/saved.astro` | Saved articles |
@@ -180,10 +180,20 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/admin/programme.astro` | Programme admin: rules, money, competition, ledger, applications, announcements |
 | `src/pages/api/bookmarks.ts` | Bookmark status and toggle |
 | `src/pages/api/notifications.ts` | Unread count, mark all read |
-| `src/pages/api/apply.ts` | Internship and contributor applications |
 | `src/pages/api/admin/programme.ts` | Programme admin actions |
 | `tests/e2e/programme.e2e.mjs` | Playwright check of the programme, rewards, bookmarks, comments, notifications and explore |
 | `tests/e2e/table.e2e.mjs` | Playwright check of the table size dialog (rows, columns, header row, limits) |
+
+## Internships (D-032)
+
+| File | Purpose |
+|---|---|
+| `drizzle/0005_intern_codes.sql` | Migration: `intern_codes` table, `posts.intern_code` |
+| `src/lib/internship.ts` | Intern codes: create, check a code against the writer's email, counts per code, let the intern write |
+| `src/lib/db/chunk.ts` | Runs id-list queries in chunks (D1 allows 100 values per statement) |
+| `src/pages/admin/internships.astro` | Intern desk: add interns, codes, published counts, certificate tracking, welcome message |
+| `src/pages/api/admin/internships.ts` | Create, edit, mark certificate sent, delete unused codes |
+| `tests/e2e/internship.e2e.mjs` | Playwright check of codes, the editor box, counting and certificate tracking |
 
 ## `scripts/`
 

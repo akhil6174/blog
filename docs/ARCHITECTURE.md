@@ -56,7 +56,7 @@ Non-secret settings are `vars` in `wrangler.jsonc`; secrets are listed in `.dev.
 
 ## Data model (D1)
 
-`users`, `sessions`/`accounts`/`verifications` (Better Auth), `posts` (with `body_json`, `body_html`, `status`, `kind`, `quality_score`, `index_allowed`, `ads_allowed`, `views_count`, `raises_count`, `comments_count`), `post_stats` (per post per day), `raises` (user × post, 1..50), `post_revisions` (last 20 per post, restorable from the editor's Version history), `tags`, `post_tags`, `comments`, `reports` (abuse reasons can auto-hide; technical reasons only notify), `moderation_log`, `audit_log` (one row per admin action), `settings`, `bookmarks` (user × post), `notifications` (in-site), and for the Campus Writers Programme (D-031): `competitions` (one per month), `competition_entries` (editor scores, upvotes, rank, prize), `rewards` (the ledger; no foreign key so records outlive accounts), `applications` (from /join-us).
+`users`, `sessions`/`accounts`/`verifications` (Better Auth), `posts` (with `body_json`, `body_html`, `status`, `kind`, `quality_score`, `index_allowed`, `ads_allowed`, `views_count`, `raises_count`, `comments_count`), `post_stats` (per post per day), `raises` (user × post, 1..50), `post_revisions` (last 20 per post, restorable from the editor's Version history), `tags`, `post_tags`, `comments`, `reports` (abuse reasons can auto-hide; technical reasons only notify), `moderation_log`, `audit_log` (one row per admin action), `settings`, `bookmarks` (user × post), `notifications` (in-site), and for the Campus Writers Programme (D-031): `competitions` (one per month), `competition_entries` (editor scores, upvotes, rank, prize), `rewards` (the ledger; no foreign key so records outlive accounts), `applications` (unused since D-032), and for internships (D-032): `intern_codes` (one per intern, tied to their Google email) with `posts.intern_code` on each article.
 
 Saving and conflicts: every editor save sends `baseVersion`; `/api/posts` refuses (409) when `posts.version` is newer, unless the writer chooses "Keep mine" (`force`). Post statuses: draft → submitted → checking → published, or pending_review → (editor) published / changes_requested / rejected; writers can withdraw (back to draft) and move drafts to `trashed` (purged by the hourly cron after 30 days). Optional technical details live in `posts.tech_meta` (JSON) and, for editorial articles, in the Markdown front matter.
 Migrations live in `drizzle/` (Phase 3).
@@ -71,9 +71,10 @@ Migrations live in `drizzle/` (Phase 3).
 | `/campus-writers`, `/join-us`, `/leaderboard`, `/reward-policy` | public when `programme_open` | 404 otherwise; admins can preview |
 | `/me/saved`, `/me/notifications` | signed-in users | bookmarks and notifications |
 | `/admin` | admin role | queues, reports, writers, settings, log |
+| `/admin/internships` | admin role | intern codes, published article counts, certificate tracking (src/lib/internship.ts) |
 | `/admin/programme` | admin role | competition, reward ledger, applications, announcements (src/lib/programme.ts) |
 | `/api/auth/*` | Better Auth | 503 until `BETTER_AUTH_SECRET` is set in production |
-| `/api/posts`, `/api/comments`, `/api/raise`, `/api/report`, `/api/view`, `/api/me`, `/api/bookmarks`, `/api/notifications`, `/api/apply`, `/api/admin/action`, `/api/admin/programme` | see each file header | JSON; all `cache-control: no-store` |
+| `/api/posts`, `/api/comments`, `/api/raise`, `/api/report`, `/api/view`, `/api/me`, `/api/bookmarks`, `/api/notifications`, `/api/admin/action`, `/api/admin/programme`, `/api/admin/internships` | see each file header | JSON; all `cache-control: no-store` |
 
 ## Status today
 

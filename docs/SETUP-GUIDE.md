@@ -269,6 +269,15 @@ The programme is built but switched off: its pages show "page not found" to visi
 5. **Applications** from `/join-us` arrive by email (once Resend is set up) and are listed on the same page. Reply by email and mark them.
 6. **Keep records:** Export → rewards once a month, next to your bank statements.
 
+## 18. Internships (5 minutes per intern)
+
+1. Recruit on LinkedIn or by email, and send each intern their projects by email (different projects for each person, so every article is unique).
+2. Ask them for the Google email they will sign in with.
+3. Open **/admin** → **Internships**. Enter name, that email and a note (for example the projects you gave), then **Create code**. Copy the code and send it with the welcome message at the bottom of the page.
+4. Interns write in the editor and paste the code in **Internship code** above **Submit for review**. Their articles go through the normal review queue on /admin; publish the good ones.
+5. When an intern shows **3 / 3** under **Ready for certificate**, email the certificate yourself, then press **Mark certificate sent**.
+6. Change the number of articles needed with `internship_articles` in Settings on /admin.
+
 ## 14. Google AdSense (Phase 3, week 8: not now)
 
 Do not sign up yet. Applying with an empty site wastes the first review. When Phase 2 is complete (25 to 30 posts, indexed), follow Part 4 of the plan. You will need: the same Gmail, your postal address exactly as on an ID, your PAN, an Indian bank account for wire payments, and the meta tag Google gives you (`ca-pub-…`) pasted into `BaseLayout.astro`.

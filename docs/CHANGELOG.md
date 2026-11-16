@@ -5,6 +5,15 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Internship codes (D-032)
+
+- **`/admin/internships`** (big "Internships" button at the top of `/admin`): add an intern with name and Google email to get a unique code (`INT-XXXX-XXXX`); the intern can write at once (or on first sign-in). Interns are grouped as Ready for certificate, In progress and Certificate sent, with their articles and a published count against the target (`internship_articles`, default 3). "Mark certificate sent" after you email it. A ready-to-copy welcome message is on the page.
+- **Editor:** an "Internship code" box above "Submit for review". A wrong code, or another person's code, blocks submitting with a clear message; only the code owner's own articles count.
+- Interns are recruited and given projects off-site (LinkedIn, email): the internship application form on `/join-us` and `/api/apply` were removed; `/join-us` now points to LinkedIn and email.
+- Fixed: announcements to more than 25 people failed (D1 allows 100 values per statement); batches are now 20 rows. Queries with long id lists (explore page, saved articles, competition refresh, reward ledger, community tag pages) now run in chunks or as subqueries so they keep working past 100 items (`src/lib/db/chunk.ts`).
+- Migration `drizzle/0005_intern_codes.sql`: table `intern_codes`, column `posts.intern_code`.
+- New test `tests/e2e/internship.e2e.mjs` (18 checks).
+
 ### 2026-11-16 · Editor: choose the table size
 
 - The Table button (toolbar and "/" menu) now opens a dialog: rows (1 to 50), columns (1 to 10) and a "First row is a header" checkbox, with a small preview. It remembers the last size used in the session. Rows and columns can still be added or removed later from the table menu.

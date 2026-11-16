@@ -2,7 +2,7 @@
  * End-to-end check of the Campus Writers Programme and reader features, against `npm run preview` (dev login):
  * programme gate, first-article reward (once), self-upvote block, upvote undo, bookmarks, comment notifications,
  * edit/delete, competition (refresh, score, cap, one prize per writer, reopen, publish), ledger (confirm, pay),
- * applications, announcements, /articles explore and exports. Restores the settings it changes.
+ * announcements, /articles explore and exports. Restores the settings it changes.
  *
  *   node tests/e2e/programme.e2e.mjs
  */
@@ -126,12 +126,9 @@ const pay = await prog({ action: 'reward_pay', id, ref: `UPI-${RUN}` });
 check('confirm then mark paid', conf.ok && pay.ok, `${conf.error ?? ''} ${pay.error ?? ''}`);
 check('paid status visible in admin', (await html(admin, '/admin/programme/?rewards=paid')).text.includes(`UPI-${RUN}`));
 
-// ---- Applications, announcements, explore, export ----
-const app = await anon.request.post(`${BASE}/api/apply`, { headers: H, data: { track: 'internship', name: 'Test Applicant', email: `apply-${RUN}@example.com`, message: 'I would like to write tutorials about Python and the web for students.' } });
-check('internship application accepted', app.ok());
-check('application shows in admin', (await html(admin, '/admin/programme/')).text.includes(`apply-${RUN}@example.com`));
+// ---- Announcements, explore, export ----
 const ann = await prog({ action: 'announce', title: `Announcement ${RUN}`, link: '/campus-writers/', audience: 'writers' });
-check('announcement reaches writers', ann.ok && (await html(B, '/me/notifications/')).text.includes(`Announcement ${RUN}`));
+check('announcement reaches writers', ann.ok && (await html(B, '/me/notifications/')).text.includes(`Announcement ${RUN}`), JSON.stringify(ann));
 const ex = await html(anon, '/articles/');
 check('explore page lists articles', ex.status === 200 && /Explore articles/.test(ex.text) && /article/.test(ex.text));
 check('explore search narrows results', /for “welcome”/i.test((await html(anon, '/articles/?q=welcome')).text));

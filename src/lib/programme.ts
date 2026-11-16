@@ -15,6 +15,7 @@
 import { and, eq, gte, inArray, lt, ne, sql } from 'drizzle-orm';
 import { competitionEntries, competitions, db, posts, raises, rewards, user } from './db';
 import { getSettings } from './db/settings';
+import { chunked } from './db/chunk';
 import { notify } from './notify';
 
 const IST_MS = 330 * 60 * 1000;
@@ -111,25 +112,25 @@ export async function refreshEntries(month: string): Promise<{ entries: number }
   const ids = eligible.map((p) => p.id);
   const existing = await d.select().from(competitionEntries).where(eq(competitionEntries.month, month));
   const gone = existing.filter((e) => !ids.includes(e.postId)).map((e) => e.postId);
-  if (gone.length) await d.delete(competitionEntries).where(and(eq(competitionEntries.month, month), inArray(competitionEntries.postId, gone)));
+  await chunked(gone, async (part) => { await d.delete(competitionEntries).where(and(eq(competitionEntries.month, month), inArray(competitionEntries.postId, part))); return []; });
   if (!ids.length) return { entries: 0 };
 
   // Votes on these articles, with the voter's account age.
-  const votes = await d
+  const votes = await chunked(ids, (part) => d
     .select({ postId: raises.postId, voter: raises.userId, votedAt: raises.updatedAt, joined: user.createdAt, banned: user.bannedAt })
     .from(raises)
     .innerJoin(user, eq(user.id, raises.userId))
-    .where(inArray(raises.postId, ids));
+    .where(inArray(raises.postId, part)));
   const voters = [...new Set(votes.map((v) => v.voter))];
   // How many different writers each voter has upvoted (someone who only ever upvotes one writer is a signal).
   const spread = new Map<string, number>();
   if (voters.length) {
-    const rows = await d
+    const rows = await chunked(voters, (part) => d
       .select({ voter: raises.userId, writers: sql<number>`count(distinct ${posts.authorId})` })
       .from(raises)
       .innerJoin(posts, eq(posts.id, raises.postId))
-      .where(inArray(raises.userId, voters))
-      .groupBy(raises.userId);
+      .where(inArray(raises.userId, part))
+      .groupBy(raises.userId));
     for (const r of rows) spread.set(r.voter, Number(r.writers));
   }
   const TWO_DAYS = 2 * 24 * 3600 * 1000;

@@ -116,6 +116,8 @@ export const posts = sqliteTable(
     coverAlt: text('cover_alt'),
     /** Optional technical details as JSON (src/lib/tech.ts): difficulty, stack, versions, tested on, repo, last verified. */
     techMeta: text('tech_meta'),
+    /** Internship code the writer entered (intern_codes.code); counts toward that intern's articles. */
+    internCode: text('intern_code'),
     /** Bumped by every editor save. A save based on an older version is refused (two tabs or devices). */
     version: integer('version').notNull().default(0),
     status: text('status', { enum: POST_STATUS }).notNull().default('draft'),
@@ -144,6 +146,7 @@ export const posts = sqliteTable(
     index('posts_author_idx').on(t.authorId),
     index('posts_status_published_idx').on(t.status, t.publishedAt),
     index('posts_hash_idx').on(t.contentHash),
+    index('posts_intern_code_idx').on(t.internCode),
   ],
 );
 
@@ -381,4 +384,24 @@ export const applications = sqliteTable(
   (t) => [index('applications_status_idx').on(t.status, t.createdAt)],
 );
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications };
+// ---------- Internships (src/lib/internship.ts, D-032) ----------
+/**
+ * One code per intern. Interns are recruited and given projects off-site (LinkedIn, email); they paste their code
+ * in the editor when submitting each article. The editor watches the published count per code on /admin/internships
+ * and emails the certificate when it reaches the target.
+ */
+export const internCodes = sqliteTable(
+  'intern_codes',
+  {
+    code: text('code').primaryKey(),
+    name: text('name').notNull(),
+    /** The Google email the intern signs in with. The code only works on that account. */
+    email: text('email').notNull(),
+    note: text('note'),
+    certificateSentAt: integer('certificate_sent_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('intern_codes_email_idx').on(t.email)],
+);
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes };

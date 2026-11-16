@@ -1,0 +1,138 @@
+---
+/**
+ * /admin/internships : the intern desk (admin only, via middleware). Linked from the top of /admin.
+ * Add an intern (name + their Google email) to get a unique code; send it to them by email or LinkedIn. They paste
+ * it in the editor when submitting each article. This page counts their published articles per code; when an
+ * intern reaches the target, email the certificate and press "Mark certificate sent".
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { articlesNeeded, codeOverview } from '../../lib/internship';
+
+export const prerender = false;
+
+const need = await articlesNeeded();
+const rows = await codeOverview();
+const ready = rows.filter((r) => r.published >= need && !r.certificateSentAt);
+const working = rows.filter((r) => r.published < need && !r.certificateSentAt);
+const done = rows.filter((r) => r.certificateSentAt);
+const STATUS: Record<string, string> = { published: 'published', pending_review: 'waiting for you', submitted: 'checking', checking: 'checking', changes_requested: 'changes requested', rejected: 'declined', hidden: 'hidden', unpublished: 'unpublished', scheduled: 'scheduled' };
+const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const groups = [
+  { id: 'ready', title: `Ready for certificate (${ready.length})`, hint: `${need} or more published articles. Email the certificate, then mark it sent.`, items: ready },
+  { id: 'working', title: `In progress (${working.length})`, hint: '', items: working },
+  { id: 'done', title: `Certificate sent (${done.length})`, hint: '', items: done },
+];
+---
+
+<BaseLayout title="Internships" description="Intern codes and progress." noindex wide>
+  <div class="font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Internships</h1>
+        <p class="text-sm text-muted">Target: {need} published articles per intern (change <code>internship_articles</code> in Settings on the dashboard).</p>
+      </div>
+      <p id="flash" class="max-w-xl text-sm text-accent" role="status"></p>
+    </div>
+
+    <section class="mt-6 grid grid-cols-3 gap-3 md:max-w-xl">
+      {[['Ready for certificate', ready.length], ['In progress', working.length], ['Certificates sent', done.length]].map(([k, v]) => (
+        <div class="rounded-lg border border-line bg-surface p-3"><p class="text-2xl font-bold">{v}</p><p class="text-xs text-muted">{k}</p></div>
+      ))}
+    </section>
+
+    <section class="mt-8 rounded-lg border border-line bg-surface p-4">
+      <h2 class="text-lg font-bold">Add an intern</h2>
+      <p class="mt-1 text-sm text-muted">Use the Google email they will sign in with: the code only works on that account. They are allowed to write straight away.</p>
+      <form id="create" class="mt-3 grid gap-2 text-sm md:grid-cols-[1fr_1fr_1.5fr_auto]">
+        <input name="name" required minlength="2" maxlength="80" placeholder="Name" class="rounded border border-line px-3 py-1.5" />
+        <input name="email" type="email" required placeholder="their Google email" class="rounded border border-line px-3 py-1.5" />
+        <input name="note" maxlength="500" placeholder="Note for you (projects given, batch…)" class="rounded border border-line px-3 py-1.5" />
+        <button class="rounded bg-accent px-4 py-1.5 font-semibold text-white">Create code</button>
+      </form>
+    </section>
+
+    {rows.length === 0 && <p class="mt-8 text-sm text-muted">No interns yet.</p>}
+    {groups.filter((g) => g.items.length > 0).map((g) => (
+      <section class="mt-10" id={g.id}>
+        <h2 class="text-lg font-bold">{g.title}</h2>
+        {g.hint && <p class="mt-1 text-sm text-muted">{g.hint}</p>}
+        <div class="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+          <table class="w-full text-left text-sm">
+            <thead class="text-xs text-muted"><tr><th class="p-3">Intern</th><th class="p-3">Code</th><th class="p-3">Published</th><th class="p-3">Articles</th><th class="p-3"></th></tr></thead>
+            <tbody class="divide-y divide-line">
+              {g.items.map((r) => (
+                <tr data-code={r.code} class="align-top">
+                  <td class="p-3">
+                    <strong>{r.name}</strong>
+                    <span class="block text-xs text-muted">{r.email}{!r.accountName && ' · not signed in yet'}</span>
+                    {r.note && <span class="block text-xs text-muted">{r.note}</span>}
+                    <span class="block text-xs text-muted">Added {fmt(r.createdAt)}</span>
+                  </td>
+                  <td class="p-3"><button type="button" class="copy font-mono font-semibold hover:underline" title="Copy code" data-code={r.code}>{r.code}</button></td>
+                  <td class="p-3">
+                    <span class:list={['text-lg font-bold', r.published >= need ? 'text-green-700' : '']}>{r.published}</span><span class="text-muted"> / {need}</span>
+                    {r.inReview > 0 && <span class="block text-xs text-muted">+{r.inReview} in review</span>}
+                  </td>
+                  <td class="p-3">
+                    {r.articles.length === 0 ? <span class="text-xs text-muted">None yet</span> : (
+                      <ul class="space-y-1">
+                        {r.articles.map((a) => <li><a href={`/p/${a.slug}/`} target="_blank" class="hover:underline">{a.title}</a> <span class="text-xs text-muted">· {STATUS[a.status] ?? a.status}</span></li>)}
+                      </ul>
+                    )}
+                  </td>
+                  <td class="whitespace-nowrap p-3 text-xs">
+                    {r.certificateSentAt ? (
+                      <>
+                        <span class="block text-green-800">Sent {fmt(r.certificateSentAt)}</span>
+                        <button class="act mt-1 underline" data-body={JSON.stringify({ action: 'certificate', code: r.code, sent: false })}>Undo</button>
+                      </>
+                    ) : (
+                      <button class:list={['act rounded px-3 py-1.5', r.published >= need ? 'bg-accent font-semibold text-white' : 'border border-line']} data-body={JSON.stringify({ action: 'certificate', code: r.code, sent: true })} data-confirm={r.published >= need ? 'Mark the certificate as emailed?' : `Only ${r.published} of ${need} articles are published. Mark the certificate as sent anyway?`}>Mark certificate sent</button>
+                    )}
+                    {r.articles.length === 0 && <button class="act mt-2 block text-red-700 underline" data-body={JSON.stringify({ action: 'delete', code: r.code })} data-confirm="Delete this code?">Delete code</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    ))}
+
+    <details class="mt-10 max-w-2xl rounded-lg border border-line bg-surface p-4 text-sm">
+      <summary class="cursor-pointer font-semibold">Message to send a new intern (copy and edit)</summary>
+      <pre class="mt-3 whitespace-pre-wrap font-sans text-sm">Hi NAME,
+
+Welcome to the TrutiAI internship! Your internship code is: CODE
+
+1. Sign in at https://trutiai.in/signin/ with this Google account: EMAIL
+2. For each project I gave you, build it, put the code on GitHub, then write an article about it at https://trutiai.in/write/ (at least 600 words, with your code snippets and what you learned).
+3. Before you press "Submit for review", paste your code in the "Internship code" box just above the button.
+
+Your certificate is sent once {need} of your articles are published.</pre>
+    </details>
+  </div>
+
+  <script is:inline>
+    const flash = document.getElementById('flash');
+    async function post(body) {
+      const r = await fetch('/api/admin/internships', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      flash.textContent = r.ok ? d.message || 'Done.' : d.error || 'Failed.';
+      flash.className = 'max-w-xl text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+      return r.ok;
+    }
+    document.getElementById('create')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (await post({ action: 'create', ...Object.fromEntries(new FormData(e.target).entries()) })) setTimeout(() => location.reload(), 2500);
+    });
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', async () => {
+      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+      if (await post(JSON.parse(b.dataset.body))) setTimeout(() => location.reload(), 600);
+    }));
+    document.querySelectorAll('button.copy').forEach((b) => b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.dataset.code); flash.textContent = `Copied ${b.dataset.code}`; } catch { flash.textContent = b.dataset.code; }
+    }));
+  </script>
+</BaseLayout>

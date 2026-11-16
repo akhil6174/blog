@@ -17,6 +17,7 @@ import { verifyTurnstile } from '../../lib/turnstile';
 import { isImageSrc } from '../../lib/media';
 import { CATEGORIES } from '../../lib/site';
 
+import { checkCode, normaliseCode } from '../../lib/internship';
 export const prerender = false;
 
 const Body = z.object({
@@ -38,6 +39,8 @@ const Body = z.object({
   slug: z.string().max(80).optional().default(''),
   summarySource: z.enum(['ai', 'user', '']).optional().default(''),
   summaryBasis: z.string().max(4000).optional().default(''),
+  /** Internship code (src/lib/internship.ts). Undefined keeps the stored one; empty clears it. */
+  internCode: z.string().max(30).optional(),
   /** Admin only; ignored for everyone else. */
   featured: z.boolean().optional(),
   /** Optional technical details (src/lib/tech.ts); invalid fields are dropped, never fail the save. */
@@ -76,6 +79,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Admins write editorial articles (published to /blog/ from the editor, no moderation); everyone else writes community posts.
   const kind: 'community' | 'editorial' = post?.kind ?? (hasRole(user, 'admin') ? 'editorial' : 'community');
   if (kind === 'editorial' && b.submit) return json({ error: 'Editorial articles are published with "Publish to blog", not submitted for review.' }, 400);
+
+  // Internship code: checked only when it changes. A wrong code blocks submitting; autosaves just keep the old one.
+  let internCode = post?.internCode ?? null;
+  if (kind === 'community' && b.internCode !== undefined && normaliseCode(b.internCode) !== (post?.internCode ?? '')) {
+    const r = await checkCode(b.internCode, user.email);
+    if ('error' in r) {
+      if (b.submit) return json({ error: r.error, errors: [r.error] }, 400);
+    } else internCode = r.code;
+  }
 
   const { html, text, words } = renderDoc(b.bodyJson);
   const title = b.title.trim() || 'Untitled draft';
@@ -147,6 +159,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     coverImage: b.coverImage ?? null,
     coverAlt: b.coverAlt ?? null,
     techMeta: b.tech ? (hasTech(tech) ? JSON.stringify(tech) : null) : post?.techMeta ?? null,
+    internCode,
     version,
     seoTitle: b.seoTitle.trim() || null,
     category: CATEGORIES.some((c) => c.slug === b.category) ? b.category : null,

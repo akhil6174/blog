@@ -250,5 +250,21 @@ Format: context (the situation), decision (what we do), consequences (what it co
   - Newsletter and email digests: need Resend set up and an audience.
   - Topic pages with descriptions per topic: `/topics`, `/tag/:slug` and `/articles?category=` cover browsing; revisit with more articles.
   - Writer analytics charts and per-month comparisons: totals and per-article numbers are on `/me`; charts wait for real traffic.
+- **Update 2026-11-16 (D-032):** the owner has no budget for prizes for every writer, so the paid programme stays switched off. Internship applications are not taken on the site.
 - **Consequences:** Migration `0004_programme` for production. Turning the programme on is one switch in `/admin/programme` after setting the dates. The editor scores each month's articles before finalising.
+
+## D-032 · Internships tracked by a code per intern; recruiting, projects and certificates stay off-site
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The owner wants college students to write, but has no budget to pay prizes to every writer. Instead they offer unpaid one-month internships: each intern gets unique projects, builds them and writes one article per project with their code. A certificate follows after 3 published articles.
+- **Owner decisions (16 Nov 2026):** recruit through LinkedIn and personal email (no application form on the site); give projects by email; give each intern a unique code they paste in the editor; see on a separate admin page who has reached 3 published articles; email the certificate personally.
+- **Built:** `intern_codes` (code, name, Google email, note, certificate-sent date) and `posts.intern_code`; an "Internship code" box above "Submit for review"; `/admin/internships` linked from `/admin`.
+- **Choices made:**
+  - The code is tied to the intern's Google email, so a leaked code cannot be used by someone else, and only articles by that account count.
+  - Only published community articles count; the target is the `internship_articles` setting (default 3).
+  - Creating a code makes the person a writer immediately (or on first sign-in through the invited list), so the owner does not have to invite them separately.
+  - A code that articles already use cannot be deleted.
+- **Considered and dropped (same day):** an on-site project pool with assignments, submissions, reviews and generated certificates with a verification page. The owner preferred handling projects and certificates personally; the simpler version is less to maintain.
+- **Note for later:** while `community_open` is false, interns' articles are published but not public. To show them before AdSense approval, republish the best ones as editorial articles, or open the community.
+- **Consequences:** Migration `0005_intern_codes` for production.
 

@@ -6,6 +6,7 @@ import { getCollection } from 'astro:content';
 import { desc, eq, inArray } from 'drizzle-orm';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { bookmarks, db, posts } from '../../lib/db';
+import { chunked } from '../../lib/db/chunk';
 
 export const prerender = false;
 
@@ -13,7 +14,7 @@ const user = Astro.locals.user!;
 const d = db();
 const rows = await d.select().from(bookmarks).where(eq(bookmarks.userId, user.id)).orderBy(desc(bookmarks.createdAt)).limit(500);
 const communityIds = rows.map((r) => r.postId).filter((id) => !id.startsWith('editorial:'));
-const community = communityIds.length ? await d.select({ id: posts.id, title: posts.title, slug: posts.slug, status: posts.status, description: posts.description }).from(posts).where(inArray(posts.id, communityIds)) : [];
+const community = await chunked(communityIds, (part) => d.select({ id: posts.id, title: posts.title, slug: posts.slug, status: posts.status, description: posts.description }).from(posts).where(inArray(posts.id, part)));
 const cm = new Map(community.map((p) => [p.id, p]));
 const editorial = new Map((await getCollection('posts', ({ data }) => !data.draft)).map((p) => [p.id, p.data]));
 const items = rows
