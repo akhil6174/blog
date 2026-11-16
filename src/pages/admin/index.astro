@@ -74,8 +74,8 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
     </section>
 
     <div class="mt-6 flex flex-wrap gap-2 text-sm">
-      <span class:list={['rounded-full px-3 py-1', settings.community_open === 'true' ? 'bg-green-100 text-green-900' : 'bg-amber-100 text-amber-900']}>Community {settings.community_open === 'true' ? 'OPEN' : 'closed'}</span>
-      <span class:list={['rounded-full px-3 py-1', settings.community_invite_only === 'true' ? 'bg-amber-100 text-amber-900' : 'bg-green-100 text-green-900']}>Writing {settings.community_invite_only === 'true' ? 'invite-only' : 'open to all'}</span>
+      <span class:list={['rounded-full px-3 py-1', settings.community_open === 'true' ? 'bg-accent/15 text-accent-strong' : 'bg-amber-100 text-amber-900']}>Community {settings.community_open === 'true' ? 'OPEN' : 'closed'}</span>
+      <span class:list={['rounded-full px-3 py-1', settings.community_invite_only === 'true' ? 'bg-amber-100 text-amber-900' : 'bg-accent/15 text-accent-strong']}>Writing {settings.community_invite_only === 'true' ? 'invite-only' : 'open to all'}</span>
       <span class="rounded-full bg-page px-3 py-1 text-muted">Model: {settings.ai_quality_model}</span>
       <button class:list={['act rounded-full px-3 py-1', settings.submissions_open === 'false' ? 'bg-red-100 text-red-900' : 'border border-line']} data-action="set_settings" data-values={JSON.stringify({ submissions_open: settings.submissions_open === 'false' ? 'true' : 'false' })} data-confirm={settings.submissions_open === 'false' ? 'Allow submissions again?' : 'Pause all article submissions? Writers can still save drafts.'}>
         Submissions {settings.submissions_open === 'false' ? 'PAUSED · resume' : 'on · pause'}

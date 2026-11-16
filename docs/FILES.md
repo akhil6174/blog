@@ -195,6 +195,17 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/admin/internships.ts` | Create, edit, mark certificate sent, delete unused codes |
 | `tests/e2e/internship.e2e.mjs` | Playwright check of codes, the editor box, counting and certificate tracking |
 
+## Brand (D-033)
+
+| File | Purpose |
+|---|---|
+| `public/logo.svg` | TrutiAI logo for light backgrounds (header, footer, share images) |
+| `public/logo-white.svg` | The owner's original white logo, for dark backgrounds |
+| `public/favicon.svg` | Favicon; dark emblem on light tabs, white on dark tabs |
+| `public/favicon.ico`, `public/apple-touch-icon.png` | Icon fallbacks on a cream square (generated) |
+| `src/assets/brand/emblem-96.png` | Emblem used on generated article share images (generated) |
+| `scripts/render-brand.mjs` | `npm run brand`: regenerates the favicon ICO, Apple icon, emblem, default share image, default cover and monogram avatar |
+
 ## `scripts/`
 
 | File | What it does |

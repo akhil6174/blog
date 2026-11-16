@@ -63,7 +63,7 @@ export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   changes_requested: { label: 'Changes requested', tone: 'bg-amber-100 text-amber-900' },
   trashed: { label: 'In the trash', tone: 'bg-red-100 text-red-900' },
   scheduled: { label: 'Scheduled', tone: 'bg-blue-100 text-blue-900' },
-  published: { label: 'Published', tone: 'bg-green-100 text-green-900' },
+  published: { label: 'Published', tone: 'bg-accent/15 text-accent-strong' },
   rejected: { label: 'Declined', tone: 'bg-red-100 text-red-900' },
   hidden: { label: 'Hidden after reports', tone: 'bg-red-100 text-red-900' },
   unpublished: { label: 'Unpublished', tone: 'bg-red-100 text-red-900' },
@@ -74,7 +74,7 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).repl
 export default function SettingsPanel(p: Props) {
   const v = p.value;
   const len = v.description.trim().length;
-  const lenTone = len === 0 ? 'text-muted' : len > SUMMARY_IDEAL_MAX ? 'text-red-700' : len < SUMMARY_MIN ? 'text-amber-700' : 'text-green-700';
+  const lenTone = len === 0 ? 'text-muted' : len > SUMMARY_IDEAL_MAX ? 'text-red-700' : len < SUMMARY_MIN ? 'text-amber-700' : 'text-accent-strong';
   const lenHint = len === 0 ? '' : len > SUMMARY_IDEAL_MAX ? 'too long: search engines will cut it' : len < SUMMARY_MIN ? 'a little short: aim for 120 to 160' : 'good length';
   const seoLen = v.seoTitle.trim().length;
   const st = STATUS_LABEL[p.status] ?? STATUS_LABEL.draft;
@@ -144,7 +144,7 @@ export default function SettingsPanel(p: Props) {
       <label class="grid min-w-0 grid-cols-1 gap-1.5">
         <span class="font-semibold">SEO title <span class="font-normal text-muted">(optional)</span></span>
         <input aria-label="SEO title" value={v.seoTitle} maxLength={70} onInput={(e) => p.onChange({ seoTitle: (e.target as HTMLInputElement).value })} class="field" placeholder={p.title || 'Defaults to the article title'} />
-        <span class={`text-xs ${seoLen === 0 ? 'text-muted' : seoLen > SEO_TITLE_MAX ? 'text-amber-700' : 'text-green-700'}`}>
+        <span class={`text-xs ${seoLen === 0 ? 'text-muted' : seoLen > SEO_TITLE_MAX ? 'text-amber-700' : 'text-accent-strong'}`}>
           {seoLen === 0 ? 'Leave empty to use the article title. Up to 60 characters shows in full on Google.' : `${seoLen}/${SEO_TITLE_MAX}${seoLen > SEO_TITLE_MAX ? ' · may be cut in search results' : ''}`}
         </span>
       </label>

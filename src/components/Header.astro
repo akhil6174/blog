@@ -14,7 +14,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
 
 <header id="site-header" class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
   <div class="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
-    <a href="/" class="font-sans text-xl font-bold tracking-tight" aria-label={`${SITE.name} home`}>{SITE.name}</a>
+    <a href="/" class="flex shrink-0 items-center" aria-label={`${SITE.name} home`}><img src="/logo.svg" alt={SITE.name} width="134" height="32" class="h-7 w-auto sm:h-8" /></a>
 
     <nav aria-label="Primary" class="flex items-center gap-1 font-sans text-sm">
       {nav.map((item) => (

@@ -2,17 +2,17 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * Design tokens (see "Design system (Medium-style, light)" in the plan).
+ * Design tokens. Brand colours (D-033): purple accent #6a5cb1, cream page #f0ede6.
  * Tailwind v4 reads these from @theme and generates utilities such as bg-page, text-ink, font-serif.
  */
 @theme {
-  --color-page: #fafafa;
-  --color-surface: #ffffff;
+  --color-page: #f0ede6;
+  --color-surface: #f8f6f1;
   --color-ink: #292929;
-  --color-muted: #6b6b6b;
-  --color-line: #e6e6e6;
-  --color-accent: #1a8917;
-  --color-accent-strong: #156f13;
+  --color-muted: #625e57;
+  --color-line: #ddd8cd;
+  --color-accent: #6a5cb1;
+  --color-accent-strong: #574a98;
 
   /* Self-hosted Source Serif 4 and Inter can be added later; these fallbacks render well everywhere. */
   --font-serif: "Source Serif 4", Charter, "Iowan Old Style", Georgia, serif;
@@ -73,7 +73,7 @@
   & a:hover { color: var(--color-accent); }
   & img { border-radius: 0.5rem; }
   & pre { font-family: var(--font-mono); font-size: 0.85em; border-radius: 0.5rem; }
-  & code:not(pre code) { font-family: var(--font-mono); font-size: 0.9em; background: #f0f0f0; padding: 0.1em 0.35em; border-radius: 0.3em; font-weight: 500; }
+  & code:not(pre code) { font-family: var(--font-mono); font-size: 0.9em; background: #e6e1d6; padding: 0.1em 0.35em; border-radius: 0.3em; font-weight: 500; }
   & code:not(pre code)::before, & code:not(pre code)::after { content: none; }
   & table { font-family: var(--font-sans); font-size: 0.85em; }
   & tbody tr:nth-child(even) { background: var(--color-surface); }
@@ -92,8 +92,8 @@ html.editor-dark {
   --color-ink: #e7e7e7;
   --color-muted: #a1a1a6;
   --color-line: #2d2e33;
-  --color-accent: #3fbf3a;
-  --color-accent-strong: #5bd456;
+  --color-accent: #a397e6;
+  --color-accent-strong: #b8aef0;
 }
 html.editor-dark .prose-article { --tw-prose-pre-bg: #0c0c0e; }
 

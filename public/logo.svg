@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 225" role="img" aria-labelledby="title">
+  <title id="title">TrutiAI</title>
+  <!-- The TrutiAI logo for light backgrounds: the white parts of the original (logo-white.svg) drawn in the site's ink colour. -->
+  <g shape-rendering="geometricPrecision">
+    <path fill="#292929" d="M0 0H215L291 184H252L182 49H0Z"/>
+    <path fill="#292929" d="M291 117H333V223H252V184H291Z"/>
+    <path fill="#292929" d="M80 49H128V111L80 157Z"/>
+    <path fill="#292929" d="M80 184H104L80 208Z"/>
+    <path fill="#7665B8" d="M80 184L155 110L173 154L104 208Z"/>
+    <text x="376" y="184" fill="#292929" font-family="Arial, Helvetica, sans-serif" font-size="174" font-weight="500" letter-spacing="-5">Truti</text>
+    <text x="700" y="184" fill="#7665B8" font-family="Arial, Helvetica, sans-serif" font-size="174" font-weight="600" letter-spacing="-5">AI</text>
+  </g>
+</svg>

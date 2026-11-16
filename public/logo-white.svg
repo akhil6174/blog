@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 225" role="img" aria-labelledby="title desc">
+  <title id="title">TrutiAI logo</title>
+  <desc id="desc">The original TrutiAI logo: a geometric white emblem with a muted purple diagonal accent, followed by the TrutiAI wordmark.</desc>
+  <g shape-rendering="geometricPrecision">
+    <!-- Geometric emblem -->
+    <path fill="#F4F4F4" d="M0 0H215L291 184H252L182 49H0Z"/>
+    <path fill="#F4F4F4" d="M291 117H333V223H252V184H291Z"/>
+    <path fill="#F4F4F4" d="M80 49H128V111L80 157Z"/>
+    <path fill="#F4F4F4" d="M80 184H104L80 208Z"/>
+    <!-- Purple diagonal accent -->
+    <path fill="#7665B8" d="M80 184L155 110L173 154L104 208Z"/>
+    <!-- Wordmark -->
+    <text x="376" y="184" fill="#F4F1EC" font-family="Arial, Helvetica, sans-serif" font-size="174" font-weight="500" letter-spacing="-5">Truti</text>
+    <text x="700" y="184" fill="#7665B8" font-family="Arial, Helvetica, sans-serif" font-size="174" font-weight="600" letter-spacing="-5">AI</text>
+  </g>
+</svg>

@@ -268,3 +268,11 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Note for later:** while `community_open` is false, interns' articles are published but not public. To show them before AdSense approval, republish the best ones as editorial articles, or open the community.
 - **Consequences:** Migration `0005_intern_codes` for production.
 
+## D-033 · Brand colours and logo on a light site
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The owner supplied a logo and favicon (white emblem, purple accent, made for dark backgrounds) and asked for green to become `#6a5cb1` and the other site colour to become `#f0ede6`.
+- **Decision:** `#6a5cb1` replaces every green (accent tokens and status chips); `#f0ede6` is the page background, with a slightly lighter cream for cards. On the light site the logo's white parts are drawn in the ink colour (`#292929`); the logo's own purple (`#7665B8`, favicon `#6D699A`) is kept unchanged. The SVG favicon switches the emblem to white in dark browser themes; the ICO and Apple icon sit on a cream square so they show on any tab.
+- **Why:** white artwork is invisible on a cream page. Muted text was darkened to `#625e57` to keep 4.5:1 contrast on cream (hard rule 7); white on `#6a5cb1` is about 5.6:1.
+- **Consequences:** The logo's wordmark is SVG text in Arial, so it renders with the visitor's Arial or Helvetica (or a close sans-serif on Android). If exact letter shapes matter, export the wordmark as outlined paths from the design tool and replace `public/logo.svg`.
+

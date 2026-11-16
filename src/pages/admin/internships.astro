@@ -71,7 +71,7 @@ const groups = [
                   </td>
                   <td class="p-3"><button type="button" class="copy font-mono font-semibold hover:underline" title="Copy code" data-code={r.code}>{r.code}</button></td>
                   <td class="p-3">
-                    <span class:list={['text-lg font-bold', r.published >= need ? 'text-green-700' : '']}>{r.published}</span><span class="text-muted"> / {need}</span>
+                    <span class:list={['text-lg font-bold', r.published >= need ? 'text-accent-strong' : '']}>{r.published}</span><span class="text-muted"> / {need}</span>
                     {r.inReview > 0 && <span class="block text-xs text-muted">+{r.inReview} in review</span>}
                   </td>
                   <td class="p-3">
@@ -84,7 +84,7 @@ const groups = [
                   <td class="whitespace-nowrap p-3 text-xs">
                     {r.certificateSentAt ? (
                       <>
-                        <span class="block text-green-800">Sent {fmt(r.certificateSentAt)}</span>
+                        <span class="block text-accent-strong">Sent {fmt(r.certificateSentAt)}</span>
                         <button class="act mt-1 underline" data-body={JSON.stringify({ action: 'certificate', code: r.code, sent: false })}>Undo</button>
                       </>
                     ) : (

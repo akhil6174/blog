@@ -16,14 +16,14 @@ export const { getStaticPaths, GET } = await OGImageRoute({
   getImageOptions: (_path, page: (typeof pages)[string]) => ({
     title: page.title,
     description: page.description,
-    bgGradient: [[250, 250, 250]],
-    border: { color: [26, 137, 23], width: 24, side: 'block-end' },
+    bgGradient: [[240, 237, 230]],
+    border: { color: [106, 92, 177], width: 24, side: 'block-end' },
     padding: 72,
     font: {
       title: { size: 60, weight: 'Bold', color: [41, 41, 41], lineHeight: 1.15, families: ['Noto Sans'] },
-      description: { size: 28, color: [107, 107, 107], lineHeight: 1.4, families: ['Noto Sans'] },
+      description: { size: 28, color: [98, 94, 87], lineHeight: 1.4, families: ['Noto Sans'] },
     },
-    logo: undefined,
+    logo: { path: './src/assets/brand/emblem-96.png', size: [72] },
     // Local fonts (Noto Sans, SIL Open Font License) so builds never depend on a font download.
     fonts: ['./src/assets/fonts/NotoSans-400.ttf', './src/assets/fonts/NotoSans-700.ttf'],
     cacheDir: './node_modules/.astro-og-canvas',

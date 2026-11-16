@@ -36,7 +36,7 @@ const titleOf = new Map(items.map((p) => [p.id, p]));
   {awards.length > 0 && (
     <section class="mx-auto mt-8 max-w-measure font-sans">
       <h2 class="text-xs font-semibold uppercase tracking-wide text-muted">Achievements</h2>
-      <ul class="mt-2 space-y-1 text-sm">{awards.map((a) => <li>🏅 #{a.rank} in {monthLabel(a.month)}{titleOf.get(a.postId) && <> · <a href={`/p/${titleOf.get(a.postId)!.slug}/`} class="underline">{titleOf.get(a.postId)!.title}</a></>}</li>)}</ul>
+      <ul class="mt-2 space-y-1 text-sm">{awards.map((a) => <li>#{a.rank} in {monthLabel(a.month)}{titleOf.get(a.postId) && <> · <a href={`/p/${titleOf.get(a.postId)!.slug}/`} class="underline">{titleOf.get(a.postId)!.title}</a></>}</li>)}</ul>
     </section>
   )}
   <section class="mx-auto mt-12 max-w-5xl">

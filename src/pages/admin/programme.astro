@@ -51,7 +51,7 @@ const editable = status === 'open' || status === 'not started';
     </div>
 
     <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
-      <span class:list={['rounded-full px-3 py-1', cfg.open ? 'bg-green-100 text-green-900' : 'bg-amber-100 text-amber-900']}>Programme {cfg.open ? 'LIVE' : 'off (hidden)'}</span>
+      <span class:list={['rounded-full px-3 py-1', cfg.open ? 'bg-accent/15 text-accent-strong' : 'bg-amber-100 text-amber-900']}>Programme {cfg.open ? 'LIVE' : 'off (hidden)'}</span>
       <button class="act rounded-full border border-line px-3 py-1" data-endpoint="/api/admin/action" data-body={JSON.stringify({ action: 'set_settings', values: { programme_open: cfg.open ? 'false' : 'true' } })} data-confirm={cfg.open ? 'Hide the programme pages and stop first-article rewards?' : 'Make the programme public? Check the dates and amounts below first. Your earlier rule was to wait for AdSense approval.'}>{cfg.open ? 'Switch off' : 'Switch on'}</button>
       <span class="text-muted">Preview: <a href="/campus-writers/" class="underline">/campus-writers</a> · <a href="/join-us/" class="underline">/join-us</a> · <a href="/leaderboard/" class="underline">/leaderboard</a> · <a href="/reward-policy/" class="underline">/reward-policy</a></span>
     </div>

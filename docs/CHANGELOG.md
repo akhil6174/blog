@@ -5,6 +5,14 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · New brand: purple and cream, TrutiAI logo and favicon (D-033)
+
+- Colours: accent green → purple `#6a5cb1` (hover `#574a98`); page background → cream `#f0ede6`, cards `#f8f6f1`, lines `#ddd8cd`; grey text darkened to `#625e57` so it stays above 4.5:1 contrast on cream. Status chips that were green now use the purple accent. Editor dark mode accent is a light purple.
+- Logo in the header and footer (`public/logo.svg`, the owner's logo with its white parts drawn in the ink colour for light backgrounds; the original is kept as `public/logo-white.svg`).
+- Favicon from the owner's design: `public/favicon.svg` (dark emblem on light browser tabs, white on dark ones), new `favicon.ico` (16/32/48) and `apple-touch-icon.png`.
+- Share images: the default share image, the default cover and every article's generated share image use the logo, cream background and purple bar. `npm run brand` (`scripts/render-brand.mjs`) regenerates the PNGs.
+- Removed things that read as placeholder or machine-made: the placeholder author bio (replaced with a factual one), the two sample draft articles, the "Written by people, edited by people" footer line, an emoji on writer pages, and the "meta" tag on the welcome post (now "announcements"). The monogram avatar is purple until a real photo is added.
+
 ### 2026-11-16 · Internship codes (D-032)
 
 - **`/admin/internships`** (big "Internships" button at the top of `/admin`): add an intern with name and Google email to get a unique code (`INT-XXXX-XXXX`); the intern can write at once (or on first sign-in). Interns are grouped as Ready for certificate, In progress and Certificate sent, with their articles and a published count against the target (`internship_articles`, default 3). "Mark certificate sent" after you email it. A ready-to-copy welcome message is on the page.

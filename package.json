@@ -17,7 +17,8 @@
     "db:migrate:local": "wrangler d1 migrations apply tech-blog-db --local",
     "db:generate": "drizzle-kit generate",
     "test": "vitest run",
-    "db:backup": "node scripts/backup-db.mjs"
+    "db:backup": "node scripts/backup-db.mjs",
+    "brand": "node scripts/render-brand.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.7",

@@ -152,6 +152,12 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [ ] Production: apply migration `0005_intern_codes` (`npx wrangler d1 migrations apply tech-blog-db --remote`) before the push
 - [ ] Owner: write project briefs, recruit the first interns, add them on `/admin/internships` (SETUP-GUIDE §18)
 
+## Brand (D-033)
+
+- [x] Purple and cream colours, logo, favicon, share images; placeholders and sample drafts removed (2026-11-16)
+- [x] Local tests: editor 64/64, essentials 33/33, internship 18/18, table 9/9, writer access 5/5, settings 25/25, images 16/16, publish 22/22, programme 31/31
+- [ ] Owner: replace the monogram avatar with a real photo (`src/assets/images/avatar-akhil.png`) and personalise the bio (`src/content/authors/akhil.json`)
+
 ## Verification log
 
 | Date | Check | Result |

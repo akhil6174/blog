@@ -677,7 +677,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             <p class="rounded-lg border border-line bg-page p-2.5 text-xs">Scheduled for <strong>{new Date(scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong>. It goes live within 15 minutes of that time.</p>
           )}
           {status === 'published' && (
-            <p class="rounded-lg border border-green-200 bg-green-50 p-2.5 text-xs text-green-900">
+            <p class="rounded-lg border border-accent/30 bg-accent/10 p-2.5 text-xs text-accent-strong">
               Live at <a class="underline" href={`/blog/${effectiveSlug}/`} target="_blank">{host}/blog/{effectiveSlug}/</a>.{dirtySincePublish ? ' You have changes that are not live yet: click Update article.' : ''}
             </p>
           )}
@@ -878,7 +878,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
 
         <div class="min-w-0">
           <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Progress to the minimum length" aria-valuemin={0} aria-valuemax={minWords} aria-valuenow={Math.min(words, minWords)}>
-            <div class={`h-full transition-all ${words >= minWords ? 'bg-green-600' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, (words / minWords) * 100)}%` }} />
+            <div class={`h-full transition-all ${words >= minWords ? 'bg-accent' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, (words / minWords) * 100)}%` }} />
           </div>
           {mode === 'preview' ? preview : canvasEl}
           <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-muted" aria-label="Writing statistics">
@@ -887,7 +887,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             <span>{minutes} min read</span>
             <span>{headings} {headings === 1 ? 'heading' : 'headings'}</span>
             <span>{saveLabel}</span>
-            {words < minWords ? <span class="text-amber-700">{minWords - words} more words to reach the {minWords}-word minimum</span> : <span class="text-green-700">Minimum length reached (no maximum)</span>}
+            {words < minWords ? <span class="text-amber-700">{minWords - words} more words to reach the {minWords}-word minimum</span> : <span class="text-accent-strong">Minimum length reached (no maximum)</span>}
           </p>
         </div>
 

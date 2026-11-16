@@ -2,10 +2,10 @@
 title: "Welcome to TrutiAI: what this blog is about"
 description: "TrutiAI publishes practical, tested writing on software development, developer tools and the craft of building things. Here is what to expect."
 pubDate: 2026-11-12
-tags: ["meta"]
+tags: ["announcements"]
 author: akhil
 cover: "../../assets/images/cover-default.png"
-coverAlt: "TrutiAI wordmark on an off-white background"
+coverAlt: "The TrutiAI logo on a cream background"
 featured: true
 ---
 
