@@ -99,7 +99,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [ ] Change the Workers Builds **deploy command** to `npm run deploy` so future migrations apply automatically
 - [x] Production secrets set by the owner on 2026-11-15: `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Google sign-in URL generates on the live site)
 - [ ] `npx wrangler secret put OPENAI_API_KEY` (until then the harmful-content check uses Llama Guard on Workers AI, which costs neurons)
-- [ ] Sign in once with your Gmail on trutiai.in: your account becomes admin automatically (it is in `ADMIN_EMAILS`); open `/admin`
+- [x] Owner signed in with Google on trutiai.in and `/admin` works (2026-11-16; first attempt hit `redirect_uri_mismatch` until `https://trutiai.in/api/auth/callback/google` was saved in the Google client)
 - [ ] Invite 3 to 5 test writers from `/admin` and have them submit real articles; review the queue and the moderation log
 - [ ] Keep `community_open = false` until AdSense shows "Ready" (plan, Phase 4)
 

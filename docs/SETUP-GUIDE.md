@@ -145,7 +145,7 @@ Choosing the name: short, pronounceable, no hyphens or numbers, says "tech" or y
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
 
-**Gotcha:** the redirect URI must match character for character, including `https` and no trailing slash. If you add `www`, add both origins and both redirect URIs.
+**Gotcha:** the redirect URI must match character for character, including `https` and no trailing slash. A mismatch shows Google's "Error 400: redirect_uri_mismatch". Fix it in Google Auth Platform → Clients → your client → Authorized redirect URIs, click Save, and retry after a few minutes. If you add `www`, add both origins and both redirect URIs.
 
 ## 6. Google Search Console (10 minutes)
 
