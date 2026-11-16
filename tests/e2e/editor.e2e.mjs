@@ -234,8 +234,9 @@ check('Esc closes dialog', await waitFor(() => !document.querySelector('[role="d
 
 // --- submit validation ---
 await page.waitForTimeout(2500);
-await page.click('.editor-topbar button:has-text("Submit")');
-const notice = await page.waitForSelector('[role="dialog"][aria-label="Before you submit"]', { timeout: 3000 }).then(() => true).catch(() => false);
+// Admins see "Publish" (editorial), writers "Submit" (community review).
+await page.click('.editor-topbar button:is(:text-is("Publish"), :text-is("Submit"))');
+const notice = await page.waitForSelector('[role="dialog"]:is([aria-label="Before you submit"], [aria-label="Before you publish"])', { timeout: 3000 }).then(() => true).catch(() => false);
 check('submit blocked with clear reasons', notice);
 await page.keyboard.press('Escape');
 

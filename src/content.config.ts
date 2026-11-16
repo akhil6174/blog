@@ -18,13 +18,17 @@ const posts = defineCollection({
       pubDate: z.coerce.date(),
       updatedDate: z.coerce.date().optional(),
       cover: image().optional(),
+      /** Uploaded cover (/media/...) or an https URL; used by articles published from the editor. */
+      coverUrl: z.string().regex(/^(\/media\/[a-z0-9]+\.(webp|jpg|png)|https?:\/\/\S+)$/).optional(),
       coverAlt: z.string().optional(),
+      seoTitle: z.string().max(70).optional(),
+      category: z.string().optional(),
       tags: z.array(z.string().min(2)).min(1).max(5),
       author: reference('authors'),
       draft: z.boolean().default(false),
       featured: z.boolean().default(false),
     })
-    .refine((d) => !d.cover || !!d.coverAlt, { message: 'coverAlt is required when cover is set' }),
+    .refine((d) => (!d.cover && !d.coverUrl) || !!d.coverAlt, { message: 'coverAlt is required when a cover is set' }),
 });
 
 const authors = defineCollection({

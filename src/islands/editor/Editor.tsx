@@ -48,6 +48,8 @@ type InitialPost = {
   summaryBasis?: string | null;
   featured?: boolean;
   publishedAt?: string | null;
+  kind?: 'community' | 'editorial';
+  scheduledAt?: string | null;
 };
 
 type Props = { initial?: InitialPost; authorName: string; minWords: number; maxTags: number; turnstileSiteKey?: string; isAdmin?: boolean; host?: string };
@@ -58,6 +60,8 @@ type ModalState =
   | { kind: 'link'; url: string }
   | { kind: 'image'; file?: File }
   | { kind: 'cover' }
+  | { kind: 'published'; url: string; commitUrl: string | null; dryRun: boolean; first: boolean }
+  | { kind: 'schedule' }
   | { kind: 'templates'; chosen?: Template }
   | { kind: 'shortcuts' }
   | { kind: 'notice'; title: string; items: string[] }
@@ -131,6 +135,11 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const autoTried = useRef(false);
   const lastAutoRegen = useRef(0);
   const [status, setStatus] = useState(initial.status ?? 'draft');
+  // Admin articles are editorial: published from here to /blog/ (D-029). Everyone else submits for review.
+  const editorial = (initial.kind ?? (isAdmin ? 'editorial' : 'community')) === 'editorial' && isAdmin;
+  const [scheduledAt, setScheduledAt] = useState<string | null>(initial.scheduledAt ?? null);
+  const [publishedOnce, setPublishedOnce] = useState(!!initial.publishedAt);
+  const [dirtySincePublish, setDirtySincePublish] = useState(false);
   const [mode, setMode] = useState<Mode>('write');
   const [focus, setFocus] = useState(false);
   const [dark, setDark] = useState(false);
@@ -237,6 +246,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
 
   const markDirty = useCallback(() => {
     version.current++;
+    setDirtySincePublish(true);
     setSave((s) => (s.state === 'saving' ? s : { ...s, state: 'dirty' }));
     window.clearTimeout(localTimer.current);
     localTimer.current = window.setTimeout(() => {
@@ -467,6 +477,50 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     markDirty();
   };
 
+  /** Save the latest text and wait for it (publishing must use exactly what is on screen). */
+  const saveAndWait = async (): Promise<boolean> => {
+    for (let i = 0; i < 100 && inflight.current; i++) await new Promise((r) => setTimeout(r, 100));
+    if (version.current === savedVersion.current && idRef.current) return true;
+    await persist(false);
+    for (let i = 0; i < 100 && inflight.current; i++) await new Promise((r) => setTimeout(r, 100));
+    return version.current === savedVersion.current && !!idRef.current;
+  };
+
+  const editorialCall = async (action: 'publish' | 'schedule' | 'unschedule' | 'unpublish', at?: string) => {
+    setBusy(true);
+    try {
+      if (action !== 'unpublish' && action !== 'unschedule' && !(await saveAndWait())) throw new Error('Could not save the latest changes. Check your connection and try again.');
+      const res = await fetch('/api/editorial', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: idRef.current, action, at }) });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; errors?: string[]; url?: string; commitUrl?: string | null; dryRun?: boolean; scheduledAt?: string };
+      if (!res.ok || !data.ok) {
+        setModal({ kind: 'notice', title: action === 'publish' ? 'Not published yet' : 'That did not work', items: data.errors ?? [`Error ${res.status}`] });
+        return;
+      }
+      if (action === 'publish') {
+        const first = !publishedOnce;
+        setStatus('published');
+        setPublishedOnce(true);
+        setScheduledAt(null);
+        setSlugLocked(true);
+        setDirtySincePublish(false);
+        setModal({ kind: 'published', url: data.url ?? '', commitUrl: data.commitUrl ?? null, dryRun: !!data.dryRun, first });
+      } else if (action === 'schedule') {
+        setStatus('scheduled');
+        setScheduledAt(data.scheduledAt ?? at ?? null);
+        setModal(null);
+      } else if (action === 'unschedule') {
+        setStatus('draft');
+        setScheduledAt(null);
+      } else {
+        setStatus('unpublished');
+      }
+    } catch (e) {
+      setModal({ kind: 'notice', title: 'That did not work', items: [(e as Error).message] });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const requestSubmit = () => {
     const p: string[] = [];
     if (title.trim().length < 10) p.push('Give the article a title of at least 10 characters.');
@@ -477,7 +531,17 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     if (settings.coverImage && !isImageSrc(settings.coverImage)) p.push('The cover image address is not valid. Upload the image or use a full https:// address.');
     if (settings.coverImage && !settings.coverAlt.trim()) p.push('Describe the cover image (alt text).');
     if (p.length) {
-      setModal({ kind: 'notice', title: 'Before you submit', items: p });
+      setModal({ kind: 'notice', title: editorial ? 'Before you publish' : 'Before you submit', items: p });
+      return;
+    }
+    if (editorial) {
+      setModal({
+        kind: 'confirm',
+        title: publishedOnce ? 'Update the published article?' : 'Publish to the blog?',
+        body: `It goes live at ${host}/blog/${effectiveSlug}/ about 2 to 3 minutes after you confirm (the site rebuilds). ${publishedOnce ? 'Readers see the update after the rebuild.' : 'The address cannot change after publishing.'}`,
+        confirmLabel: publishedOnce ? 'Update article' : 'Publish now',
+        run: () => editorialCall('publish'),
+      });
       return;
     }
     setModal({
@@ -522,7 +586,29 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       summaryStale={summaryStale}
       isAdmin={isAdmin}
       host={host}
-      onChange={updateSettings} onEditCover={() => { setSheet(false); setModal({ kind: 'cover' }); }} status={status} rejectReason={initial.rejectReason ?? null} onSubmit={requestSubmit} onSaveDraft={() => void persist(false)} busy={busy} maxTags={maxTags} turnstileSiteKey={turnstileSiteKey} />
+      onChange={updateSettings} onEditCover={() => { setSheet(false); setModal({ kind: 'cover' }); }}
+      actionsSlot={editorial ? (
+        <div class="grid min-w-0 grid-cols-1 gap-2 border-t border-line pt-4">
+          {status === 'scheduled' && scheduledAt && (
+            <p class="rounded-lg border border-line bg-page p-2.5 text-xs">Scheduled for <strong>{new Date(scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong>. It goes live within 15 minutes of that time.</p>
+          )}
+          {status === 'published' && (
+            <p class="rounded-lg border border-green-200 bg-green-50 p-2.5 text-xs text-green-900">
+              Live at <a class="underline" href={`/blog/${effectiveSlug}/`} target="_blank">{host}/blog/{effectiveSlug}/</a>.{dirtySincePublish ? ' You have changes that are not live yet: click Update article.' : ''}
+            </p>
+          )}
+          {status === 'unpublished' && <p class="rounded-lg border border-line bg-page p-2.5 text-xs">Taken offline. Publish again to restore it at the same address.</p>}
+          <button type="button" disabled={busy} onClick={requestSubmit} class="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 font-semibold text-white hover:bg-accent-strong disabled:opacity-60">
+            {busy ? 'Working…' : status === 'published' ? 'Update article' : status === 'unpublished' ? 'Publish again' : 'Publish to blog'}
+          </button>
+          {!publishedOnce && status !== 'scheduled' && <button type="button" disabled={busy} onClick={() => setModal({ kind: 'schedule' })} class="rounded-lg border border-line px-4 py-2 hover:bg-page">Schedule…</button>}
+          {status === 'scheduled' && <button type="button" disabled={busy} onClick={() => void editorialCall('unschedule')} class="rounded-lg border border-line px-4 py-2 hover:bg-page">Cancel schedule</button>}
+          {status === 'published' && (
+            <button type="button" disabled={busy} class="text-xs text-red-700 underline" onClick={() => setModal({ kind: 'confirm', title: 'Take this article offline?', body: 'The page disappears from the blog after the rebuild (2 to 3 minutes). The address stays reserved, and you can publish it again later.', confirmLabel: 'Unpublish', danger: true, run: () => editorialCall('unpublish') })}>Unpublish</button>
+          )}
+          <p class="text-xs text-muted">Your articles skip community review and become static pages on the blog, listed on the home page, topics, RSS and sitemap.</p>
+        </div>
+      ) : undefined} status={status} rejectReason={initial.rejectReason ?? null} onSubmit={requestSubmit} onSaveDraft={() => void persist(false)} busy={busy} maxTags={maxTags} turnstileSiteKey={turnstileSiteKey} />
   );
 
   const canvasEl = (
@@ -694,7 +780,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
           {!focus && (
             <button type="button" class={`icon-btn ${showSettingsColumn ? 'xl:hidden' : ''}`} title="Article settings" aria-label="Article settings" aria-expanded={sheet} onClick={() => setSheet(true)}><Settings2 size={17} /></button>
           )}
-          {!focus && <button type="button" disabled={busy} onClick={requestSubmit} class="ml-1 hidden rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent-strong disabled:opacity-60 sm:inline-block">{status === 'published' ? 'Resubmit' : 'Submit'}</button>}
+          {!focus && <button type="button" disabled={busy} onClick={requestSubmit} class="ml-1 hidden rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent-strong disabled:opacity-60 sm:inline-block">{editorial ? (publishedOnce ? 'Update' : 'Publish') : status === 'published' ? 'Resubmit' : 'Submit'}</button>}
         </div>
       </div>
 
@@ -772,6 +858,33 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             setModal(null);
           }}
         />
+      )}
+
+      {modal?.kind === 'published' && (
+        <Modal title={modal.first ? 'Published' : 'Update sent'} onClose={() => setModal(null)}>
+          <p class="text-sm">{modal.dryRun ? 'Dry run (local testing): nothing was sent to GitHub.' : `The site is rebuilding. Your article ${modal.first ? 'goes live' : 'updates'} in about 2 to 3 minutes.`}</p>
+          <p class="mt-3 text-sm"><a class="font-semibold text-accent underline" href={modal.url} target="_blank">{host}{modal.url}</a></p>
+          {modal.commitUrl && <p class="mt-1 text-xs text-muted"><a class="underline" href={modal.commitUrl} target="_blank" rel="noopener">See the change on GitHub</a></p>}
+          <div class="mt-4 flex justify-end"><button type="button" class="btn-primary" onClick={() => setModal(null)}>Done</button></div>
+        </Modal>
+      )}
+
+      {modal?.kind === 'schedule' && (
+        <Modal title="Schedule publishing" onClose={() => setModal(null)}>
+          <form class="grid gap-3" onSubmit={(e) => {
+            e.preventDefault();
+            const v = (e.currentTarget.elements.namedItem('when') as HTMLInputElement).value;
+            if (!v) return;
+            void editorialCall('schedule', new Date(v).toISOString());
+          }}>
+            <label class="grid gap-1.5 text-sm">
+              <span class="font-semibold">Publish on</span>
+              <input name="when" type="datetime-local" required class="field" min={new Date(Date.now() + 10 * 60_000 - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 16)} />
+              <span class="text-xs text-muted">Your local time. The article goes live within 15 minutes after this time, then takes 2 to 3 minutes to rebuild.</span>
+            </label>
+            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" onClick={() => setModal(null)}>Cancel</button><button class="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Schedule'}</button></div>
+          </form>
+        </Modal>
       )}
 
       {modal?.kind === 'cover' && (

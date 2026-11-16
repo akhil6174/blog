@@ -120,7 +120,8 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [ ] Production: apply migration `0001_step_b_seo_fields` before the step B code is pushed
 - [x] Step C (main part): cover and body image upload from the device with crop, zoom and compression, plus paste/drop into the article (2026-11-16). Completed 2026-11-16: image URLs are imported and copied to TrutiAI (cover and body), with link-as-is only as a fallback
 - [~] Step D: AI writing assistant — **dropped by the owner (2026-11-16)**: no AI writing inside the article body (D-028)
-- [ ] Step E: admin editorial publishing at /blog/, publish now, scheduling
+- [x] Step E: publish your articles from the editor to /blog/ (Markdown commit, static page), update, unpublish, schedule (cron every 15 min) — built 2026-11-16
+- [ ] Production: apply migration `0002_step_e_scheduling` and set the `GITHUB_TOKEN` secret (SETUP-GUIDE §15), then push
 
 ## Verification log
 
@@ -138,6 +139,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 | 2026-11-15 | `npm test` | 10 unit tests pass |
 | 2026-11-16 | Editor step A, `node tests/e2e/editor.e2e.mjs` (headless Chromium) | 50/50: typing stays responsive, slash menu, bubble, block move/duplicate/undo, tables, autosave (one request, URL gains id), templates, block handle, preview/split, focus, dark, shortcuts, submit validation, reload persistence, offline error + local recovery, mobile layout. Found and fixed: endless re-render freeze, BubbleMenu re-registration loop, subtitle focus race, clipped title, mobile Split button, dialog Escape race |
 | 2026-11-16 | `npm test` | 11 unit tests pass |
+| 2026-11-16 | Step E: `npm test` 28; `tests/e2e/publish.e2e.mjs` 22/22 (dry run: publish, Markdown front matter and body, URL lock, not-live note, update with updatedDate, unpublish, publish again, validation, schedule and cancel, non-admin 403, no community review for editorial); scheduler published a due article via the cron handler; the generated Markdown built into a real static page (on home, RSS, sitemap, share image, 879 words); editor 64/64, settings 25/25 (AI mocked), images 16/16 |
 | 2026-11-16 | Step C import: `npm test` 23 unit tests; `tests/e2e/images.e2e.mjs` 16/16 (real image from trutiai.in imported for body and cover, cover 1200×630, web page refused 415, 127.0.0.1 and 169.254.169.254 refused 400, 404 explained, signed-out 401, link fallback after failure); editor 64/64, settings 25/25 |
 | 2026-11-16 | Step B: `npm test` 19 unit tests; `tests/e2e/settings.e2e.mjs` 25/25 twice with the real gpt-oss-20b (auto summary at 300 words, 125-158 chars, overwrite confirm, stale note for hand-written summary without auto-overwrite, SEO title counter, search preview, slug follows title then sticks, category and featured persist, submit needs a category, no panel overflow); editor e2e 64/64; local publish check: SEO title in title/og, category label, Featured pin, category filter, slug locked after publish |
 | 2026-11-16 | Editor e2e after toolbar/upload/minimum changes | 64/64: rail cannot scroll sideways, tooltip outside the rail, rail and settings stay below the top bar after scrolling, 600-word progress bar, body image upload (12.9 KB WebP served with immutable cache), non-image rejected with 415, cover cropped and saved at 1200×630 |

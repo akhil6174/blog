@@ -68,6 +68,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | File | What it does |
 |---|---|
 | `drizzle.config.ts` | Drizzle Kit config: generates SQL migrations from the schema into `drizzle/` |
+| `drizzle/0002_step_e_scheduling.sql` | Adds `scheduled_at` to `posts` |
 | `drizzle/0001_step_b_seo_fields.sql` | Adds `seo_title`, `category`, `summary_source`, `summary_basis`, `featured` to `posts` |
 | `drizzle/0000_init.sql` (+ `meta/`) | The database migration; applied with `npm run db:migrate:local` or `npm run deploy` |
 | `vitest.config.ts` | Unit test config (pure modules only) |
@@ -77,6 +78,8 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `tests/e2e/settings.e2e.mjs` | Playwright check of the settings panel with the real AI model (mocked if unreachable) |
 | `tests/media.test.ts` | Import address rules, file-type sniffing, image source checks |
 | `tests/e2e/images.e2e.mjs` | Playwright check of URL import (API safety and both dialogs) |
+| `tests/markdown.test.ts` | Markdown conversion and front matter tests |
+| `tests/e2e/publish.e2e.mjs` | Playwright check of publishing, updating, unpublishing, scheduling and permissions (dry run) |
 | `tests/e2e/editor.e2e.mjs` | Playwright browser check of the editor (run against `npm run preview`) |
 | `src/middleware.ts` | Edge cache for public community routes; session loading and protection for /write, /me, /admin and write APIs |
 | `src/lib/db/schema.ts` | All D1 tables (Better Auth + blog) |
@@ -136,6 +139,10 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/media.ts` | Image upload: type sniffing, size and daily limits, store in KV |
 | `src/pages/api/media/import.ts` | Safe server-side fetch of an image URL for importing (no storage) |
 | `src/pages/media/[file].ts` | Serves uploaded images with a one-year edge cache |
+| `src/lib/markdown.ts` | Editor document to Markdown + YAML front matter for editorial publishing |
+| `src/lib/github.ts` | GitHub Contents API: create/update/delete files, dry-run mode |
+| `src/lib/editorial.ts` | Publish, update, schedule, unschedule, unpublish, and the scheduler run |
+| `src/pages/api/editorial.ts` | Admin-only publishing endpoint |
 | `src/lib/fingerprint.ts` | Sentence fingerprints for detecting big article changes; summary and SEO title length constants |
 | `src/lib/ai-summary.ts` | Summary prompt and clean-up (openers, dangling endings, trimming) |
 | `src/lib/slug.ts` | Shared slug rules for the editor and the posts API |

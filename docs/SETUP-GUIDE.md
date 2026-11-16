@@ -31,6 +31,7 @@ What to sign up for, what to type in, what to copy out, and where each value goe
 | `SENTRY_DSN` | Sentry → project → Client Keys (DSN) | `.dev.vars` and `wrangler secret put` | 1 |
 | `CF_WEB_ANALYTICS_TOKEN` (public) | Cloudflare → Web Analytics → site → snippet | `wrangler.jsonc` → `vars.CF_WEB_ANALYTICS_TOKEN` | 1 |
 | `CONTACT_TO` | Your inbox for contact-form mail | `wrangler.jsonc` → `vars.CONTACT_TO` (already set) | 1 |
+| `GITHUB_TOKEN` | GitHub fine-grained token, this repo only, Contents read/write (§15) | `npx wrangler secret put GITHUB_TOKEN` | E |
 | `ADSENSE_CLIENT`, `ADS_ENABLED` | AdSense publisher id; flag to turn ad units on | `wrangler.jsonc` → `vars` | 3 / 4 |
 | Search Console TXT record | Search Console → Domain property | Cloudflare DNS (not the code) | 0 |
 | AdSense publisher ID `ca-pub-…` | AdSense → Account → Settings → Account information | `BaseLayout.astro` meta tag, later `public/ads.txt` | 3 / 4 |
@@ -217,6 +218,23 @@ bing.com/webmasters → Sign in with the Google account → **Import from Google
 4. Optional: Catch-all → forward everything to your Gmail too.
 
 **Gotcha:** Resend also wants an MX record (for bounces) on a subdomain it tells you, so the two do not conflict. If Resend complains, add its records on the subdomain it specifies, not on the root.
+
+## 15. GitHub token for publishing your articles (5 minutes, needed for step E)
+
+**Why:** "Publish to blog" in the editor saves your article as a Markdown file in the GitHub repository; the push rebuilds the site and the article goes live 2 to 3 minutes later as a normal static page. The Worker needs a token that can write files to this one repository, nothing else.
+
+1. github.com → your avatar → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
+2. Token name: `TrutiAI publishing`. Expiration: 1 year (put a reminder in your calendar to renew it).
+3. Resource owner: your account. **Repository access: Only select repositories** → `akhil6174/blog`.
+4. **Permissions → Repository permissions → Contents: Read and write.** Leave everything else at "No access" (Metadata read-only is added automatically).
+5. **Generate token** and copy it (it is shown once). Save it in the vault as `GITHUB_TOKEN`.
+6. From the `tech-blog` folder:
+   ```bash
+   npx wrangler secret put GITHUB_TOKEN
+   ```
+   Paste the token when asked.
+
+**Gotchas:** never put the token in a file, chat or commit. If it leaks or expires, delete it on GitHub, create a new one and run the command again. `GITHUB_DRY_RUN` belongs only in your local `.dev.vars`, never in production.
 
 ## 14. Google AdSense (Phase 3, week 8: not now)
 

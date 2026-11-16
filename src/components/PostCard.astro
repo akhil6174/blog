@@ -15,6 +15,11 @@ const minutes = readingMinutes(post.body);
 ---
 
 <article class:list={['group flex flex-col gap-4', featured ? 'md:flex-row md:items-start md:gap-8' : '']}>
+  {!post.data.cover && post.data.coverUrl && (
+    <a href={url} class:list={['block overflow-hidden rounded-lg border border-line bg-surface', featured ? 'md:w-1/2' : '']} tabindex="-1" aria-hidden="true">
+      <img src={post.data.coverUrl} alt={post.data.coverAlt ?? ''} width="1200" height="630" class="aspect-[16/9] w-full object-cover transition group-hover:scale-[1.02]" loading={featured ? 'eager' : 'lazy'} />
+    </a>
+  )}
   {post.data.cover && (
     <a href={url} class:list={['block overflow-hidden rounded-lg border border-line bg-surface', featured ? 'md:w-1/2' : '']} tabindex="-1" aria-hidden="true">
       <Image

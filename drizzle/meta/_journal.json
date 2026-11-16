@@ -15,6 +15,13 @@
       "when": 1794807557113,
       "tag": "0001_step_b_seo_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794810457088,
+      "tag": "0002_step_e_scheduling",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,7 @@ export type PublicPost = typeof posts.$inferSelect & { author: { id: string; nam
 
 export async function listPublished(opts: { limit: number; offset?: number; tag?: string; authorId?: string; category?: string }): Promise<PublicPost[]> {
   const d = db();
-  const where = [eq(posts.status, 'published')];
+  const where = [eq(posts.status, 'published'), eq(posts.kind, 'community')];
   if (opts.authorId) where.push(eq(posts.authorId, opts.authorId));
   if (opts.category) where.push(eq(posts.category, opts.category));
   let ids: string[] | null = null;
@@ -23,13 +23,13 @@ export async function listPublished(opts: { limit: number; offset?: number; tag?
 }
 
 export async function countPublished(authorId?: string): Promise<number> {
-  const where = authorId ? and(eq(posts.status, 'published'), eq(posts.authorId, authorId)) : eq(posts.status, 'published');
+  const where = authorId ? and(eq(posts.status, 'published'), eq(posts.kind, 'community'), eq(posts.authorId, authorId)) : and(eq(posts.status, 'published'), eq(posts.kind, 'community'));
   const [{ n }] = await db().select({ n: sql<number>`count(*)` }).from(posts).where(where);
   return Number(n);
 }
 
 export async function getPublishedBySlug(slug: string): Promise<PublicPost | null> {
-  const row = await db().query.posts.findFirst({ where: eq(posts.slug, slug) });
+  const row = await db().query.posts.findFirst({ where: and(eq(posts.slug, slug), eq(posts.kind, 'community')) });
   if (!row) return null;
   const [p] = await hydrate([row]);
   return p;
@@ -47,7 +47,7 @@ export async function relatedCommunity(post: PublicPost, limit = 3): Promise<Pub
     .limit(limit + 1);
   const candidates = ids.map((x) => x.id).filter((id) => id !== post.id).slice(0, limit);
   if (!candidates.length) return [];
-  const rows = await d.select().from(posts).where(and(inArray(posts.id, candidates), eq(posts.status, 'published')));
+  const rows = await d.select().from(posts).where(and(inArray(posts.id, candidates), eq(posts.status, 'published'), eq(posts.kind, 'community')));
   return hydrate(rows);
 }
 

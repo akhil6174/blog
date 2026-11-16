@@ -61,6 +61,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (b.id && !post) return json({ error: 'Post not found.' }, 404);
   if (post && post.authorId !== user.id && !hasRole(user, 'admin')) return json({ error: 'Not your post.' }, 403);
   if (post && ['checking', 'submitted'].includes(post.status)) return json({ error: 'This post is being checked; wait for the result before editing.' }, 409);
+  // Admins write editorial articles (published to /blog/ from the editor, no moderation); everyone else writes community posts.
+  const kind: 'community' | 'editorial' = post?.kind ?? (hasRole(user, 'admin') ? 'editorial' : 'community');
+  if (kind === 'editorial' && b.submit) return json({ error: 'Editorial articles are published with "Publish to blog", not submitted for review.' }, 400);
 
   const { html, text, words } = renderDoc(b.bodyJson);
   const title = b.title.trim() || 'Untitled draft';
@@ -133,6 +136,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     summaryBasis: b.summarySource === 'ai' ? b.summaryBasis || null : b.summaryBasis || post?.summaryBasis || null,
     featured: hasRole(user, 'admin') && typeof b.featured === 'boolean' ? b.featured : post?.featured ?? false,
     status: status as typeof posts.$inferInsert.status,
+    kind,
     wordCount: words,
     readingMinutes: readingMinutes(words),
     contentHash: await contentHash(text),
@@ -176,5 +180,5 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await env.MODERATION.create({ id: `post-${id}-${Date.now()}`, params: { postId: id, kind: 'post' } });
     return json({ id, status: 'submitted', slug, slugError, redirect: `/write/status/${id}/` });
   }
-  return json({ id, status, slug, slugLocked: locked, slugError, updatedAt: nowDate.toISOString() });
+  return json({ id, status, kind, slug, slugLocked: locked, slugError, updatedAt: nowDate.toISOString() });
 };

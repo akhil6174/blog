@@ -5,6 +5,19 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Editor step E: publish your articles from the editor
+
+**Added**
+- "Publish to blog" for the admin: validates, converts the article to Markdown and commits it to `src/content/posts/`; the site rebuilds and the article is live at `/blog/<url>/` in 2 to 3 minutes, on the home page, topics, RSS, sitemap and search. "Update article", "Unpublish", "Publish again".
+- Scheduling with a date and time; the cron runs every 15 minutes and publishes due articles.
+- Content schema: `coverUrl` (uploaded covers), `seoTitle`, `category`; blog pages and cards render uploaded covers and use the SEO title.
+- `drizzle/0002_step_e_scheduling.sql`, `POST /api/editorial`, `src/lib/{markdown,github,editorial}.ts`, tests, SETUP-GUIDE §15 (GitHub token).
+
+**Changed**
+- Admin articles are editorial and never go through community moderation; community pages list only community posts.
+- Cron: `*/15 * * * *` (hourly jobs still run once an hour).
+
+
 ### 2026-11-16 · Plan change
 
 - Step D (AI writing assistant) dropped by the owner: no AI writing in the article body (D-028). The AI summary in the settings panel stays.

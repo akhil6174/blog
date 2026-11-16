@@ -61,7 +61,7 @@ const jsonLd = [
 ---
 
 <BaseLayout
-  title={post.data.title}
+  title={post.data.seoTitle || post.data.title}
   description={post.data.description}
   type="article"
   image={ogImage}
@@ -97,6 +97,9 @@ const jsonLd = [
       </div>
     </header>
 
+    {!post.data.cover && post.data.coverUrl && (
+      <figure class="mb-8"><img src={post.data.coverUrl} alt={post.data.coverAlt ?? ''} width="1200" height="630" class="w-full rounded-lg border border-line" fetchpriority="high" /></figure>
+    )}
     {post.data.cover && (
       <figure class="mb-8">
         <Image src={post.data.cover} alt={post.data.coverAlt ?? ''} widths={[680, 1000, 1360]} sizes="(min-width: 768px) 680px, 100vw" class="w-full rounded-lg border border-line" loading="eager" fetchpriority="high" />

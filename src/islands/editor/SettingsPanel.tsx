@@ -43,6 +43,8 @@ type Props = {
   maxTags: number;
   host: string;
   turnstileSiteKey?: string;
+  /** Replaces the submit block (editorial publishing controls for the admin). */
+  actionsSlot?: preact.ComponentChildren;
 };
 
 export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
@@ -50,6 +52,7 @@ export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   submitted: { label: 'In review', tone: 'bg-amber-100 text-amber-900' },
   checking: { label: 'In review', tone: 'bg-amber-100 text-amber-900' },
   pending_review: { label: 'Waiting for an editor', tone: 'bg-amber-100 text-amber-900' },
+  scheduled: { label: 'Scheduled', tone: 'bg-blue-100 text-blue-900' },
   published: { label: 'Published', tone: 'bg-green-100 text-green-900' },
   rejected: { label: 'Declined', tone: 'bg-red-100 text-red-900' },
   hidden: { label: 'Hidden after reports', tone: 'bg-red-100 text-red-900' },
@@ -184,6 +187,8 @@ export default function SettingsPanel(p: Props) {
         </label>
       )}
 
+      {p.actionsSlot ?? (
+        <>
       {p.turnstileSiteKey && <div class="cf-turnstile" data-sitekey={p.turnstileSiteKey} data-theme="auto" />}
 
       <div class="grid min-w-0 grid-cols-1 gap-2 border-t border-line pt-4">
@@ -193,6 +198,8 @@ export default function SettingsPanel(p: Props) {
         <button type="button" onClick={p.onSaveDraft} class="rounded-lg border border-line px-4 py-2 hover:bg-page">Save draft now</button>
         <p class="text-xs text-muted">Clean articles usually publish within a minute. Read the <a href="/community-guidelines/" target="_blank" class="underline">guidelines</a>.</p>
       </div>
+        </>
+      )}
     </div>
   );
 }

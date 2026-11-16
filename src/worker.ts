@@ -19,6 +19,7 @@ import { hasRole } from './lib/auth';
 import { db, user } from './lib/db';
 import { eq } from 'drizzle-orm';
 import { runHourly } from './cron/hourly';
+import { publishDueEditorials } from './lib/editorial';
 
 export type ModerationParams = {
   postId: string;
@@ -101,8 +102,15 @@ export class ModeratePost extends WorkflowEntrypoint<Env, ModerationParams> {
 export default {
   fetch: handle,
 
-  // Hourly housekeeping: Top 10 lists into KV, community sitemap purge, re-check reported items, stale drafts.
+  // Every 15 minutes: publish scheduled editorial articles. On the hour: Top 10 lists, purges, stale drafts.
   async scheduled(controller: ScheduledController, _env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(runHourly(new Date(controller.scheduledTime)));
+    const now = new Date(controller.scheduledTime);
+    ctx.waitUntil(
+      (async () => {
+        const r = await publishDueEditorials(now);
+        if (r.published.length || r.failed.length) console.log('[cron] editorial', JSON.stringify(r));
+        if (now.getUTCMinutes() < 15) await runHourly(now);
+      })(),
+    );
   },
 } satisfies ExportedHandler<Env>;

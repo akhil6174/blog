@@ -10,7 +10,7 @@ export const prerender = false;
 
 const user = Astro.locals.user!;
 const mine = await db().select().from(posts).where(eq(posts.authorId, user.id)).orderBy(desc(posts.updatedAt)).limit(100);
-const label: Record<string, string> = { draft: 'Draft', submitted: 'Checking', checking: 'Checking', pending_review: 'Awaiting editor', published: 'Published', rejected: 'Declined', hidden: 'Hidden', unpublished: 'Unpublished' };
+const label: Record<string, string> = { scheduled: 'Scheduled', draft: 'Draft', submitted: 'Checking', checking: 'Checking', pending_review: 'Awaiting editor', published: 'Published', rejected: 'Declined', hidden: 'Hidden', unpublished: 'Unpublished' };
 ---
 
 <BaseLayout title="My articles" description="Your articles on TrutiAI." noindex>
@@ -41,8 +41,8 @@ const label: Record<string, string> = { draft: 'Draft', submitted: 'Checking', c
               <p class="text-xs text-muted">{label[p.status] ?? p.status} · {p.wordCount} words · updated {p.updatedAt.toLocaleDateString('en-IN')}{p.status === 'rejected' && p.rejectReason ? ` · ${p.rejectReason}` : ''}</p>
             </div>
             <div class="flex gap-2 text-sm">
-              {p.status === 'published' && <a href={`/p/${p.slug}/`} class="rounded border border-line px-3 py-1.5">View</a>}
-              {['submitted', 'checking', 'pending_review'].includes(p.status) ? <a href={`/write/status/${p.id}/`} class="rounded border border-line px-3 py-1.5">Status</a> : <a href={`/write/?id=${p.id}`} class="rounded border border-line px-3 py-1.5">Edit</a>}
+              {p.status === 'published' && <a href={p.kind === 'editorial' ? `/blog/${p.slug}/` : `/p/${p.slug}/`} class="rounded border border-line px-3 py-1.5">View</a>}
+              {p.kind !== 'editorial' && ['submitted', 'checking', 'pending_review'].includes(p.status) ? <a href={`/write/status/${p.id}/`} class="rounded border border-line px-3 py-1.5">Status</a> : <a href={`/write/?id=${p.id}`} class="rounded border border-line px-3 py-1.5">Edit</a>}
             </div>
           </li>
         ))}

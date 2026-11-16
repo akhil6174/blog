@@ -23,3 +23,9 @@ SENTRY_DSN=
 SITE_URL=http://127.0.0.1:4321
 # Local only: enables the email/password form on /signin for testing without Google.
 AUTH_DEV_LOGIN=true
+
+# Step E: publishing your articles from the editor commits Markdown to GitHub (setup guide section 15).
+# Fine-grained token, this repository only, permission "Contents: Read and write".
+GITHUB_TOKEN=
+# Local only: true = do not contact GitHub; keep the generated file in KV for inspection.
+GITHUB_DRY_RUN=true

@@ -36,7 +36,10 @@
     "ADSENSE_CLIENT": "",
     "ADS_ENABLED": "false",
     // Where contact-form submissions are delivered.
-    "CONTACT_TO": "akhil6174dwivedi@gmail.com"
+    "CONTACT_TO": "akhil6174dwivedi@gmail.com",
+    // Editorial publishing commits Markdown here (secret GITHUB_TOKEN; D-029).
+    "GITHUB_REPO": "akhil6174/blog",
+    "GITHUB_BRANCH": "main"
   },
 
   // D1: users, posts, comments, stats, moderation log. Create with: npx wrangler d1 create tech-blog-db
@@ -70,5 +73,5 @@
   ],
 
   // Cron: hourly housekeeping (sitemap, stale drafts, Top 10 lists, digest). Free.
-  "triggers": { "crons": ["0 * * * *"] }
+  "triggers": { "crons": ["*/15 * * * *"] }
 }

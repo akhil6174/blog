@@ -200,3 +200,10 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** The plan proposed a selection-only assistant (grammar, rewrite, simplify, titles, headings). The owner does not want AI writing inside articles.
 - **Decision:** The article body stays entirely human-written; no assistant is built. AI remains only where it does not write article text: the summary/meta description in the settings panel (D-025) and moderation (D-004).
 - **Consequences:** Simpler editor and no extra Workers AI spend. Supports the editorial policy and AdSense's preference for original, human-edited content. Revisit only if the owner asks.
+
+## D-029 · Your articles are published from the editor as Markdown commits
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** Writing 25 to 30 articles as Markdown files with git is slow for the owner; the editor is far easier. Serving editor articles from D1 at `/blog/` would mean making the home page, topics, RSS, sitemap and search dynamic.
+- **Decision:** Admin articles are `kind = editorial`. "Publish to blog" saves, validates with the same rules the content collection enforces, converts the Tiptap document to Markdown (`src/lib/markdown.ts`) with front matter, and commits `src/content/posts/<slug>.md` through the GitHub Contents API (`src/lib/github.ts`, fine-grained token on this repo only). The push triggers Workers Builds; the article becomes a normal static page with listings, RSS, sitemap, Pagefind and a share image. Update re-commits (adds `updatedDate`); Unpublish deletes the file (the slug stays reserved). Scheduling stores `scheduled_at`; the cron now runs every 15 minutes and publishes due articles (Top 10 and housekeeping still once an hour). Files carry an editor marker so a hand-written Markdown post with the same name is never overwritten. `GITHUB_DRY_RUN=true` (local only) keeps everything off GitHub for testing.
+- **Consequences:** Two to three minutes from Publish to live. The repository is the record of published articles; the D1 row stays the editable source. Hand-written Markdown posts (like the welcome post) are not editable in the editor.

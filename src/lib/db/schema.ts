@@ -81,7 +81,7 @@ export const verification = sqliteTable(
 );
 
 // ---------- Blog ----------
-export const POST_STATUS = ['draft', 'submitted', 'checking', 'pending_review', 'published', 'rejected', 'hidden', 'unpublished'] as const;
+export const POST_STATUS = ['draft', 'submitted', 'checking', 'pending_review', 'scheduled', 'published', 'rejected', 'hidden', 'unpublished'] as const;
 export type PostStatus = (typeof POST_STATUS)[number];
 
 export const posts = sqliteTable(
@@ -109,7 +109,10 @@ export const posts = sqliteTable(
     coverImage: text('cover_image'),
     coverAlt: text('cover_alt'),
     status: text('status', { enum: POST_STATUS }).notNull().default('draft'),
-    kind: text('kind', { enum: ['community'] }).notNull().default('community'),
+    /** community: moderated, served from D1 at /p/<slug>. editorial: admin-written, committed as Markdown to the repo and served statically at /blog/<slug>. */
+    kind: text('kind', { enum: ['community', 'editorial'] }).notNull().default('community'),
+    /** Editorial only: when the scheduler should publish it. */
+    scheduledAt: integer('scheduled_at', { mode: 'timestamp' }),
     qualityScore: integer('quality_score'),
     indexAllowed: integer('index_allowed', { mode: 'boolean' }).notNull().default(false),
     adsAllowed: integer('ads_allowed', { mode: 'boolean' }).notNull().default(false),

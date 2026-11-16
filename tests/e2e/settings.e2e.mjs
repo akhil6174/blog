@@ -131,7 +131,7 @@ check('settings panel does not overflow its column', await page.evaluate(() => {
 
 // Submit requires a category
 await page.selectOption('select[aria-label="Category"]', '');
-await page.click('.editor-topbar button:has-text("Submit")');
+await page.click('.editor-topbar button:is(:text-is("Publish"), :text-is("Submit"))');
 check('submit asks for a category', await waitFor(() => document.querySelector('[role="dialog"]')?.textContent?.includes('Choose a category')));
 
 check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
