@@ -2,6 +2,7 @@
  * Left formatting rail. Desktop: sticky vertical icon bar. Below lg: fixed horizontal bar at the bottom.
  * Every button has a tooltip with its shortcut and aria-pressed for toggles.
  */
+import { useState } from 'preact/hooks';
 import type { Editor } from '@tiptap/core';
 import type { ComponentType } from 'preact';
 import {
@@ -21,6 +22,15 @@ export type RailActions = {
 };
 
 export default function Rail({ editor, actions }: { editor: Editor; actions: RailActions }) {
+  // One tooltip rendered OUTSIDE the scrolling rail (position: fixed). Tooltips inside it made the rail scroll sideways.
+  const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const showTip = (e: Event, text: string) => {
+    if (window.innerWidth < 1024) return;
+    const btn = e.currentTarget as HTMLElement;
+    const r = btn.getBoundingClientRect();
+    const rail = btn.closest('.editor-rail')?.getBoundingClientRect();
+    setTip({ text, x: (rail?.right ?? r.right) + 8, y: r.top + r.height / 2 });
+  };
   const c = () => editor.chain().focus();
   const groups: Btn[][] = [
     [
@@ -66,36 +76,42 @@ export default function Rail({ editor, actions }: { editor: Editor; actions: Rai
   ];
 
   return (
+    <>
     <div
       role="toolbar"
       aria-label="Formatting"
       aria-orientation="vertical"
-      class="editor-rail fixed inset-x-0 bottom-0 z-40 flex items-center gap-1 overflow-x-auto border-t border-line bg-surface px-2 py-1.5 lg:sticky lg:top-20 lg:inset-auto lg:max-h-[calc(100dvh-6rem)] lg:flex-col lg:overflow-y-auto lg:overflow-x-visible lg:rounded-xl lg:border lg:px-1.5 lg:py-2"
+      onScroll={() => setTip(null)}
+      class="editor-rail fixed inset-x-0 bottom-0 z-40 flex items-center gap-1 overflow-x-auto border-t border-line bg-surface px-2 py-1.5 lg:sticky lg:top-[7.75rem] lg:z-20 lg:inset-auto lg:max-h-[calc(100dvh-8.75rem)] lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-xl lg:border lg:px-1.5 lg:py-2"
     >
       {groups.map((g, gi) => (
         <>
           {gi > 0 && <span class="mx-1 h-6 w-px shrink-0 bg-line lg:mx-0 lg:my-1 lg:h-px lg:w-6" aria-hidden="true" />}
           {g.map((b) => {
             const Icon = b.icon;
-            const tip = b.keys ? `${b.label} (${b.keys})` : b.label;
+            const label = b.keys ? `${b.label} (${b.keys})` : b.label;
             return (
               <button
                 type="button"
                 class="rail-btn"
-                title={tip}
-                aria-label={tip}
+                aria-label={label}
                 aria-pressed={b.active === undefined ? undefined : b.active ? 'true' : 'false'}
                 disabled={b.disabled}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={b.run}
+                onMouseEnter={(e) => showTip(e, label)}
+                onMouseLeave={() => setTip(null)}
+                onFocus={(e) => showTip(e, label)}
+                onBlur={() => setTip(null)}
               >
                 <Icon size={18} strokeWidth={2} />
-                <span class="rail-tip" aria-hidden="true">{tip}</span>
               </button>
             );
           })}
         </>
       ))}
     </div>
+    {tip && <span class="rail-tooltip" role="tooltip" style={{ left: `${tip.x}px`, top: `${tip.y}px` }}>{tip.text}</span>}
+    </>
   );
 }

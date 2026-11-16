@@ -158,3 +158,17 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Context:** The editor is interactive (keyboard, selection, drag, timers). The desktop app's hidden browser pane throttles timers and cannot drive it reliably.
 - **Decision:** `tests/e2e/editor.e2e.mjs` runs headless Chromium against `npm run preview` with the local dev login, checks each feature, and saves screenshots. A localhost-only `window.__editor` hook lets the script read the document.
 - **Consequences:** `@playwright/test` is a dev dependency (Chromium downloads once per machine). Run it after every editor change.
+
+## D-023 · Uploaded images live in KV until R2 is enabled
+
+- **Date:** 2026-11-16 · **Status:** accepted (supersedes the "D1 fallback" idea in EDITOR-PLAN.md)
+- **Context:** Writers need to upload images from their device. R2 needs a card on file (D-013). D1 can store blobs but returns them as number arrays that cost Worker CPU to convert; KV stores binary natively.
+- **Decision:** The browser resizes and compresses (WebP, JPEG fallback; covers cropped to 1200 × 630, body images max 1600 px wide). `POST /api/media` checks the real file type from its first bytes, caps size at 2 MB and uploads at 40 per writer per day, and stores the file in the `CACHE` KV namespace as `media:<id>`. `GET /media/<id>.<ext>` serves it with a one-year immutable edge cache.
+- **Consequences:** Free up to 1 GB (about 6,000 images) and 1,000 KV writes a day (two per upload). When R2 is enabled, move the files and switch the two routes; image paths stay the same. Image URLs pasted as links still hotlink the original site.
+
+## D-024 · Minimum 600 words, no maximum
+
+- **Date:** 2026-11-16 · **Status:** accepted (owner request)
+- **Context:** AdSense rejects thin content; the site already required 600 words before a community article is indexable.
+- **Decision:** `min_words` default is 600 for submission, the editor shows a progress bar toward it, and `npm run check:content` fails editorial posts under 600. Article length has no upper limit (only title, subtitle and summary are capped, for search-result display).
+- **Consequences:** Every published article meets the indexing length. The welcome post (241 words) must be expanded before the AdSense application.

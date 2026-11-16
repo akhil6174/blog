@@ -5,6 +5,22 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Image uploads, 600-word minimum, toolbar fixes
+
+**Added**
+- Upload images from the device for the cover and the article body (picker, drag-and-drop, or paste into the article). Images are compressed in the browser; covers get a crop and zoom step at 1200 × 630. The image-URL option stays. Alt text is required.
+- `POST /api/media` and `GET /media/<id>.<ext>`; files stored in KV until R2 (D-023).
+- Word-count progress bar toward the minimum in the editor.
+
+**Changed**
+- Minimum article length raised from 300 to 600 words; no maximum (D-024). Community guidelines and the content check updated; the check now fails editorial posts under 600 words.
+- Cover image field accepts uploaded `/media/` paths; moderation sends absolute image URLs to the image check.
+
+**Fixed**
+- Toolbar scrolled sideways into blank space: tooltips now render outside it.
+- Toolbar and settings panel slid under the editor top bar while scrolling: they now stick below it.
+
+
 ### 2026-11-16 · Editor redesign, step A
 
 **Added**

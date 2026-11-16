@@ -126,6 +126,63 @@ check('URL updated with post id', /\?id=/.test(page.url()), page.url());
 await alive('after autosave');
 await page.screenshot({ path: `${OUT}/01-write-desktop.png`, fullPage: false });
 
+// --- toolbar: no sideways scroll, tooltip outside, stays below the top bar while scrolling ---
+check('rail cannot scroll sideways', await page.evaluate(() => { const r = document.querySelector('.editor-rail'); return r.scrollWidth <= r.clientWidth + 1; }));
+await page.hover('.rail-btn[aria-label^="Heading"]');
+const tipBox = await page.waitForSelector('.rail-tooltip', { timeout: 2000 }).then((h) => h.boundingBox()).catch(() => null);
+const railBox = await (await page.$('.editor-rail')).boundingBox();
+check('rail tooltip shows beside the rail', !!tipBox && tipBox.x >= railBox.x + railBox.width, tipBox ? `tip x=${Math.round(tipBox.x)} rail right=${Math.round(railBox.x + railBox.width)}` : 'no tooltip');
+await page.mouse.wheel(0, 1200);
+await page.waitForTimeout(400);
+const pos = await page.evaluate(() => ({ rail: document.querySelector('.editor-rail').getBoundingClientRect().top, bar: document.querySelector('.editor-topbar').getBoundingClientRect().bottom, panel: document.querySelector('aside[aria-label="Article settings"] > div')?.getBoundingClientRect().top ?? 999 }));
+check('rail stays below the top bar after scrolling', pos.rail >= pos.bar - 1, `rail ${Math.round(pos.rail)} vs bar ${Math.round(pos.bar)}`);
+check('settings panel stays below the top bar', pos.panel >= pos.bar - 1, `panel ${Math.round(pos.panel)}`);
+await page.mouse.wheel(0, -2400);
+
+// --- word minimum ---
+check('word minimum progress bar shown', !!(await page.$('[role="progressbar"][aria-valuemax="600"]')));
+
+// --- body image upload from device ---
+const IMG = 'src/assets/images/cover-default.png';
+await page.click('.tiptap');
+await page.keyboard.press('Control+End');
+await page.click('.rail-btn[aria-label="Image"]');
+await page.waitForSelector('[role="dialog"][aria-label="Insert image"]');
+await page.setInputFiles('[role="dialog"] input[type="file"]', IMG);
+await page.waitForSelector('[role="dialog"] img', { timeout: 5000 });
+check('body image: preview after choosing a file', true);
+check('body image: alt text suggested from file name', (await page.inputValue('[role="dialog"] input[placeholder^="Describe"]')) === 'cover default');
+await page.fill('[role="dialog"] input[placeholder^="Describe"]', 'TrutiAI wordmark');
+await page.click('[role="dialog"] button:has-text("Insert")');
+await page.waitForSelector('[role="dialog"]', { state: 'detached', timeout: 10000 });
+const bodySrc = await page.evaluate(() => window.__editor.getJSON().content.find((n) => n.type === 'image')?.attrs.src ?? '');
+check('body image: uploaded and inserted', /^\/media\/[a-z0-9]+\.(webp|jpg)$/.test(bodySrc), bodySrc);
+const served = await page.evaluate(async (u) => { const r = await fetch(u); return { status: r.status, type: r.headers.get('content-type'), cache: r.headers.get('cache-control'), size: (await r.arrayBuffer()).byteLength }; }, bodySrc);
+check('uploaded image is served', served.status === 200 && /^image\//.test(served.type ?? ''), `${served.status} ${served.type} ${served.size} bytes, ${served.cache}`);
+check('uploaded image is compressed', served.size > 0 && served.size < 200_000, `${served.size} bytes (original 22 KB PNG 1600x900)`);
+const badUpload = await page.evaluate(async () => (await fetch('/api/media?kind=body', { method: 'POST', body: new Blob(['<svg onload=alert(1)>'], { type: 'image/png' }) })).status);
+check('server rejects non-images', badUpload === 415, String(badUpload));
+
+// --- cover upload with crop ---
+await page.click('aside[aria-label="Article settings"] button:has-text("Add a cover image")');
+await page.waitForSelector('[role="dialog"][aria-label="Cover image"]');
+await page.setInputFiles('[role="dialog"] input[type="file"]', IMG);
+const cv = await page.waitForSelector('[role="dialog"] canvas', { timeout: 5000 });
+const cb = await cv.boundingBox();
+await page.fill('[role="dialog"] input[type="range"]', '2');
+await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2);
+await page.mouse.down();
+await page.mouse.move(cb.x + cb.width / 2 + 80, cb.y + cb.height / 2 + 30, { steps: 5 });
+await page.mouse.up();
+check('cover: crop canvas shown with zoom and drag', true);
+await page.click('[role="dialog"] button:has-text("Use this cover")');
+await page.waitForSelector('[role="dialog"]', { state: 'detached', timeout: 10000 });
+const coverSrc = await page.getAttribute('aside[aria-label="Article settings"] img', 'src');
+check('cover: uploaded and shown in settings', /^\/media\//.test(coverSrc ?? ''), coverSrc);
+const coverDims = await page.evaluate(async (u) => { const b = await (await fetch(u)).blob(); const bmp = await createImageBitmap(b); return `${bmp.width}x${bmp.height}`; }, coverSrc);
+check('cover: saved at 1200 x 630', coverDims === '1200x630', coverDims);
+await page.screenshot({ path: `${OUT}/07-images.png` });
+
 // --- templates ---
 await page.click('.rail-btn[aria-label="Templates"]');
 await page.waitForSelector('[role="dialog"]');
@@ -220,7 +277,8 @@ check('mobile: settings sheet opens', await page.isVisible('.fixed > aside[aria-
 await page.screenshot({ path: `${OUT}/06-mobile-settings.png` });
 
 // The offline check aborts requests on purpose; those network errors are expected.
-const real = errors.filter((e) => !/ERR_FAILED/.test(e));
+// ...and the fake-image upload is rejected with 415 on purpose.
+const real = errors.filter((e) => !/ERR_FAILED|status of 415/.test(e));
 check('no page errors', real.length === 0, real.slice(0, 3).join(' | '));
 await browser.close();
 const failed = results.filter((x) => !x.ok);

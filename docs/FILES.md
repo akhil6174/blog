@@ -103,6 +103,8 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/islands/editor/Preview.tsx` | Live preview using the server renderer |
 | `src/islands/editor/Modal.tsx` | Accessible dialog used by link, image, templates, shortcuts and confirmations |
 | `src/islands/editor/templates.ts` | Seven article templates |
+| `src/islands/editor/image.ts` | Browser image decode, resize, cover crop geometry, compression and upload |
+| `src/islands/editor/ImageDialogs.tsx` | Insert-image dialog and cover dialog (device upload with drag-drop, URL option, crop and zoom, alt text) |
 | `src/islands/CommentForm.tsx` | Comment form, reply and report handling |
 | `src/islands/RaiseButton.tsx` | Raise button (cap 50, debounced) |
 | `src/islands/ReportButton.tsx` | Report a post |
@@ -126,6 +128,9 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/raise.ts` | Raise counts |
 | `src/pages/api/view.ts` | View beacon |
 | `src/pages/api/report.ts` | Reports with auto-hide |
+| `src/pages/api/media.ts` | Image upload: type sniffing, size and daily limits, store in KV |
+| `src/pages/media/[file].ts` | Serves uploaded images with a one-year edge cache |
+| `src/lib/media.ts` | Image upload constants, file-type sniffing, `isImageSrc` |
 | `src/pages/api/admin/action.ts` | All admin actions |
 
 ## `scripts/`

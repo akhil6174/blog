@@ -17,7 +17,8 @@ export async function loadTarget(kind: 'post' | 'comment', id: string): Promise<
     if (!p) return null;
     const t = await d.select({ slug: postTags.tagSlug }).from(postTags).where(eq(postTags.postId, id));
     const images = [...(p.coverImage ? [p.coverImage] : []), ...[...p.bodyHtml.matchAll(/<img[^>]+src="([^"]+)"/g)].map((m) => m[1])];
-    return { kind, id, title: p.title, text: p.bodyText, html: p.bodyHtml, tags: t.map((x) => x.slug), images: [...new Set(images)], words: p.wordCount, authorId: p.authorId };
+    const abs = images.map((u) => (u.startsWith('/') ? new URL(u, env.SITE_URL).href : u));
+    return { kind, id, title: p.title, text: p.bodyText, html: p.bodyHtml, tags: t.map((x) => x.slug), images: [...new Set(abs)], words: p.wordCount, authorId: p.authorId };
   }
   const c = await d.query.comments.findFirst({ where: eq(comments.id, id) });
   if (!c) return null;

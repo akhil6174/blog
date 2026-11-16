@@ -117,7 +117,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 
 - [x] Step A: block editor (rail, bubble, slash menu, block handle, tables/highlight/underline, templates, stats, cheaper autosave + local recovery, write/split/preview, focus mode, dark theme, status and feedback, confirmations, mobile layout) — 2026-11-16
 - [ ] Step B: settings panel (AI summary, SEO title, slug rules, category, featured/schedule for admin)
-- [ ] Step C: cover and body image upload (device + URL import, crop, compress)
+- [x] Step C (main part): cover and body image upload from the device with crop, zoom and compression, plus paste/drop into the article (2026-11-16). Remaining: importing URL images onto our storage instead of hotlinking
 - [ ] Step D: AI writing assistant (selection only)
 - [ ] Step E: admin editorial publishing at /blog/, publish now, scheduling
 
@@ -137,4 +137,5 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 | 2026-11-15 | `npm test` | 10 unit tests pass |
 | 2026-11-16 | Editor step A, `node tests/e2e/editor.e2e.mjs` (headless Chromium) | 50/50: typing stays responsive, slash menu, bubble, block move/duplicate/undo, tables, autosave (one request, URL gains id), templates, block handle, preview/split, focus, dark, shortcuts, submit validation, reload persistence, offline error + local recovery, mobile layout. Found and fixed: endless re-render freeze, BubbleMenu re-registration loop, subtitle focus race, clipped title, mobile Split button, dialog Escape race |
 | 2026-11-16 | `npm test` | 11 unit tests pass |
+| 2026-11-16 | Editor e2e after toolbar/upload/minimum changes | 64/64: rail cannot scroll sideways, tooltip outside the rail, rail and settings stay below the top bar after scrolling, 600-word progress bar, body image upload (12.9 KB WebP served with immutable cache), non-image rejected with 415, cover cropped and saved at 1200×630 |
 | 2026-11-15 | Live Phase 3 on https://trutiai.in | `/signin` 200; `/api/auth/get-session` → null (auth configured); Google sign-in URL generated; `/admin` and `/write` → 302 to sign-in; `/community` 404 (flag closed); `/top`, `/sitemap-community.xml`, `/api/raise` 200; comments island present on editorial posts. First Phase 3 build had failed on `npm ci` until the lock file was regenerated. |

@@ -25,7 +25,7 @@ Rule of thumb: a change is not finished until CHANGELOG, FILES (if files changed
 
 1. **Free tier first.** Pages are pre-rendered static files unless they truly need code (`export const prerender = false`). Worker CPU is 10 ms per request on the free plan: no image processing, no JSON-to-HTML rendering, no heavy loops at request time.
 2. **D1 writes are precious (100K/day).** Never write per request without a reason. Views are sampled above 20,000/day; raises are debounced; counters are denormalised on `posts`.
-3. **KV writes are rarer still (1K/day).** Only cron or admin actions write to KV.
+3. **KV writes are rarer still (1K/day).** Only cron, admin actions and image uploads (two writes each, capped per writer per day) write to KV.
 4. **No secrets in the repo or in chat.** Secrets go in `.dev.vars` locally and `wrangler secret put` in production. Non-secret config goes in `wrangler.jsonc` `vars`.
 5. **The AI model id is data, not code.** Read it from the `settings` table with `AI_MODEL_DEFAULT` as fallback. Never hard-code a model id in logic. Llama 3.1 8B and Llama 3.2 1B/3B are deprecated on 20 Nov 2026; do not use them.
 6. **AdSense gating.** Community posts are `noindex` and ad-free until moderation sets `index_allowed` / `ads_allowed`. Community publishing is behind the `community_open` flag until AdSense shows "Ready".

@@ -11,7 +11,7 @@ export const SETTING_DEFAULTS = {
   community_invite_only: 'true', // while false/true: only users with role >= writer who were invited can write (Phase 3 testing)
   ai_quality_model: env.AI_MODEL_DEFAULT || '@cf/openai/gpt-oss-20b',
   ai_safety_fallback_model: env.AI_SAFETY_FALLBACK_MODEL || '@cf/meta/llama-guard-3-8b',
-  min_words: '300',
+  min_words: '600', // AdSense thin-content guard; there is no maximum
   max_external_links: '5',
   quality_publish_min: '40', // below this -> pending_review
   quality_index_min: '70', // index_allowed when >= this and words >= index_min_words
@@ -68,7 +68,7 @@ export const SETTING_HELP: Record<SettingKey, string> = {
   community_invite_only: 'true = only users the admin promoted to writer can open /write. false = anyone signed in can write.',
   ai_quality_model: 'Workers AI model id for the spam/quality check. Change here when Cloudflare deprecates a model.',
   ai_safety_fallback_model: 'Workers AI model used for the harmful-content check only if OpenAI fails.',
-  min_words: 'Minimum words for a community post.',
+  min_words: 'Minimum words before an article can be submitted (600 keeps every article long enough for AdSense and for indexing). There is no maximum.',
   max_external_links: 'Maximum outside links in a community post.',
   quality_publish_min: 'Quality score below this goes to the review queue instead of publishing.',
   quality_index_min: 'Quality score at or above this (and enough words) makes a community post indexable.',

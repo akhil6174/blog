@@ -37,7 +37,8 @@ const posts = files.map((f) => {
   if (imagesNoAlt) problems.push(`${imagesNoAlt} image(s) without alt text`);
   if (headings.some((h) => h === 1)) warnings.push('uses an H1 inside the body (the title is already the H1)');
   for (let i = 1; i < headings.length; i++) if (headings[i] > headings[i - 1] + 1) warnings.push('heading levels skip (e.g. H2 → H4)');
-  if (words < 600) warnings.push(`short: ${words} words (aim for 800+ on most topics)`);
+  if (words < 600) problems.push(`too short for AdSense: ${words} words (minimum 600, no maximum)`);
+  else if (words < 800) warnings.push(`${words} words: fine, but 800+ reads as more complete`);
   if (internalLinks < 2) warnings.push(`only ${internalLinks} internal link(s); aim for 2+`);
   return { file: f, draft, words, tags, problems, warnings: [...new Set(warnings)] };
 });

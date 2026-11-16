@@ -53,7 +53,7 @@ Both "upload from device" and "import from URL" end in the same place, which kee
 4. The same uploader inserts images into the article body (max 1600 px wide).
 5. Moderation already sends cover and body image URLs to OpenAI's image check.
 
-**Storage decision needed** (see section 6):
+**Storage (decided 2026-11-16, D-023):** KV until R2 is enabled. Original options considered:
 - **R2 (recommended).** Needs a card on file to enable; ₹0 within 10 GB. Images served from a `media.trutiai.in` custom domain with long caching.
 - **No card:** store compressed images in a D1 table (cap 300 KB each, about 15,000 images in the free 5 GB), served by the Worker with edge caching. Works, but uses D1 space and Worker requests; migrate to R2 later.
 

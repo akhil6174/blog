@@ -2,13 +2,15 @@
  * Right-hand article settings. Step A: status and editor feedback, summary, tags, cover by URL.
  * Step B adds the AI summary, SEO title, slug, category; step C replaces the cover URL with the uploader.
  */
-import { AlertTriangle, Send } from 'lucide-preact';
+import { AlertTriangle, ImagePlus, Send } from 'lucide-preact';
+import { isImageSrc } from '../../lib/media';
 
 export type Settings = { description: string; tags: string; coverImage: string; coverAlt: string };
 
 type Props = {
   value: Settings;
   onChange: (patch: Partial<Settings>) => void;
+  onEditCover: () => void;
   status: string;
   rejectReason: string | null;
   onSubmit: () => void;
@@ -29,7 +31,7 @@ export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   unpublished: { label: 'Unpublished', tone: 'bg-red-100 text-red-900' },
 };
 
-export default function SettingsPanel({ value, onChange, status, rejectReason, onSubmit, onSaveDraft, busy, maxTags, turnstileSiteKey }: Props) {
+export default function SettingsPanel({ value, onChange, onEditCover, status, rejectReason, onSubmit, onSaveDraft, busy, maxTags, turnstileSiteKey }: Props) {
   const len = value.description.trim().length;
   const lenTone = len === 0 ? 'text-muted' : len < 120 || len > 160 ? (len > 160 ? 'text-red-700' : 'text-amber-700') : 'text-green-700';
   const st = STATUS_LABEL[status] ?? STATUS_LABEL.draft;
@@ -65,11 +67,26 @@ export default function SettingsPanel({ value, onChange, status, rejectReason, o
       </label>
 
       <section class="grid gap-2">
-        <span class="font-semibold">Cover image <span class="font-normal text-muted">(1200 × 630 works best)</span></span>
-        {value.coverImage && <img src={value.coverImage} alt={value.coverAlt || 'Cover preview'} class="aspect-[1.91/1] w-full rounded-lg border border-line object-cover" referrerpolicy="no-referrer" />}
-        <input value={value.coverImage} onInput={(e) => onChange({ coverImage: (e.target as HTMLInputElement).value })} class="field" placeholder="https://… image URL" inputMode="url" />
-        <input value={value.coverAlt} onInput={(e) => onChange({ coverAlt: (e.target as HTMLInputElement).value })} class="field" placeholder="Describe the image (alt text)" />
-        {value.coverImage && !value.coverAlt && <span class="text-xs text-amber-700">Add alt text before submitting.</span>}
+        <span class="font-semibold">Cover image <span class="font-normal text-muted">(1200 × 630)</span></span>
+        {isImageSrc(value.coverImage) ? (
+          <>
+            <button type="button" onClick={onEditCover} class="group relative overflow-hidden rounded-lg border border-line" aria-label="Change cover image">
+              <img src={value.coverImage} alt={value.coverAlt || 'Cover preview'} class="aspect-[1200/630] w-full object-cover" referrerpolicy="no-referrer" />
+              <span class="absolute inset-0 flex items-center justify-center bg-black/0 text-sm font-semibold text-white opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">Change</span>
+            </button>
+            <input value={value.coverAlt} maxLength={200} onInput={(e) => onChange({ coverAlt: (e.target as HTMLInputElement).value })} class="field" placeholder="Describe the image (alt text)" aria-label="Cover alt text" />
+            {!value.coverAlt && <span class="text-xs text-amber-700">Add alt text before submitting.</span>}
+            <div class="flex gap-3 text-xs">
+              <button type="button" class="underline" onClick={onEditCover}>Replace</button>
+              <button type="button" class="text-red-700 underline" onClick={() => onChange({ coverImage: '', coverAlt: '' })}>Remove</button>
+            </div>
+          </>
+        ) : (
+          <button type="button" onClick={onEditCover} class="flex aspect-[1200/630] w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-line text-sm text-muted hover:border-accent hover:text-ink">
+            <ImagePlus size={22} /> Add a cover image
+            <span class="text-xs">Upload from your device or use a link</span>
+          </button>
+        )}
       </section>
 
       {turnstileSiteKey && <div class="cf-turnstile" data-sitekey={turnstileSiteKey} data-theme="auto" />}

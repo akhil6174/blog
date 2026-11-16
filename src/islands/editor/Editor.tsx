@@ -24,6 +24,8 @@ import Modal from './Modal';
 import Preview from './Preview';
 import SettingsPanel, { STATUS_LABEL, type Settings } from './SettingsPanel';
 import { TEMPLATES, type Template } from './templates';
+import { BodyImageDialog, CoverDialog } from './ImageDialogs';
+import { isImageSrc } from '../../lib/media';
 
 type InitialPost = {
   id?: string;
@@ -45,7 +47,8 @@ type SaveState = { state: 'idle' | 'dirty' | 'saving' | 'saved' | 'error'; at: D
 type LocalDraft = { title: string; subtitle: string; settings: Settings; bodyJson: JSONContent; at: number };
 type ModalState =
   | { kind: 'link'; url: string }
-  | { kind: 'image'; url: string; alt: string; error?: string }
+  | { kind: 'image'; file?: File }
+  | { kind: 'cover' }
   | { kind: 'templates'; chosen?: Template }
   | { kind: 'shortcuts' }
   | { kind: 'notice'; title: string; items: string[] }
@@ -56,14 +59,6 @@ const LANGS = ['', 'bash', 'javascript', 'typescript', 'json', 'html', 'css', 'p
 const bubbleShouldShow = ({ editor, from, to, state }: { editor: TEditor; from: number; to: number; state: TEditor['state'] }) =>
   from !== to && !(state.selection instanceof NodeSelection) && !editor.isActive('codeBlock');
 
-const isHttpUrl = (s: string) => {
-  try {
-    const u = new URL(s);
-    return u.protocol === 'https:' || u.protocol === 'http:';
-  } catch {
-    return false;
-  }
-};
 const lsGet = (k: string): LocalDraft | null => {
   try {
     const v = localStorage.getItem(k);
@@ -146,7 +141,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       subtitle: latest.current.subtitle.trim().slice(0, 140),
       description: s.description.trim().slice(0, 160),
       tags,
-      coverImage: isHttpUrl(s.coverImage.trim()) ? s.coverImage.trim() : null,
+      coverImage: isImageSrc(s.coverImage.trim()) ? s.coverImage.trim() : null,
       coverAlt: s.coverAlt.trim().slice(0, 200) || null,
       bodyJson: editorRef.current?.getJSON() ?? { type: 'doc', content: [] },
       submit,
@@ -223,6 +218,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   // ---------- editor ----------
   const cb = useRef<EditorCallbacks>({ saveNow: () => {}, openLink: () => {}, toggleFocus: () => {}, togglePreview: () => {}, confirmDeleteBlock: () => {} });
   const slashRef = useRef<() => SlashItem[]>(() => []);
+  const imageFileRef = useRef<(f: File) => void>(() => {});
 
   // Built once. A new extensions array on every render makes Tiptap destroy and recreate the editor,
   // which re-renders again: an endless loop that freezes the page on the first keystroke.
@@ -233,6 +229,21 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     shouldRerenderOnTransaction: true,
     editorProps: {
       attributes: { class: 'tiptap prose prose-article editor-body', 'aria-label': 'Article body', spellcheck: 'true' },
+      // Pasting or dropping an image file opens the upload dialog (alt text is required, so no silent insert).
+      handlePaste: (_view, event) => {
+        const f = [...(event.clipboardData?.files ?? [])].find((x) => x.type.startsWith('image/'));
+        if (!f) return false;
+        imageFileRef.current(f);
+        return true;
+      },
+      handleDrop: (_view, event, _slice, moved) => {
+        if (moved) return false;
+        const f = [...((event as DragEvent).dataTransfer?.files ?? [])].find((x) => x.type.startsWith('image/'));
+        if (!f) return false;
+        event.preventDefault();
+        imageFileRef.current(f);
+        return true;
+      },
     },
     onUpdate: () => markDirty(),
   }, []);
@@ -247,7 +258,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     if (!editor) return;
     setModal({ kind: 'link', url: (editor.getAttributes('link').href as string) ?? '' });
   };
-  const openImage = () => setModal({ kind: 'image', url: '', alt: '' });
+  const openImage = (file?: File) => setModal({ kind: 'image', file });
   const confirmDeleteBlock = () => {
     if (!editor) return;
     const b = currentBlock(editor);
@@ -262,6 +273,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     togglePreview: () => setMode((m) => (m === 'preview' ? 'write' : 'preview')),
     confirmDeleteBlock,
   };
+  imageFileRef.current = (f) => openImage(f);
   slashRef.current = () => {
     const c = (ed: TEditor) => ed.chain().focus();
     return [
@@ -275,7 +287,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       { group: 'Blocks', title: 'Code block', hint: 'With syntax highlighting', keywords: 'code pre snippet', run: (ed) => c(ed).toggleCodeBlock().run() },
       { group: 'Blocks', title: 'Table', hint: '3 × 3 with header row', keywords: 'grid table', run: (ed) => c(ed).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
       { group: 'Blocks', title: 'Divider', hint: 'Horizontal line', keywords: 'hr rule separator', run: (ed) => c(ed).setHorizontalRule().run() },
-      { group: 'Media', title: 'Image', hint: 'From a URL', keywords: 'picture photo img', run: () => openImage() },
+      { group: 'Media', title: 'Image', hint: 'Upload or paste a link', keywords: 'picture photo img upload', run: () => openImage() },
       { group: 'Media', title: 'YouTube video', hint: 'Embed by URL', keywords: 'video youtube embed', run: () => {
         const u = window.prompt('YouTube URL');
         if (u) editorRef.current?.chain().focus().setYoutubeVideo({ src: u }).run();
@@ -373,7 +385,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     if (settings.description.trim().length < 50) p.push('Write a summary of at least 50 characters (right panel).');
     if (tagList.length < 1) p.push('Add at least one tag.');
     if (words < minWords) p.push(`Write at least ${minWords} words (now ${words}).`);
-    if (settings.coverImage && !isHttpUrl(settings.coverImage)) p.push('The cover image must be a full https:// address.');
+    if (settings.coverImage && !isImageSrc(settings.coverImage)) p.push('The cover image address is not valid. Upload the image or use a full https:// address.');
     if (settings.coverImage && !settings.coverAlt.trim()) p.push('Describe the cover image (alt text).');
     if (p.length) {
       setModal({ kind: 'notice', title: 'Before you submit', items: p });
@@ -408,7 +420,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   const st = STATUS_LABEL[status] ?? STATUS_LABEL.draft;
 
   const settingsPanel = (
-    <SettingsPanel value={settings} onChange={updateSettings} status={status} rejectReason={initial.rejectReason ?? null} onSubmit={requestSubmit} onSaveDraft={() => void persist(false)} busy={busy} maxTags={maxTags} turnstileSiteKey={turnstileSiteKey} />
+    <SettingsPanel value={settings} onChange={updateSettings} onEditCover={() => { setSheet(false); setModal({ kind: 'cover' }); }} status={status} rejectReason={initial.rejectReason ?? null} onSubmit={requestSubmit} onSaveDraft={() => void persist(false)} busy={busy} maxTags={maxTags} turnstileSiteKey={turnstileSiteKey} />
   );
 
   const canvasEl = (
@@ -542,7 +554,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
 
   const preview = doc && (
     <div class="rounded-2xl border border-line bg-surface px-5 py-8 sm:px-10">
-      <Preview title={title} subtitle={subtitle} authorName={authorName} minutes={minutes} tags={tagList} coverImage={isHttpUrl(settings.coverImage) ? settings.coverImage : ''} coverAlt={settings.coverAlt} doc={doc} />
+      <Preview title={title} subtitle={subtitle} authorName={authorName} minutes={minutes} tags={tagList} coverImage={isImageSrc(settings.coverImage) ? settings.coverImage : ''} coverAlt={settings.coverAlt} doc={doc} />
     </div>
   );
 
@@ -587,11 +599,14 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       <div class={`pb-24 lg:pb-8 ${grid}`}>
         {showRail && (
           <div class={mode === 'split' ? '' : ''}>
-            <Rail editor={editor} actions={{ openLink, openImage, openTemplates: () => setModal({ kind: 'templates' }), openShortcuts: () => setModal({ kind: 'shortcuts' }), confirmDeleteBlock }} />
+            <Rail editor={editor} actions={{ openLink, openImage: () => openImage(), openTemplates: () => setModal({ kind: 'templates' }), openShortcuts: () => setModal({ kind: 'shortcuts' }), confirmDeleteBlock }} />
           </div>
         )}
 
         <div class="min-w-0">
+          <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Progress to the minimum length" aria-valuemin={0} aria-valuemax={minWords} aria-valuenow={Math.min(words, minWords)}>
+            <div class={`h-full transition-all ${words >= minWords ? 'bg-green-600' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, (words / minWords) * 100)}%` }} />
+          </div>
           {mode === 'preview' ? preview : canvasEl}
           <p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-muted" aria-label="Writing statistics">
             <span>{words.toLocaleString('en-IN')} words</span>
@@ -599,7 +614,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
             <span>{minutes} min read</span>
             <span>{headings} {headings === 1 ? 'heading' : 'headings'}</span>
             <span>{saveLabel}</span>
-            {words < minWords && <span class="text-amber-700">{minWords - words} more words to submit</span>}
+            {words < minWords ? <span class="text-amber-700">{minWords - words} more words to reach the {minWords}-word minimum</span> : <span class="text-green-700">Minimum length reached (no maximum)</span>}
           </p>
         </div>
 
@@ -607,7 +622,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
 
         {showSettingsColumn && (
           <aside class="hidden xl:block" aria-label="Article settings">
-            <div class="sticky top-[7.5rem] max-h-[calc(100dvh-8.5rem)] overflow-y-auto rounded-2xl border border-line bg-surface p-4">{settingsPanel}</div>
+            <div class="sticky top-[7.75rem] max-h-[calc(100dvh-8.75rem)] overflow-y-auto rounded-2xl border border-line bg-surface p-4">{settingsPanel}</div>
           </aside>
         )}
       </div>
@@ -647,22 +662,26 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
       )}
 
       {modal?.kind === 'image' && (
-        <Modal title="Insert image" onClose={() => setModal(null)}>
-          <form class="grid gap-3" onSubmit={(e) => {
-            e.preventDefault();
-            if (!/^https:\/\//i.test(modal.url.trim())) return setModal({ ...modal, error: 'Use a full https:// image address.' });
-            if (!modal.alt.trim()) return setModal({ ...modal, error: 'Describe the image for readers who cannot see it.' });
-            editor.chain().focus().setImage({ src: modal.url.trim(), alt: modal.alt.trim() }).run();
+        <BodyImageDialog
+          initialFile={modal.file}
+          onClose={() => setModal(null)}
+          onInsert={(src, alt) => {
+            editor.chain().focus().setImage({ src, alt }).run();
             setModal(null);
-          }}>
-            <input class="field" value={modal.url} placeholder="https://… image address" inputMode="url" onInput={(e) => setModal({ ...modal, url: (e.target as HTMLInputElement).value, error: undefined })} />
-            {/^https:\/\//i.test(modal.url) && <img src={modal.url} alt="" class="max-h-48 w-full rounded-lg border border-line object-contain" referrerpolicy="no-referrer" />}
-            <input class="field" value={modal.alt} placeholder="Describe the image (alt text)" onInput={(e) => setModal({ ...modal, alt: (e.target as HTMLInputElement).value, error: undefined })} />
-            {modal.error && <p class="text-sm text-red-700">{modal.error}</p>}
-            <p class="text-xs text-muted">Uploading from your device arrives with the image step of the editor plan.</p>
-            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" onClick={() => setModal(null)}>Cancel</button><button class="btn-primary">Insert</button></div>
-          </form>
-        </Modal>
+          }}
+        />
+      )}
+
+      {modal?.kind === 'cover' && (
+        <CoverDialog
+          current={settings.coverImage}
+          currentAlt={settings.coverAlt}
+          onClose={() => setModal(null)}
+          onSave={(src, alt) => {
+            updateSettings({ coverImage: src, coverAlt: alt });
+            setModal(null);
+          }}
+        />
       )}
 
       {modal?.kind === 'templates' && (
