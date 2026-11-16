@@ -5,6 +5,17 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Brighter design, live search, account menu, new emails (D-034)
+
+- **Colours:** white page instead of cream, with lavender tint bands (`--color-tint #f6f4fc`, `--color-tint-strong #ece8f9`) and the purple accent; ink `#1f1d29`, muted `#5c596b`, lines `#e6e3ef`.
+- **Home page redesigned:** hero with the brand emblem, "Browse by topic" cards with icons and descriptions, featured and latest articles (or a short notice while there are none), and a purple "Start writing" band. New footer with topics, site links, policies and both emails. `BaseLayout` gained a `full` option for full-width pages.
+- **Header search box:** type to see up to 6 matching articles instantly (new `/api/search`, edge-cached); Enter or "See all results" opens `/articles/?q=`. On phones the search icon opens a full-width search field. Press `/` to jump to search. Article search logic moved to `src/lib/articles.ts`, shared by `/articles` and `/api/search`.
+- **Account area:** signed out shows "Write" and a "Sign in" button. Signed in shows the avatar with an unread badge; hovering (or tapping) opens a menu with My articles, Write, Notifications, Saved, Profile settings, the admin pages for admins, and Sign out. Names are now inserted as text, not HTML.
+- Sign-in page says "Sign in or create an account".
+- **Removed** the welcome post and its cover image. The 404 page searches `/articles/`.
+- **Emails:** main address `akhilendrad@trutiai.in` (shown everywhere, receives contact-form messages and reader reports via `CONTACT_TO`); `trutiai@proton.me` shown alongside it on Contact, About, Privacy and the footer.
+- Tests: the report check now uses a community article the test publishes; editor test uses `public/og-default.png` as its sample image; programme test checks the live search.
+
 ### 2026-11-16 · New brand: purple and cream, TrutiAI logo and favicon (D-033)
 
 - Colours: accent green → purple `#6a5cb1` (hover `#574a98`); page background → cream `#f0ede6`, cards `#f8f6f1`, lines `#ddd8cd`; grey text darkened to `#625e57` so it stays above 4.5:1 contrast on cream. Status chips that were green now use the purple accent. Editor dark mode accent is a light purple.

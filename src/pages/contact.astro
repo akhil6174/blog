@@ -12,7 +12,7 @@ const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY ?? '';
 <PageLayout title="Contact" description={`Get in touch with ${SITE.name}: questions, corrections, article ideas, partnerships or press. We reply within two working days.`}>
   <p>
     Questions, corrections, article ideas or partnership requests are all welcome. Email
-    <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a> or use the form below. We usually reply within two working days.
+    <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a> (or <a href={`mailto:${SITE.altEmail}`}>{SITE.altEmail}</a>) or use the form below. We usually reply within two working days.
   </p>
 
   <form id="contact-form" method="post" action="/api/contact" class="not-prose mt-8 grid gap-5 font-sans" novalidate>

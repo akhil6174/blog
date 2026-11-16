@@ -153,10 +153,17 @@ check('audit log lists the actions', (await page.textContent('body')).includes('
 check('emergency switches shown', await page.isVisible('button:has-text("Comments on")') && await page.isVisible('button:has-text("Submissions on")'));
 
 // ---- 7. Reader problem report on an article ----
+// A community article published for this run (the site may have no editorial articles).
+await admin.request.post(`${BASE}/api/admin/action`, { headers: H, data: { action: 'set_settings', values: { community_open: 'true' } } });
+await admin.request.post(`${BASE}/api/admin/action`, { headers: H, data: { action: 'invite', value: `reportee-${RUN}@example.com` } });
+const reportee = await signedIn(`reportee-${RUN}@example.com`);
+const reportPost = await (await reportee.request.post(`${BASE}/api/posts`, { headers: H, data: { title: `Deploying with an old CLI ${RUN}`, description: 'A walkthrough used to check reader problem reports on a real community article page.', tags: ['cloudflare'], category: 'web-development', bodyJson: doc(45), submit: true } })).json();
+await admin.request.post(`${BASE}/api/admin/action`, { headers: H, data: { action: 'publish_post', id: reportPost.id } });
+const reportSlug = (await (await reportee.request.get(`${BASE}/api/posts/${reportPost.id}/status`)).json()).slug;
 const reader = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const rpage = await reader.newPage();
 rpage.on('pageerror', (e) => errors.push(e.message));
-await rpage.goto(`${BASE}/blog/welcome-to-trutiai/`);
+await rpage.goto(`${BASE}/p/${reportSlug}/`);
 // The island hydrates when visible; click until the form opens.
 for (let i = 0; i < 20 && !(await rpage.isVisible('form[aria-label="Report a problem"]')); i++) {
   await rpage.locator('button:has-text("Report a problem")').scrollIntoViewIfNeeded();

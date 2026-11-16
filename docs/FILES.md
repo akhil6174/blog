@@ -206,6 +206,13 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/assets/brand/emblem-96.png` | Emblem used on generated article share images (generated) |
 | `scripts/render-brand.mjs` | `npm run brand`: regenerates the favicon ICO, Apple icon, emblem, default share image, default cover and monogram avatar |
 
+## Design refresh (D-034)
+
+| File | Purpose |
+|---|---|
+| `src/lib/articles.ts` | Article search and filtering shared by `/articles` and `/api/search` |
+| `src/pages/api/search.ts` | Live search for the header box: up to 6 matches as JSON |
+
 ## `scripts/`
 
 | File | What it does |

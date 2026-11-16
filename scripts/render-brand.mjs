@@ -1,4 +1,4 @@
-// npm run brand: renders the brand PNGs (favicon.ico sizes, apple-touch-icon, OG logo, default share and cover images) with Playwright.
+// npm run brand: renders the brand PNGs (favicon.ico sizes, apple-touch-icon, OG logo, default share image, monogram avatar) with Playwright.
 import { chromium } from '@playwright/test';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,7 +31,6 @@ const card = (w, h, tagline) => `<div style="width:${w}px;height:${h}px;backgrou
   ${tagline ? `<p style="position:absolute;left:${w * 0.078}px;top:${h * 0.36 + w * 0.55 * 225 / 940 + h * 0.05}px;margin:0;font-size:${Math.round(w / 34)}px;color:#625e57">${tagline}</p>` : ''}
   <div style="position:absolute;left:0;right:0;bottom:0;height:${Math.round(h * 0.045)}px;background:#6a5cb1"></div></div>`;
 await shot(card(1200, 630, 'trutiai.in'), 1200, 630, `${root}/public/og-default.png`);
-await shot(card(1600, 900, 'Practical writing on software and the craft of building things'), 1600, 900, `${root}/src/assets/images/cover-default.png`);
 // Monogram avatar in the brand purple (replace with a real photo when available).
 await shot(`<div style="width:512px;height:512px;background:#6a5cb1;display:flex;align-items:center;justify-content:center;color:#f0ede6;font:700 200px Arial,Helvetica,sans-serif;letter-spacing:-6px">AD</div>`, 512, 512, `${root}/src/assets/images/avatar-akhil.png`);
 await b.close();

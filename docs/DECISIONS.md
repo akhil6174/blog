@@ -276,3 +276,11 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why:** white artwork is invisible on a cream page. Muted text was darkened to `#625e57` to keep 4.5:1 contrast on cream (hard rule 7); white on `#6a5cb1` is about 5.6:1.
 - **Consequences:** The logo's wordmark is SVG text in Arial, so it renders with the visitor's Arial or Helvetica (or a close sans-serif on Android). If exact letter shapes matter, export the wordmark as outlined paths from the design tool and replace `public/logo.svg`.
 
+## D-034 · White page, live header search, account menu
+
+- **Date:** 2026-11-16 · **Status:** accepted
+- **Context:** The owner found the cream background dull, wanted a more attractive front end, a search box that works in place, a sign-in button for visitors and a profile menu, the welcome post removed, and two public emails.
+- **Decision:** White page with lavender tint bands and the purple accent; a redesigned home page; live search through a small JSON endpoint that reuses the explore page's matching (`src/lib/articles.ts`) instead of Pagefind, because Pagefind only indexes pre-rendered editorial pages and would miss community articles. The header's account area stays client-side (pages are static) and builds the menu with DOM methods, so user names can never inject HTML.
+- **Emails:** `akhilendrad@trutiai.in` is the main address and `CONTACT_TO`; `trutiai@proton.me` is listed as the second address. This replaces `hello@trutiai.in` and the Gmail forwarding plan (D-014).
+- **Consequences:** Search results can be up to 10 minutes old (edge cache). With no editorial articles, the home page shows a short notice; it fills automatically as articles are published. The `/search/` (Pagefind) page still exists but is no longer linked.
+

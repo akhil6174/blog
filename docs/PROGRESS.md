@@ -158,6 +158,12 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Local tests: editor 64/64, essentials 33/33, internship 18/18, table 9/9, writer access 5/5, settings 25/25, images 16/16, publish 22/22, programme 31/31
 - [ ] Owner: replace the monogram avatar with a real photo (`src/assets/images/avatar-akhil.png`) and personalise the bio (`src/content/authors/akhil.json`)
 
+## Design refresh (D-034)
+
+- [x] White design, new home page and footer, live header search, sign-in button, account menu, new emails, welcome post removed (2026-11-16)
+- [x] Local tests: editor 64/64, essentials 33/33, internship 18/18, table 9/9, writer access 5/5, settings 25/25, images 16/16, publish 22/22, programme 32/32
+- [ ] Owner: make sure akhilendrad@trutiai.in receives mail (contact form and reports are delivered there once RESEND_API_KEY is set)
+
 ## Verification log
 
 | Date | Check | Result |

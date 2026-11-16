@@ -1,4 +1,10 @@
 ---
+/**
+ * Site header: logo, main links, a live search box (results from /api/search as you type, Enter opens
+ * /articles/?q=), and the account area. Pages are static, so the account area is filled in the browser:
+ * signed out it shows "Write" and "Sign in"; signed in it shows the avatar, and hovering (or clicking) it opens a
+ * menu with the account pages and Sign out.
+ */
 import { SITE } from '../lib/site';
 
 const nav = [
@@ -12,37 +18,186 @@ const path = Astro.url.pathname;
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 ---
 
-<header id="site-header" class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
-  <div class="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
+<header id="site-header" class="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
+  <div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
     <a href="/" class="flex shrink-0 items-center" aria-label={`${SITE.name} home`}><img src="/logo.svg" alt={SITE.name} width="134" height="32" class="h-7 w-auto sm:h-8" /></a>
 
-    <nav aria-label="Primary" class="flex items-center gap-1 font-sans text-sm">
+    <nav aria-label="Primary" class="ml-4 hidden items-center gap-1 font-sans text-sm lg:flex">
       {nav.map((item) => (
-        <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined} class:list={['hidden rounded px-2.5 py-1.5 text-muted transition hover:bg-page hover:text-ink sm:inline', isActive(item.href) && 'text-ink font-semibold']}>
+        <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined} class:list={['rounded-md px-2.5 py-1.5 transition hover:bg-tint hover:text-ink', isActive(item.href) ? 'font-semibold text-ink' : 'text-muted']}>
           {item.label}
         </a>
       ))}
-      <a href="/search/" class="inline-flex h-9 w-9 items-center justify-center rounded text-muted hover:bg-page hover:text-ink" aria-label="Search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-      </a>
-      <span id="auth-slot" class="ml-1 flex items-center gap-2">
-        <a href="/write/" class="rounded border border-line px-3 py-1.5 text-ink hover:bg-page">Write</a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2 font-sans text-sm">
+      <form id="site-search" action="/articles/" method="get" role="search" class="relative hidden md:block">
+        <label for="site-search-q" class="sr-only">Search articles</label>
+        <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input id="site-search-q" name="q" type="search" autocomplete="off" placeholder="Search articles" aria-controls="site-search-results" aria-expanded="false" class="h-9 w-56 rounded-full border border-line bg-tint pl-9 pr-3 text-sm text-ink transition focus:w-72 focus:border-accent focus:bg-surface focus:outline-none" />
+        <div id="site-search-results" class="absolute right-0 top-11 hidden w-[22rem] max-w-[90vw] overflow-hidden rounded-xl border border-line bg-surface shadow-xl" role="listbox" aria-label="Search results"></div>
+      </form>
+      <button id="search-toggle" type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-tint hover:text-ink md:hidden" aria-label="Search" aria-expanded="false" aria-controls="mobile-search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </button>
+
+      <span id="auth-slot" class="flex items-center gap-2">
+        <a href="/write/" class="hidden rounded-full px-3 py-1.5 font-medium text-ink hover:bg-tint sm:inline-block">Write</a>
+        <a href="/signin/" class="rounded-full bg-accent px-4 py-1.5 font-semibold text-white hover:bg-accent-strong">Sign in</a>
       </span>
+    </div>
+  </div>
+
+  <div id="mobile-search" class="hidden border-t border-line px-4 py-3 md:hidden">
+    <form action="/articles/" method="get" role="search" class="relative">
+      <label for="mobile-search-q" class="sr-only">Search articles</label>
+      <input id="mobile-search-q" name="q" type="search" autocomplete="off" placeholder="Search articles, topics, writers" class="h-11 w-full rounded-full border border-line bg-tint px-4 text-base text-ink focus:border-accent focus:bg-surface focus:outline-none" />
+      <div id="mobile-search-results" class="mt-2 hidden overflow-hidden rounded-xl border border-line bg-surface"></div>
+    </form>
+    <nav aria-label="Primary (mobile)" class="mt-3 flex flex-wrap gap-1 text-sm lg:hidden">
+      {nav.map((item) => <a href={item.href} class="rounded-full border border-line px-3 py-1 text-muted hover:text-ink">{item.label}</a>)}
     </nav>
   </div>
 </header>
 
 <script is:inline>
-  // Static pages cannot know who is signed in; swap the Write button for the user's menu client-side.
-  (async () => {
-    try {
-      const r = await fetch('/api/auth/get-session', { credentials: 'same-origin', headers: { accept: 'application/json' } });
-      const d = await r.json();
-      const slot = document.getElementById('auth-slot');
-      if (!slot || !d || !d.user) return;
-      const u = d.user;
-      const admin = u.role === 'admin' ? '<a href="/admin/" class="rounded px-2 py-1.5 text-muted hover:text-ink">Admin</a>' : '';
-      slot.innerHTML = `<a href="/write/" class="rounded border border-line px-3 py-1.5 text-ink hover:bg-page">Write</a>${admin}<a href="/me/" class="inline-flex items-center gap-2 rounded px-2 py-1 hover:bg-page" aria-label="My account">${u.image ? `<img src="${u.image}" alt="" width="28" height="28" class="h-7 w-7 rounded-full" referrerpolicy="no-referrer">` : `<span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">${(u.name || '?').slice(0, 1).toUpperCase()}</span>`}</a>`;
-    } catch {}
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const el = (tag, attrs = {}, text) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text != null) n.textContent = text; return n; };
+
+    // ---- Live search ----
+    function wireSearch(input, box, wide) {
+      if (!input || !box) return;
+      let timer, last = '', ctrl;
+      const close = () => { box.classList.add('hidden'); input.setAttribute('aria-expanded', 'false'); };
+      const show = (items, q) => {
+        box.replaceChildren();
+        if (!items.length) {
+          box.append(el('p', { class: 'px-4 py-3 text-sm text-muted' }, `No articles match “${q}” yet.`));
+        } else {
+          for (const it of items) {
+            const a = el('a', { href: it.url, role: 'option', class: 'block border-b border-line px-4 py-3 last:border-0 hover:bg-tint focus:bg-tint focus:outline-none' });
+            a.append(el('span', { class: 'block text-xs font-semibold uppercase tracking-wide text-accent' }, it.topic || (it.kind === 'community' ? 'Community' : 'Article')));
+            a.append(el('span', { class: 'mt-0.5 block font-semibold leading-snug text-ink' }, it.title));
+            if (it.description) a.append(el('span', { class: 'mt-0.5 line-clamp-2 block text-xs text-muted' }, it.description));
+            box.append(a);
+          }
+        }
+        const all = el('a', { href: `/articles/?q=${encodeURIComponent(q)}`, class: 'block bg-tint px-4 py-2.5 text-sm font-semibold text-accent hover:underline' }, `See all results for “${q}”`);
+        box.append(all);
+        box.classList.remove('hidden');
+        input.setAttribute('aria-expanded', 'true');
+      };
+      input.addEventListener('input', () => {
+        const q = input.value.trim();
+        clearTimeout(timer);
+        if (q.length < 2) { close(); return; }
+        timer = setTimeout(async () => {
+          if (q === last) return;
+          last = q;
+          ctrl?.abort(); ctrl = new AbortController();
+          try {
+            const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+            const d = await r.json();
+            if (input.value.trim() === q) show(d.results || [], q);
+          } catch {}
+        }, 220);
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { close(); input.blur(); }
+        if (e.key === 'ArrowDown') { const first = box.querySelector('a'); if (first) { e.preventDefault(); first.focus(); } }
+      });
+      box.addEventListener('keydown', (e) => {
+        const links = [...box.querySelectorAll('a')]; const i = links.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown' && i < links.length - 1) { e.preventDefault(); links[i + 1].focus(); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); (i > 0 ? links[i - 1] : input).focus(); }
+        if (e.key === 'Escape') { close(); input.focus(); }
+      });
+      document.addEventListener('click', (e) => { if (!input.closest('form').contains(e.target)) close(); });
+      if (wide) input.addEventListener('focus', () => { if (box.children.length && input.value.trim().length >= 2) box.classList.remove('hidden'); });
+    }
+    wireSearch($('site-search-q'), $('site-search-results'), true);
+    wireSearch($('mobile-search-q'), $('mobile-search-results'), false);
+    $('search-toggle')?.addEventListener('click', (e) => {
+      const panel = $('mobile-search'); const open = panel.classList.toggle('hidden') === false;
+      e.currentTarget.setAttribute('aria-expanded', String(open));
+      if (open) $('mobile-search-q').focus();
+    });
+    // Keyboard shortcut: "/" focuses search (when not typing somewhere else).
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || /input|textarea|select/i.test(document.activeElement?.tagName || '') || document.activeElement?.isContentEditable) return;
+      const desk = $('site-search-q');
+      if (desk && desk.offsetParent) { e.preventDefault(); desk.focus(); }
+    });
+
+    // ---- Account area ----
+    (async () => {
+      let u;
+      try { const r = await fetch('/api/auth/get-session', { credentials: 'same-origin', headers: { accept: 'application/json' } }); u = (await r.json())?.user; } catch { return; }
+      const slot = $('auth-slot');
+      if (!slot || !u) return;
+      const initial = (u.name || '?').trim().charAt(0).toUpperCase();
+      const avatar = (size) => {
+        if (u.image) { const i = el('img', { src: u.image, alt: '', width: size, height: size, class: 'rounded-full object-cover', style: `width:${size}px;height:${size}px`, referrerpolicy: 'no-referrer' }); return i; }
+        return el('span', { class: 'inline-flex items-center justify-center rounded-full bg-accent font-bold text-white', style: `width:${size}px;height:${size}px;font-size:${Math.round(size / 2.4)}px` }, initial);
+      };
+      const wrap = el('div', { class: 'relative', id: 'account-menu' });
+      const btn = el('button', { type: 'button', class: 'flex items-center gap-1 rounded-full p-0.5 hover:ring-2 hover:ring-tint-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': 'Account menu' });
+      btn.append(avatar(32));
+      const badge = el('span', { class: 'absolute -right-0.5 -top-0.5 hidden h-4 min-w-4 rounded-full bg-accent px-1 text-center text-[10px] font-bold leading-4 text-white ring-2 ring-white' });
+      wrap.append(btn, badge);
+      const menu = el('div', { role: 'menu', class: 'invisible absolute right-0 top-full z-50 w-64 pt-2 opacity-0 transition duration-150' });
+      const card = el('div', { class: 'overflow-hidden rounded-xl border border-line bg-surface shadow-xl' });
+      const head = el('div', { class: 'flex items-center gap-3 border-b border-line bg-tint px-4 py-3' });
+      const who = el('div', { class: 'min-w-0' });
+      who.append(el('p', { class: 'truncate font-semibold text-ink' }, u.name || 'Your account'), el('p', { class: 'truncate text-xs text-muted' }, u.email || ''));
+      head.append(avatar(36), who);
+      card.append(head);
+      const list = el('div', { class: 'py-1.5' });
+      const item = (href, label, extra) => { const a = el('a', { href, role: 'menuitem', class: 'flex items-center justify-between px-4 py-2 text-ink hover:bg-tint focus:bg-tint focus:outline-none' }); a.append(el('span', {}, label)); if (extra) a.append(extra); list.append(a); return a; };
+      const notifCount = el('span', { class: 'hidden rounded-full bg-accent px-1.5 text-xs font-semibold text-white' });
+      item('/me/', 'My articles');
+      item('/write/', 'Write an article');
+      item('/me/notifications/', 'Notifications', notifCount);
+      item('/me/saved/', 'Saved articles');
+      item('/me/#profile-title', 'Profile settings');
+      if (u.role === 'admin') {
+        list.append(el('div', { class: 'my-1.5 border-t border-line' }));
+        item('/admin/', 'Editor dashboard');
+        item('/admin/internships/', 'Internships');
+      }
+      list.append(el('div', { class: 'my-1.5 border-t border-line' }));
+      const out = el('button', { type: 'button', role: 'menuitem', class: 'w-full px-4 py-2 text-left text-ink hover:bg-tint focus:bg-tint focus:outline-none' }, 'Sign out');
+      out.addEventListener('click', async () => {
+        out.disabled = true; out.textContent = 'Signing out…';
+        try { await fetch('/api/auth/sign-out', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); } catch {}
+        location.href = '/';
+      });
+      list.append(out);
+      card.append(list);
+      menu.append(card);
+      wrap.append(menu);
+
+      let hideTimer;
+      const open = () => { clearTimeout(hideTimer); menu.classList.remove('invisible', 'opacity-0'); btn.setAttribute('aria-expanded', 'true'); };
+      const close = () => { menu.classList.add('invisible', 'opacity-0'); btn.setAttribute('aria-expanded', 'false'); };
+      const hover = window.matchMedia('(hover: hover)').matches;
+      if (hover) {
+        wrap.addEventListener('mouseenter', open);
+        wrap.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 180); });
+      }
+      btn.addEventListener('click', () => (btn.getAttribute('aria-expanded') === 'true' && !hover ? close() : open()));
+      wrap.addEventListener('focusout', (e) => { if (!wrap.contains(e.relatedTarget)) close(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') { close(); btn.focus(); } });
+      document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) close(); });
+
+      const write = el('a', { href: '/write/', class: 'hidden rounded-full px-3 py-1.5 font-medium text-ink hover:bg-tint sm:inline-block' }, 'Write');
+      slot.replaceChildren(write, wrap);
+
+      try {
+        const n = (await (await fetch('/api/notifications', { credentials: 'same-origin' })).json()).unread || 0;
+        if (n > 0) { const t = n > 9 ? '9+' : String(n); badge.textContent = t; badge.classList.remove('hidden'); notifCount.textContent = t; notifCount.classList.remove('hidden'); }
+      } catch {}
+    })();
   })();
 </script>

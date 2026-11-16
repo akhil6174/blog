@@ -2,17 +2,20 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * Design tokens. Brand colours (D-033): purple accent #6a5cb1, cream page #f0ede6.
+ * Design tokens. Brand colours (D-033, D-034): purple accent #6a5cb1 on a white page with lavender tint bands.
  * Tailwind v4 reads these from @theme and generates utilities such as bg-page, text-ink, font-serif.
  */
 @theme {
-  --color-page: #f0ede6;
-  --color-surface: #f8f6f1;
-  --color-ink: #292929;
-  --color-muted: #625e57;
-  --color-line: #ddd8cd;
+  --color-page: #ffffff;
+  --color-surface: #ffffff;
+  --color-ink: #1f1d29;
+  --color-muted: #5c596b;
+  --color-line: #e6e3ef;
   --color-accent: #6a5cb1;
   --color-accent-strong: #574a98;
+  /* Lavender washes for bands and hovers (brand tint). */
+  --color-tint: #f6f4fc;
+  --color-tint-strong: #ece8f9;
 
   /* Self-hosted Source Serif 4 and Inter can be added later; these fallbacks render well everywhere. */
   --font-serif: "Source Serif 4", Charter, "Iowan Old Style", Georgia, serif;
@@ -73,7 +76,7 @@
   & a:hover { color: var(--color-accent); }
   & img { border-radius: 0.5rem; }
   & pre { font-family: var(--font-mono); font-size: 0.85em; border-radius: 0.5rem; }
-  & code:not(pre code) { font-family: var(--font-mono); font-size: 0.9em; background: #e6e1d6; padding: 0.1em 0.35em; border-radius: 0.3em; font-weight: 500; }
+  & code:not(pre code) { font-family: var(--font-mono); font-size: 0.9em; background: #f0eef7; padding: 0.1em 0.35em; border-radius: 0.3em; font-weight: 500; }
   & code:not(pre code)::before, & code:not(pre code)::after { content: none; }
   & table { font-family: var(--font-sans); font-size: 0.85em; }
   & tbody tr:nth-child(even) { background: var(--color-surface); }

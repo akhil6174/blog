@@ -35,7 +35,7 @@ const month = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 7);
 await act({ action: 'set_settings', values: { programme_open: 'false' } });
 check('programme pages are hidden while off', (await html(anon, '/campus-writers/')).status === 404 && (await html(anon, '/leaderboard/')).status === 404);
 check('admin can preview them', /Admin preview/.test((await html(admin, '/campus-writers/')).text));
-await act({ action: 'set_settings', values: { programme_open: 'true', programme_start: '', programme_end: '', reward_first_article: '200', reward_cap: '500', reward_prizes: '700,300,300,300,300,100,100,100,100,100', posts_per_day_new: '5', community_invite_only: 'true' } });
+await act({ action: 'set_settings', values: { programme_open: 'true', programme_start: '', programme_end: '', reward_first_article: '200', reward_cap: '500', reward_prizes: '700,300,300,300,300,100,100,100,100,100', posts_per_day_new: '5', community_invite_only: 'true', community_open: 'true' } });
 const camp = await html(anon, '/campus-writers/');
 check('campus writers page is public when on', camp.status === 200 && /Write\. Publish\./.test(camp.text) && /₹700/.test(camp.text));
 check('reward policy reflects the live cap', /₹500/.test((await html(anon, '/reward-policy/')).text));
@@ -131,7 +131,9 @@ const ann = await prog({ action: 'announce', title: `Announcement ${RUN}`, link:
 check('announcement reaches writers', ann.ok && (await html(B, '/me/notifications/')).text.includes(`Announcement ${RUN}`), JSON.stringify(ann));
 const ex = await html(anon, '/articles/');
 check('explore page lists articles', ex.status === 200 && /Explore articles/.test(ex.text) && /article/.test(ex.text));
-check('explore search narrows results', /for “welcome”/i.test((await html(anon, '/articles/?q=welcome')).text));
+check('explore search narrows results', new RegExp(`1 article</span>|1 article for`).test((await html(anon, `/articles/?q=${encodeURIComponent('Workers and D1 together ' + RUN)}`)).text) || (await html(anon, `/articles/?q=${RUN}`)).text.includes(`Workers and D1 together ${RUN}`));
+const live = await (await anon.request.get(`${BASE}/api/search?q=${encodeURIComponent('Edge caching in depth ' + RUN)}`)).json();
+check('header live search returns the article', (live.results ?? []).some((r) => r.title === `Edge caching in depth ${RUN}`), JSON.stringify(live).slice(0, 200));
 const exp = await admin.request.get(`${BASE}/api/admin/export?type=rewards`);
 check('reward ledger exports', exp.ok() && (await exp.text()).includes('monthly_prize'));
 

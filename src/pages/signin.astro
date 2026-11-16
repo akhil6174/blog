@@ -15,10 +15,10 @@ const google = isAuthConfigured() && isGoogleConfigured();
 const dev = isDevLoginEnabled();
 ---
 
-<BaseLayout title="Sign in" description="Sign in to TrutiAI to write articles and comment." noindex>
+<BaseLayout title="Sign in" description="Sign in or create a TrutiAI account to write articles and comment." noindex>
   <div class="mx-auto max-w-md rounded-lg border border-line bg-surface p-8 font-sans">
-    <h1 class="text-2xl font-bold tracking-tight">Sign in</h1>
-    <p class="mt-2 text-sm text-muted">Write articles, comment and raise posts. We only receive your name, email and profile picture.</p>
+    <h1 class="text-2xl font-bold tracking-tight">Sign in or create an account</h1>
+    <p class="mt-2 text-sm text-muted">New here? Continuing with Google creates your account. Write articles, comment and save posts. We only receive your name, email and profile picture.</p>
 
     {google ? (
       <button id="google-btn" type="button" class="mt-6 flex w-full items-center justify-center gap-3 rounded border border-line bg-white px-4 py-3 font-semibold hover:bg-page">

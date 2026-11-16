@@ -9,7 +9,7 @@
 import { defineMiddleware } from 'astro:middleware';
 
 const PROTECTED = /^\/(write|admin|me|api\/(posts|comments|raise|report|upload|media|ai|editorial|admin|me|bookmarks|notifications))(\/|$|\?)/;
-const CACHEABLE = /^\/(community(\/|$)|p\/|writer\/|top(\/|$)|articles(\/|$)|sitemap-community\.xml$)/;
+const CACHEABLE = /^\/(community(\/|$)|p\/|writer\/|top(\/|$)|articles(\/|$)|api\/search$|sitemap-community\.xml$)/;
 
 export const onRequest = defineMiddleware(async (context, next) => {
   if (context.isPrerendered) return next();
@@ -39,7 +39,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (u?.bannedAt) {
     return isApi
       ? Response.json({ error: 'Account suspended.' }, { status: 403 })
-      : new Response('Your account is suspended. Contact hello@trutiai.in if you think this is a mistake.', { status: 403 });
+      : new Response('Your account is suspended. Contact akhilendrad@trutiai.in if you think this is a mistake.', { status: 403 });
   }
 
   if (path.startsWith('/admin') || path.startsWith('/api/admin')) {

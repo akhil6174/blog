@@ -8,10 +8,12 @@ export const SITE = {
   tagline: 'Practical writing on software, tools and the craft of building things.',
   description:
     'TrutiAI is a tech blog with hands-on tutorials, tool comparisons and explainers, written by developers for developers.',
-  /** Public contact address shown on the site. Set up Cloudflare Email Routing so it forwards to your Gmail (SETUP-GUIDE §14). */
-  contactEmail: 'hello@trutiai.in',
-  /** Where contact-form submissions are delivered (your inbox). Overridable with the CONTACT_TO var. */
-  contactTo: 'hello@trutiai.in',
+  /** Main public address, shown everywhere on the site. */
+  contactEmail: 'akhilendrad@trutiai.in',
+  /** Second public address, shown next to the main one on Contact, About, Privacy and the footer. */
+  altEmail: 'trutiai@proton.me',
+  /** Where contact-form submissions and reader reports are delivered. Overridable with the CONTACT_TO var. */
+  contactTo: 'akhilendrad@trutiai.in',
   /** Topics the blog focuses on. Shown on the About page; keep to 3 to 5 for AdSense clarity. */
   topics: ['Web development', 'Developer tools', 'Cloud and hosting', 'AI for developers', 'Careers in tech'],
   author: {

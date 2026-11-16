@@ -144,7 +144,7 @@ await page.mouse.wheel(0, -2400);
 check('word minimum progress bar shown', !!(await page.$('[role="progressbar"][aria-valuemax="600"]')));
 
 // --- body image upload from device ---
-const IMG = 'src/assets/images/cover-default.png';
+const IMG = 'public/og-default.png';
 await page.click('.tiptap');
 await page.keyboard.press('Control+End');
 await page.click('.rail-btn[aria-label="Image"]');
@@ -152,7 +152,7 @@ await page.waitForSelector('[role="dialog"][aria-label="Insert image"]');
 await page.setInputFiles('[role="dialog"] input[type="file"]', IMG);
 await page.waitForSelector('[role="dialog"] img', { timeout: 5000 });
 check('body image: preview after choosing a file', true);
-check('body image: alt text suggested from file name', (await page.inputValue('[role="dialog"] input[placeholder^="Describe"]')) === 'cover default');
+check('body image: alt text suggested from file name', (await page.inputValue('[role="dialog"] input[placeholder^="Describe"]')) === 'og default');
 await page.fill('[role="dialog"] input[placeholder^="Describe"]', 'TrutiAI wordmark');
 await page.click('[role="dialog"] button:has-text("Insert")');
 await page.waitForSelector('[role="dialog"]', { state: 'detached', timeout: 10000 });
