@@ -170,6 +170,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Local tests: editor 64/64, images 16/16, table 9/9, publish 22/22, unit 28/28
 - [x] Image insert keeps the cursor in place and below the image (image-cursor 9/9, settings 25/25)
 - [x] India time on all pages; edits announced as updates, not a second publish (notifications 4/4)
+- [x] Private previews never cached for visitors (private-cache 3/3)
 
 ## Verification log
 

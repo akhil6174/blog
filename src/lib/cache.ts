@@ -20,7 +20,10 @@ export async function cachedPage(path: string, render: () => Promise<Response>):
     return new Response(hit.body, { status: hit.status, headers: h });
   }
   const res = await render();
-  if (res.status === 200) {
+  // A page rendered for one person (the author or an admin previewing a hidden article) says private/no-store.
+  // It must never go into the shared edge cache, or every visitor would see it for 10 minutes.
+  const cc = res.headers.get('cache-control') ?? '';
+  if (res.status === 200 && !/private|no-store/i.test(cc)) {
     const h = new Headers(res.headers);
     h.set('cache-control', `public, s-maxage=${TTL}, max-age=0, must-revalidate`);
     h.set('x-edge-cache', 'MISS');

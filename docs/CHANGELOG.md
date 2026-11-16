@@ -5,6 +5,11 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Fix: private previews leaked into the edge cache
+
+- When the author or an admin opened a hidden community article (community closed), the 10-minute edge cache stored that private page and served it to every visitor. `cachedPage` now skips any response marked `private` or `no-store`.
+- New test `tests/e2e/private-cache.e2e.mjs` (3 checks).
+
 ### 2026-11-16 · India time everywhere; one "Published" per article
 
 - Fixed: times on server-rendered pages (notifications, admin, My articles, saved, comments, article dates) were in UTC, 5½ hours behind. They now use India time (`Asia/Kolkata`). Editorial Markdown dates (`pubDate`, `updatedDate`) also use the India calendar day.

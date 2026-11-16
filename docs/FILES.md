@@ -185,6 +185,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `tests/e2e/table.e2e.mjs` | Playwright check of the table size dialog (rows, columns, header row, limits) |
 | `tests/e2e/image-cursor.e2e.mjs` | Playwright check that inserting an image keeps the cursor in place and below the image |
 | `tests/e2e/notifications.e2e.mjs` | Playwright check: one Published notification per article, updates announced as such, times in India time |
+| `tests/e2e/private-cache.e2e.mjs` | Playwright check that an admin's preview of a hidden article is not served to visitors from the edge cache |
 
 ## Internships (D-032)
 
