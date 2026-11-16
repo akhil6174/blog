@@ -5,6 +5,11 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-16 · Welcome article fully removed; community articles on the home page
+
+- Top 10 skips editorial articles that no longer exist (the welcome article was still listed from its view counts). Its leftover statistics row was deleted from the production database.
+- Home page: new "From the community" section (server island `src/components/LatestCommunity.astro`) with the latest 6 community articles, shown only while `community_open` is true. With no articles at all it shows the "first articles are on their way" notice.
+
 ### 2026-11-16 · Fix: private previews leaked into the edge cache
 
 - When the author or an admin opened a hidden community article (community closed), the 10-minute edge cache stored that private page and served it to every visitor. `cachedPage` now skips any response marked `private` or `no-store`.

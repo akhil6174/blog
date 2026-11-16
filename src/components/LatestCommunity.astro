@@ -1,0 +1,35 @@
+---
+/**
+ * Server island on the home page: the latest community articles, rendered per request so the static home page
+ * shows them as soon as they are published. Shows nothing while `community_open` is false. When the site has no
+ * editorial articles yet (`showEmpty`), it shows a short notice instead of an empty list.
+ */
+import CommunityCard from './CommunityCard.astro';
+
+interface Props { showEmpty?: boolean }
+const { showEmpty = false } = Astro.props;
+// Lazy: imported by the pre-rendered home page; lib/db needs the Cloudflare runtime (D-003).
+let items: Awaited<ReturnType<typeof import('../lib/community').listPublished>> = [];
+try {
+  const { getSettingBool } = await import('../lib/db/settings');
+  if (await getSettingBool('community_open')) items = await (await import('../lib/community')).listPublished({ limit: 6 });
+} catch (e) {
+  console.error('[home] community list unavailable:', (e as Error).message);
+}
+---
+
+{items.length > 0 ? (
+  <section aria-labelledby="community-title" class="mt-16 first:mt-0">
+    <div class="mb-8 flex flex-wrap items-end justify-between gap-3">
+      <h2 id="community-title" class="font-sans text-2xl font-bold tracking-tight md:text-3xl">From the community</h2>
+      <a href="/articles/" class="font-sans text-sm font-semibold text-accent hover:underline">All articles →</a>
+    </div>
+    <div class="grid gap-12 md:grid-cols-2 lg:grid-cols-3">{items.map((p) => <CommunityCard post={p} />)}</div>
+  </section>
+) : showEmpty ? (
+  <section aria-labelledby="latest-title" class="rounded-3xl border border-dashed border-line px-6 py-12 text-center font-sans">
+    <h2 id="latest-title" class="text-xl font-bold">The first articles are on their way</h2>
+    <p class="mx-auto mt-2 max-w-lg text-muted">New tutorials and comparisons are being written and edited now. Follow the RSS feed to read them first.</p>
+    <a href="/rss.xml" class="mt-5 inline-block rounded-full border border-line px-5 py-2 font-semibold text-ink hover:border-accent hover:text-accent">RSS feed</a>
+  </section>
+) : null}

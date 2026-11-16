@@ -21,7 +21,8 @@ for (const [w] of windows) {
   lists[w] = raw ? JSON.parse(raw) : { at: '', list: [] };
 }
 const resolve = (e: TopEntry) => (e.editorial ? { title: editorial.get(e.editorial) ?? e.editorial, url: `/blog/${e.editorial}/` } : { title: e.title ?? e.slug ?? e.postId, url: `/p/${e.slug}/` });
-const visible = (e: TopEntry) => e.editorial || open;
+// Editorial articles that were removed from the site are skipped (their old view counts stay in the hourly list until it refreshes).
+const visible = (e: TopEntry) => (e.editorial ? editorial.has(e.editorial) : open);
 ---
 
 <BaseLayout title="Top 10 articles" description="The most read, raised and discussed articles on TrutiAI today, this month and this year, updated every hour.">

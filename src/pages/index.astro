@@ -1,11 +1,13 @@
 ---
 /**
  * Home page (static). Hero with the brand emblem, topics, featured and latest articles (pagination to /page/2/),
- * and a "write with us" band. Works with no articles yet (a short notice in place of the list).
+ * the latest community articles (server island, only while the community is open) and a "write with us" band.
+ * Works with no articles yet (a short notice in place of the list).
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
+import LatestCommunity from '../components/LatestCommunity.astro';
 import { CATEGORIES, SITE } from '../lib/site';
 import { getPublishedPosts, POSTS_PER_PAGE } from '../lib/posts';
 import { websiteJsonLd } from '../lib/seo';
@@ -87,13 +89,10 @@ for (const p of posts) if (p.data.category) counts.set(p.data.category, (counts.
             <Pagination current={1} total={totalPages} url={(n) => (n === 1 ? '/' : `/page/${n}/`)} />
           </section>
         )}
+        <LatestCommunity server:defer />
       </>
     ) : (
-      <section aria-labelledby="latest-title" class="rounded-3xl border border-dashed border-line px-6 py-12 text-center font-sans">
-        <h2 id="latest-title" class="text-xl font-bold">The first articles are on their way</h2>
-        <p class="mx-auto mt-2 max-w-lg text-muted">New tutorials and comparisons are being written and edited now. Follow the RSS feed to read them first.</p>
-        <a href="/rss.xml" class="mt-5 inline-block rounded-full border border-line px-5 py-2 font-semibold text-ink hover:border-accent hover:text-accent">RSS feed</a>
-      </section>
+      <LatestCommunity server:defer showEmpty><div slot="fallback" class="h-40" aria-hidden="true"></div></LatestCommunity>
     )}
   </div>
 

@@ -215,6 +215,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 |---|---|
 | `src/lib/articles.ts` | Article search and filtering shared by `/articles` and `/api/search` |
 | `src/pages/api/search.ts` | Live search for the header box: up to 6 matches as JSON |
+| `src/components/LatestCommunity.astro` | Home page server island: latest community articles while the community is open |
 
 ## `scripts/`
 
