@@ -292,3 +292,10 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why:** The plugin's defaults are sized for 16px text and double up inside lists and table cells because the editor wraps each item in a paragraph. Alt text describes the image for screen readers and search; showing it as a caption duplicated it, and a file name is a poor description anyway.
 - **Consequences:** Writers must type a short description for every image (it is still required). Articles saved before this change keep their old caption until they are saved again.
 
+## D-036 · Removed public pages get 301 redirects; sitemap lists only indexable pages
+
+- **Date:** 2026-11-17 · **Status:** accepted
+- **Context:** Google still showed the deleted welcome article (404), and the sitemap listed private, hidden and noindex pages.
+- **Decision:** Keep a map of removed public URLs in `src/lib/legacy.ts`, each with a small on-demand route returning 301 to the closest live page (the welcome article → About, which covers the same ground). Filter the sitemap to indexable pages only; the programme pages rejoin it when the programme opens; author pages join once editorial articles exist.
+- **Why:** 301 tells Google to replace the old address; a 404 keeps it as an error until it is recrawled several times. Sitemaps that list redirects, 404s or noindex pages lower the trust Search Console gives the rest of the sitemap.
+

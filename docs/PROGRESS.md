@@ -172,6 +172,11 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] India time on all pages; edits announced as updates, not a second publish (notifications 4/4)
 - [x] Private previews never cached for visitors (private-cache 3/3)
 
+## Search engines (D-036)
+
+- [x] 301 redirects for removed pages; sitemap cleaned to indexable pages (2026-11-17)
+- [ ] Owner: in Google Search Console, submit both sitemaps and request indexing for the home page and each article (SETUP-GUIDE §6)
+
 ## Verification log
 
 | Date | Check | Result |

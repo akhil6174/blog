@@ -216,6 +216,8 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/articles.ts` | Article search and filtering shared by `/articles` and `/api/search` |
 | `src/pages/api/search.ts` | Live search for the header box: up to 6 matches as JSON |
 | `src/components/LatestCommunity.astro` | Home page server island: latest community articles while the community is open |
+| `src/lib/legacy.ts` | Removed public URLs and where they now redirect (301) |
+| `src/pages/blog/welcome-to-trutiai/index.ts`, `src/pages/tag/meta/index.ts`, `src/pages/tag/announcements/index.ts`, `src/pages/og/welcome-to-trutiai.png.ts` | 301 redirects for removed pages (see `src/lib/legacy.ts`) |
 
 ## `scripts/`
 

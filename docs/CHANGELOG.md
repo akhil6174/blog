@@ -5,6 +5,11 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-17 · Search engine fixes: redirects for removed pages, clean sitemap
+
+- Permanent (301) redirects for addresses Google still has: `/blog/welcome-to-trutiai/` → `/about/`, `/og/welcome-to-trutiai.png` → `/og-default.png`, `/tag/meta/` and `/tag/announcements/` → `/articles/` (`src/lib/legacy.ts`; add a line there whenever a public page is removed).
+- Sitemap no longer lists private pages (`/me/…`, `/signin/`), the hidden programme pages, the redirected addresses, or author pages while there are no editorial articles. It had 21 URLs, several of them errors or noindex; it now has 12 clean ones. Community articles stay in `sitemap-community.xml`.
+
 ### 2026-11-16 · Welcome article fully removed; community articles on the home page
 
 - Top 10 skips editorial articles that no longer exist (the welcome article was still listed from its view counts). Its leftover statistics row was deleted from the production database.
