@@ -120,7 +120,15 @@ html.editor-dark {
   --color-line: #2d2e33;
   --color-accent: #a397e6;
   --color-accent-strong: #b8aef0;
+  /* Hover washes must be dark too, or light text disappears on hover. */
+  --color-tint: #26252e;
+  --color-tint-strong: #312f3d;
 }
+/* The dark theme's accent is light, so text on accent-coloured buttons is dark to stay readable. */
+html.editor-dark .btn-primary,
+html.editor-dark .bg-accent,
+html.editor-dark .bg-accent-strong,
+html.editor-dark [class*='hover:bg-accent']:hover { color: #111214; }
 html.editor-dark .prose-article { --tw-prose-pre-bg: #0c0c0e; }
 
 /* Focus (distraction-free) mode hides the site chrome. */

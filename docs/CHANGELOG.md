@@ -5,6 +5,13 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-20 · Sign-in goes home; write page light by default; readable dark hovers
+
+- Signing in without a destination now lands on the home page (was the write page). Links that say "Start writing" still go to the editor.
+- The editor opens in the light theme even on dark-mode devices; dark is used only after the writer picks it with the moon button.
+- Editor dark theme: hover backgrounds (`tint`, `tint-strong`) are dark too, so light text no longer disappears on hover; text on purple buttons is dark for contrast.
+- New test `tests/e2e/theme.e2e.mjs` (5 checks, including contrast of every hovered button in dark mode).
+
 ### 2026-11-20 · Writer dashboard, ambassador codes, profile links and photo (D-041)
 
 - `/me` is now a dashboard: this month's articles published, views, upvotes and comments (with all-time totals), and four bar charts for the last 12 months (India time). Charts are plain SVG drawn on the server (`BarChart.astro`), with a hidden table for screen readers.

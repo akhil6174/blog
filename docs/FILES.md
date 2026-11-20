@@ -245,6 +245,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
 | `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
 | `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
+| `tests/e2e/theme.e2e.mjs` | Sign-in lands on home; editor light by default; dark-theme hover contrast |
 | `tests/profile.test.ts`, `tests/e2e/dashboard.e2e.mjs` | Tests for profile links, the dashboard, codes and photo upload |
 | `src/pages/students/campus-ambassadors/index.astro` | Public Campus Ambassadors page |
 | `tests/ambassadors.test.ts`, `tests/e2e/ambassadors.e2e.mjs` | Tests for the college list parser and the ambassador flow |

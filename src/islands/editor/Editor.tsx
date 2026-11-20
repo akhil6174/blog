@@ -460,7 +460,8 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
   useEffect(() => {
     try {
       const pref = localStorage.getItem('trutiai:editor-theme');
-      setDark(pref ? pref === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
+      // Light by default; dark only when the writer switched to it (moon button).
+      setDark(pref === 'dark');
     } catch {
       /* ignore */
     }
