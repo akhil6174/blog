@@ -1,0 +1,32 @@
+---
+/** /students/cgpa-to-percentage/ : CGPA to percentage with stated formulas and a custom multiplier. */
+import ToolPage from '../../../components/students/ToolPage.astro';
+import PercentConverter from '../../../islands/students/PercentConverter';
+
+const faqs = [
+  { q: 'How do I convert CGPA to percentage?', a: 'Use the formula your university prints on the grade card or in its regulations. Common ones are CGPA × 10 (for example Anna University) and (CGPA − 0.75) × 10 (VTU). If your university gives a different formula, enter its multiplier in the custom option.' },
+  { q: 'What is 8 CGPA in percentage?', a: 'With CGPA × 10 it is 80%. With (CGPA − 0.75) × 10, as used by VTU, it is 72.5%. With CGPA × 9.5 it is 76%. Which one applies depends on your university.' },
+  { q: 'Why do companies ask for percentage instead of CGPA?', a: 'Many placement and job forms have a percentage cut-off (often 60%). Enter the percentage given by your university’s official formula, and keep the formula handy in case they ask.' },
+  { q: 'Is the CBSE 9.5 rule valid for college CGPA?', a: 'The 9.5 multiplier was defined by CBSE for school results. Some forms still use it, but for a college degree the university’s own formula is the one that counts.' },
+];
+---
+
+<ToolPage
+  title="CGPA to percentage converter"
+  seoTitle="CGPA to Percentage Converter (VTU, Anna University, ×10, ×9.5)"
+  description="Convert CGPA to percentage with your university's formula: CGPA × 10, VTU's (CGPA − 0.75) × 10, CGPA × 9.5, or the multiplier from your own grade card."
+  intro="Enter your CGPA and pick the formula your university uses. Universities do not all convert the same way, so the formula matters: an 8.0 CGPA can be 72.5%, 76% or 80%."
+  faqs={faqs}
+>
+  <PercentConverter client:load />
+  <Fragment slot="explain">
+    <h2>Which formula should I use?</h2>
+    <p>The right formula is the one your university publishes, usually printed on the back of the grade card or in the academic regulations. This tool includes the formulas we could confirm and a custom multiplier for everything else.</p>
+    <ul>
+      <li><strong>CGPA × 10</strong>: Anna University and many autonomous colleges.</li>
+      <li><strong>(CGPA − 0.75) × 10</strong>: VTU.</li>
+      <li><strong>CGPA × 9.5</strong>: the CBSE rule, sometimes requested by forms.</li>
+    </ul>
+    <p>Need your CGPA first? Use the <a href="/students/cgpa-calculator/">SGPA and CGPA calculator</a>.</p>
+  </Fragment>
+</ToolPage>

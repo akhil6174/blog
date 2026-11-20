@@ -1,0 +1,34 @@
+---
+/** /students/attendance-calculator/ : how many classes can be missed, or must be attended, for a target attendance. */
+import ToolPage from '../../../components/students/ToolPage.astro';
+import AttendanceCalculator from '../../../islands/students/AttendanceCalculator';
+
+const faqs = [
+  { q: 'How many classes can I skip and still have 75% attendance?', a: 'Divide the classes you have attended by 0.75 and subtract the classes held so far. For example, with 45 of 50 classes attended: 45 ÷ 0.75 = 60, and 60 − 50 = 10, so you can miss 10 more classes in a row and stay at exactly 75%.' },
+  { q: 'How many classes must I attend to get back to 75%?', a: 'If you attended A out of H classes, you need at least (0.75 × H − A) ÷ 0.25 more classes in a row, rounded up. With 20 of 40 attended you need 40 more: 60 out of 80 is exactly 75%.' },
+  { q: 'Is attendance counted per subject or overall?', a: 'It depends on your university. Many count each subject separately for exam eligibility, so run the calculator once per subject with that subject’s numbers.' },
+  { q: 'Do labs and tutorials count?', a: 'Usually yes, often as separate components. Check your college’s rules; when in doubt, calculate theory and lab attendance separately.' },
+  { q: 'What if I am below 75%?', a: 'Most universities allow condonation for medical or other genuine reasons, usually down to about 65%, with documents and a fee. The exact rule is in your university’s regulations or with your department.' },
+];
+---
+
+<ToolPage
+  title="Attendance calculator"
+  seoTitle="Attendance Calculator: How Many Classes Can I Miss? (75% Rule)"
+  description="Free attendance calculator for college students: see how many classes you can skip and still keep 75%, or how many you must attend to recover. Works for any target."
+  intro="Enter your classes attended and held. You will see your attendance, how many classes you can still miss, or how many you must attend in a row to get back to 75% (or any target you set)."
+  faqs={faqs}
+>
+  <AttendanceCalculator client:load />
+  <Fragment slot="explain">
+    <h2>How the calculation works</h2>
+    <p>Attendance is classes attended divided by classes held. To stay at a target such as 75%, every class you miss adds to the classes held but not to the classes attended, so the percentage drops a little each time.</p>
+    <ul>
+      <li><strong>Classes you can miss</strong> = attended ÷ 0.75 − held, rounded down.</li>
+      <li><strong>Classes you must attend</strong> = (0.75 × held − attended) ÷ 0.25, rounded up.</li>
+      <li><strong>With classes left this semester</strong>: you can miss up to attended + left − 0.75 × (held + left) of them.</li>
+    </ul>
+    <h3>Worked example</h3>
+    <p>You attended 34 of 42 classes, which is 80.95%. 34 ÷ 0.75 = 45.33, and 45 − 42 = 3, so you can miss 3 more classes in a row: 34 out of 45 is 75.6%, while missing a fourth would give 34 out of 46, or 73.9%.</p>
+  </Fragment>
+</ToolPage>

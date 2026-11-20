@@ -1,0 +1,45 @@
+---
+/**
+ * Shared frame for a Students tool page: breadcrumb, title, intro, the tool (default slot), an explanation
+ * (slot "explain"), visible FAQ (also as FAQ structured data) and links to the other tools.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { breadcrumbJsonLd, faqJsonLd, toolJsonLd } from '../../lib/seo';
+import { STUDENT_TOOLS } from '../../lib/students';
+
+interface Props { title: string; seoTitle: string; description: string; intro: string; faqs: { q: string; a: string }[] }
+const { title, seoTitle, description, intro, faqs } = Astro.props;
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const url = new URL(Astro.url.pathname, siteUrl).href;
+const jsonLd = [
+  breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: 'Students', url: `${siteUrl}students/` }, { name: title, url }]),
+  toolJsonLd(siteUrl, { name: title, description, url }),
+  faqJsonLd(faqs),
+];
+const others = STUDENT_TOOLS.filter((t) => t.href !== Astro.url.pathname);
+---
+
+<BaseLayout title={seoTitle} description={description} jsonLd={jsonLd}>
+  <nav aria-label="Breadcrumb" class="font-sans text-sm text-muted"><a href="/students/" class="hover:text-accent">Students</a> <span aria-hidden="true">/</span> <span class="text-ink">{title}</span></nav>
+  <header class="mt-3 max-w-3xl">
+    <h1 class="font-sans text-3xl font-bold leading-tight tracking-tight md:text-4xl">{title}</h1>
+    <p class="mt-3 font-serif text-lg text-muted">{intro}</p>
+  </header>
+
+  <div class="mt-8"><slot /></div>
+
+  <div class="mt-12 grid gap-10 lg:grid-cols-[1fr_18rem]">
+    <div class="prose prose-article max-w-none">
+      <slot name="explain" />
+      <h2>Questions students ask</h2>
+      {faqs.map((f) => (<><h3>{f.q}</h3><p>{f.a}</p></>))}
+    </div>
+    <aside class="self-start rounded-2xl border border-line p-5 font-sans lg:sticky lg:top-24">
+      <p class="text-xs font-semibold uppercase tracking-wide text-muted">More student tools</p>
+      <ul class="mt-3 grid gap-2">
+        {others.map((t) => <li><a href={t.href} class="block rounded-lg px-3 py-2 hover:bg-tint"><span class="block font-semibold text-ink">{t.name}</span><span class="block text-xs text-muted">{t.short}</span></a></li>)}
+      </ul>
+      <a href="/students/" class="mt-3 inline-block text-sm font-semibold text-accent hover:underline">All of the Students section →</a>
+    </aside>
+  </div>
+</BaseLayout>

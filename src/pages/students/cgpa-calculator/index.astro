@@ -1,0 +1,33 @@
+---
+/** /students/cgpa-calculator/ : SGPA from subjects and CGPA from semesters (credit-weighted, 10-point scale). */
+import ToolPage from '../../../components/students/ToolPage.astro';
+import GpaCalculator from '../../../islands/students/GpaCalculator';
+
+const faqs = [
+  { q: 'How is SGPA calculated?', a: 'Multiply each subject’s grade point by its credits, add these up, and divide by the total credits of the semester. Subjects with more credits count for more.' },
+  { q: 'How is CGPA calculated from SGPA?', a: 'Multiply each semester’s SGPA by that semester’s total credits, add them, and divide by the total credits of all semesters. If every semester has the same credits, this is the same as a simple average of the SGPAs.' },
+  { q: 'Why is my CGPA not the average of my SGPAs?', a: 'Because semesters usually carry different credits. A semester with 26 credits affects your CGPA more than one with 20 credits. Add the credits of each semester in the calculator for the exact figure.' },
+  { q: 'Which grade points does this use?', a: 'The 10-point scale from the UGC Choice Based Credit System: O = 10, A+ = 9, A = 8, B+ = 7, B = 6, C = 5, P = 4, F = 0. Most Indian universities use it; if yours uses different letters, pick the grade with the same points.' },
+  { q: 'Do failed subjects count?', a: 'Usually a failed subject (F, 0 points) counts with its credits until you clear it, after which the new grade replaces it. Rules vary, so check how your university treats re-appears.' },
+];
+---
+
+<ToolPage
+  title="SGPA and CGPA calculator"
+  seoTitle="SGPA and CGPA Calculator (Credit-Weighted, 10-Point Scale)"
+  description="Free SGPA and CGPA calculator for BTech and other college students: enter subject credits and grades for SGPA, or semester SGPAs and credits for an exact, credit-weighted CGPA."
+  intro="Work out your SGPA from this semester’s subjects, or your CGPA across all semesters. It uses credit-weighted averages on the 10-point scale, the method most Indian universities follow. Your entries stay in this browser."
+  faqs={faqs}
+>
+  <GpaCalculator client:load />
+  <Fragment slot="explain">
+    <h2>The formulas</h2>
+    <ul>
+      <li><strong>SGPA</strong> = Σ (grade point × credits) ÷ Σ credits, over one semester’s subjects.</li>
+      <li><strong>CGPA</strong> = Σ (SGPA × semester credits) ÷ Σ semester credits, over all semesters so far.</li>
+    </ul>
+    <h3>Worked example</h3>
+    <p>Four subjects: 4 credits with an O (10 points), 3 credits with an A (8), 2 credits with a B (6) and 1 credit with an A+ (9). That is 40 + 24 + 12 + 9 = 85 points over 10 credits, so the SGPA is <strong>8.50</strong>.</p>
+    <p>Two semesters: SGPA 8.0 with 20 credits and SGPA 9.0 with 25 credits. That is 160 + 225 = 385 over 45 credits, so the CGPA is <strong>8.56</strong>, not the simple average of 8.5.</p>
+  </Fragment>
+</ToolPage>

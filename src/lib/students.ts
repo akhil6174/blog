@@ -1,0 +1,6 @@
+/** The Students section's tools, listed once for the hub page, the side panel on each tool and the sitemap order. */
+export const STUDENT_TOOLS = [
+  { href: '/students/attendance-calculator/', name: 'Attendance calculator', short: 'How many classes you can miss at 75%, or must attend to recover.', icon: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM9 15l2 2 4-4' },
+  { href: '/students/cgpa-calculator/', name: 'SGPA and CGPA calculator', short: 'Credit-weighted SGPA for a semester and CGPA across semesters.', icon: 'M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6' },
+  { href: '/students/cgpa-to-percentage/', name: 'CGPA to percentage', short: 'Convert your CGPA with your university’s formula.', icon: 'M19 5 5 19M7.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM16.5 18a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z' },
+] as const;

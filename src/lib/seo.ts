@@ -72,3 +72,27 @@ export function breadcrumbJsonLd(crumbs: Crumb[]) {
     itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.url })),
   };
 }
+
+/** FAQ structured data for pages that show the same questions and answers visibly (Google requires both). */
+export function faqJsonLd(faqs: { q: string; a: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  };
+}
+
+/** A free web tool (calculator), for the Students section. */
+export function toolJsonLd(siteUrl: string, t: { name: string; description: string; url: string }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: t.name,
+    description: t.description,
+    url: t.url,
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Any (runs in the browser)',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+    publisher: { '@type': 'Organization', name: SITE.name, url: siteUrl },
+  };
+}

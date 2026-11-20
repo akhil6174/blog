@@ -1,0 +1,71 @@
+---
+/**
+ * /students/ : the Students section hub. Free tools for college students (attendance, SGPA/CGPA, CGPA to
+ * percentage), articles for students by topic, and how to write for TrutiAI. Static page.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { STUDENT_TOOLS } from '../../lib/students';
+import { CATEGORIES, SITE } from '../../lib/site';
+import { breadcrumbJsonLd } from '../../lib/seo';
+
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const jsonLd = [
+  breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: 'Students', url: `${siteUrl}students/` }]),
+  { '@context': 'https://schema.org', '@type': 'CollectionPage', name: `${SITE.name} for students`, url: `${siteUrl}students/`, hasPart: STUDENT_TOOLS.map((t) => ({ '@type': 'WebApplication', name: t.name, url: new URL(t.href, siteUrl).href })) },
+];
+const learn = CATEGORIES.filter((c) => ['careers-in-tech', 'ai-for-developers', 'web-development'].includes(c.slug));
+---
+
+<BaseLayout title="Free tools and guides for engineering students" description="Free tools for BTech and college students: attendance calculator, SGPA and CGPA calculator, CGPA to percentage converter, plus practical tech articles and a place to publish your own." jsonLd={jsonLd} full>
+  <section class="border-b border-line bg-tint">
+    <div class="mx-auto max-w-6xl px-4 py-14 md:py-20">
+      <p class="font-sans text-sm font-semibold text-accent">For BTech and college students</p>
+      <h1 class="mt-3 max-w-3xl font-sans text-4xl font-bold leading-tight tracking-tight md:text-5xl">Tools and guides for <span class="text-accent">engineering students</span></h1>
+      <p class="mt-5 max-w-2xl font-serif text-lg text-muted md:text-xl">Check your attendance before you skip a class, work out your SGPA and CGPA, convert them to a percentage for placement forms, and learn from practical articles written by developers and students.</p>
+      <p class="mt-6 flex flex-wrap gap-3 font-sans text-sm">
+        {STUDENT_TOOLS.map((t) => <a href={t.href} class="rounded-full border border-line bg-surface px-4 py-2 font-semibold text-ink hover:border-accent hover:text-accent">{t.name}</a>)}
+      </p>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-6xl px-4">
+    <section class="py-14" aria-labelledby="tools-title">
+      <h2 id="tools-title" class="font-sans text-2xl font-bold tracking-tight md:text-3xl">Free student tools</h2>
+      <p class="mt-2 max-w-2xl font-sans text-muted">They run in your browser, need no sign-in and work on your phone.</p>
+      <div class="mt-8 grid gap-4 md:grid-cols-3">
+        {STUDENT_TOOLS.map((t) => (
+          <a href={t.href} class="group flex flex-col rounded-2xl border border-line bg-surface p-6 font-sans transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg">
+            <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-tint text-accent transition group-hover:bg-accent group-hover:text-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={t.icon} /></svg>
+            </span>
+            <span class="mt-4 text-lg font-semibold text-ink">{t.name}</span>
+            <span class="mt-1 text-sm leading-relaxed text-muted">{t.short}</span>
+            <span class="mt-4 text-sm font-semibold text-accent">Open the tool →</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="border-t border-line py-14" aria-labelledby="learn-title">
+      <h2 id="learn-title" class="font-sans text-2xl font-bold tracking-tight md:text-3xl">Learn by topic</h2>
+      <p class="mt-2 max-w-2xl font-sans text-muted">Hands-on articles with working code, written by developers and students.</p>
+      <div class="mt-8 grid gap-4 md:grid-cols-3">
+        {learn.map((c) => (
+          <a href={`/articles/?category=${c.slug}`} class="rounded-2xl border border-line p-6 font-sans hover:border-accent">
+            <span class="text-lg font-semibold text-ink">{c.name}</span>
+            <span class="mt-1 block text-sm text-muted">{c.slug === 'careers-in-tech' ? 'Interviews, internships, portfolios and learning paths.' : c.slug === 'ai-for-developers' ? 'Using AI models and tools in real projects.' : 'Frameworks, the web platform and building real apps.'}</span>
+          </a>
+        ))}
+      </div>
+      <p class="mt-6 font-sans text-sm"><a href="/articles/" class="font-semibold text-accent hover:underline">Explore all articles →</a></p>
+    </section>
+
+    <section class="mb-16 grid gap-6 rounded-3xl bg-accent p-8 font-sans text-white md:grid-cols-[1fr_auto] md:items-center md:p-10" aria-labelledby="write-title">
+      <div>
+        <h2 id="write-title" class="text-2xl font-bold tracking-tight md:text-3xl">Build a portfolio by writing</h2>
+        <p class="mt-2 max-w-2xl text-white/85">Write about a project you built. Every article is reviewed by an editor, published under your name and listed on your own writer page, which you can share with recruiters. Internships are announced on LinkedIn; you can also write to <span class="font-semibold">{SITE.contactEmail}</span>.</p>
+      </div>
+      <a href="/signin/?next=/write/" class="justify-self-start rounded-full bg-white px-6 py-3 font-semibold text-accent-strong hover:bg-tint">Start writing</a>
+    </section>
+  </div>
+</BaseLayout>
