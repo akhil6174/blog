@@ -218,6 +218,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/search.ts` | Live search for the header box: up to 6 matches as JSON |
 | `src/components/LatestCommunity.astro` | Home page server island: latest community articles while the community is open |
 | `src/lib/legacy.ts` | Removed public URLs and where they now redirect (301) |
+| `src/lib/media-store.ts` | Image storage: write to R2, read R2 then KV, copy old KV images to R2 in batches |
 
 ## Students section (D-038)
 
@@ -253,6 +254,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/students/attendance-calculator/index.astro`, `cgpa-calculator/index.astro`, `cgpa-to-percentage/index.astro` | Tool pages |
 | `tests/student-tools.test.ts` | Unit tests for the maths |
 | `tests/e2e/students.e2e.mjs` | Browser test of the hub and all three tools |
+| `tests/e2e/media-r2.e2e.mjs` | Playwright check of R2 uploads, the KV fallback and the copy button |
 | `src/pages/blog/welcome-to-trutiai/index.ts`, `src/pages/tag/meta/index.ts`, `src/pages/tag/announcements/index.ts`, `src/pages/og/welcome-to-trutiai.png.ts` | 301 redirects for removed pages (see `src/lib/legacy.ts`) |
 
 ## `scripts/`

@@ -299,6 +299,14 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Decision:** Keep a map of removed public URLs in `src/lib/legacy.ts`, each with a small on-demand route returning 301 to the closest live page (the welcome article → About, which covers the same ground). Filter the sitemap to indexable pages only; the programme pages rejoin it when the programme opens; author pages join once editorial articles exist.
 - **Why:** 301 tells Google to replace the old address; a 404 keeps it as an error until it is recrawled several times. Sitemaps that list redirects, 404s or noindex pages lower the trust Search Console gives the rest of the sitemap.
 
+## D-037 · Uploaded images in R2, KV kept as a read fallback
+
+- **Date:** 2026-11-17 · **Status:** accepted (supersedes the "images in KV" part of D-023; ends the deferral in D-013)
+- **Context:** KV allows 1,000 writes a day on the free plan and each upload used two. Interns uploading screenshots would hit that. The owner chose to enable R2.
+- **Decision:** New uploads go to R2 (key = image id, content type and long cache headers on the object). Reads try R2, then KV, so no old link breaks. An admin button copies old KV images to R2 in batches of 20 inside the Worker (no command line), skipping copies already made; KV copies are left as a fallback.
+- **Why not a command-line copy script:** tried first; on Windows it was slow (several seconds per image through Wrangler) and argument quoting broke it. Copying inside the Worker is fast and needs no setup on the owner's computer.
+- **Consequences:** Deploys need the `tech-blog-media` bucket to exist (R2 must be enabled on the Cloudflare account, which asks for a payment card even on the free plan: 10 GB storage, no egress fees). The per-writer limit of 40 uploads a day stays.
+
 ## D-038 · Students section: browser-only tools with explained formulas
 
 - **Date:** 2026-11-20 · **Status:** accepted

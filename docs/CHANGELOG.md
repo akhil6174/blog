@@ -59,6 +59,14 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 - `Disallow: /write` matched every path starting with "write", so Google could not crawl writer profiles (`/writer/<handle>/`), which Search Console reported as "Blocked by robots.txt". Rules now end in `/` or `$` (`/write/`, `/write$`, `/search/`, `/search$`).
 
+### 2026-11-17 · Images move to Cloudflare R2 (D-037)
+
+- New uploads are stored in R2 (bucket `tech-blog-media`, binding `MEDIA`) instead of KV. Each upload now uses one KV write (the daily counter) instead of two.
+- Images uploaded earlier stay in KV and keep working: `/media/<id>` reads R2 first and falls back to KV (`src/lib/media-store.ts`).
+- `/admin` has a **Copy old images to R2** button: it copies KV images into R2 in batches of 20 inside the Worker, skips ones already copied, and deletes nothing.
+- `/api/health` checks R2.
+- New test `tests/e2e/media-r2.e2e.mjs` (6 checks); `image-cursor` test waits for editor focus before typing.
+
 ### 2026-11-17 · Search engine fixes: redirects for removed pages, clean sitemap
 
 - Permanent (301) redirects for addresses Google still has: `/blog/welcome-to-trutiai/` → `/about/`, `/og/welcome-to-trutiai.png` → `/og-default.png`, `/tag/meta/` and `/tag/announcements/` → `/articles/` (`src/lib/legacy.ts`; add a line there whenever a public page is removed).

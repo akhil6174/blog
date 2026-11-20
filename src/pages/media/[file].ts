@@ -1,10 +1,11 @@
 /**
- * GET /media/<id>.<ext> : serves an uploaded image from KV, cached at the edge for a year (files never change;
- * a new upload gets a new id). After the first request per data centre, KV and the Worker CPU are not touched.
+ * GET /media/<id>.<ext> : serves an uploaded image from R2 (falling back to KV for images uploaded before R2),
+ * cached at the edge for a year (files never change; a new upload gets a new id). After the first request per
+ * data centre, storage and the Worker CPU are not touched.
  */
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
-import { MEDIA_PATH, type MediaType } from '../../lib/media';
+import { MEDIA_PATH } from '../../lib/media';
+import { getMedia } from '../../lib/media-store';
 
 export const prerender = false;
 
@@ -16,11 +17,11 @@ export const GET: APIRoute = async ({ params, request }) => {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  const { value, metadata } = await env.CACHE.getWithMetadata<{ type: MediaType }>(`media:${m[1]}`, 'arrayBuffer');
-  if (!value) return new Response('Not found', { status: 404, headers: { 'cache-control': 'public, max-age=60' } });
-  const res = new Response(value, {
+  const file = await getMedia(m[1]);
+  if (!file) return new Response('Not found', { status: 404, headers: { 'cache-control': 'public, max-age=60' } });
+  const res = new Response(file.body, {
     headers: {
-      'content-type': metadata?.type ?? 'image/webp',
+      'content-type': file.type,
       'cache-control': 'public, max-age=31536000, immutable',
       'x-content-type-options': 'nosniff',
       'content-security-policy': "default-src 'none'",

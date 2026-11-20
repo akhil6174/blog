@@ -177,6 +177,12 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] 301 redirects for removed pages; sitemap cleaned to indexable pages (2026-11-17)
 - [ ] Owner: in Google Search Console, submit both sitemaps and request indexing for the home page and each article (SETUP-GUIDE §6)
 
+## Images in R2 (D-037)
+
+- [x] Uploads to R2, KV fallback for old images, admin copy button, health check (2026-11-17)
+- [x] Local tests: media-r2 6/6, images 16/16, editor 64/64, image-cursor 9/9, essentials 33/33
+- [ ] Owner: enable R2 in the Cloudflare dashboard and create the `tech-blog-media` bucket before the push; after deploy, press **Copy old images to R2** on /admin
+
 ## Students section (D-038)
 
 - [x] Hub page and three tools: attendance, SGPA/CGPA, CGPA to percentage (2026-11-20)

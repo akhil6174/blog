@@ -52,11 +52,11 @@
     }
   ],
 
-  // R2: uploaded images (WebP). DEFERRED TO PHASE 3 (needs a card on file to enable; see D-013).
-  // When ready: npx wrangler r2 bucket create tech-blog-media, then uncomment:
-  // "r2_buckets": [
-  //   { "binding": "MEDIA", "bucket_name": "tech-blog-media" }
-  // ],
+  // R2: uploaded images (D-037). Bucket created with: npx wrangler r2 bucket create tech-blog-media
+  // Older images may still be in KV (`media:<id>`); src/lib/media-store.ts reads both.
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "tech-blog-media" }
+  ],
 
   // KV: feature flags, settings cache, rate-limit counters, Top 10 lists.
   // Create with: npx wrangler kv namespace create CACHE

@@ -84,6 +84,7 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
         Comments {settings.comments_open === 'false' ? 'PAUSED · resume' : 'on · pause'}
       </button>
       <button class="act rounded border border-line px-3 py-1" data-action="run_cron">Run hourly job now</button>
+      <button id="copy-media" type="button" class="rounded border border-line px-3 py-1" title="Copies images uploaded before R2 was connected from KV into R2. Safe to run again.">Copy old images to R2</button>
     </div>
 
     <section class="mt-10">
@@ -265,5 +266,20 @@ const settingKeys = Object.keys(SETTING_HELP) as SettingKey[];
     }));
     document.getElementById('invite')?.addEventListener('submit', async (e) => { e.preventDefault(); const email = new FormData(e.target).get('email'); if (await act({ action: 'invite', value: email })) setTimeout(() => location.reload(), 400); });
     document.getElementById('settings')?.addEventListener('submit', async (e) => { e.preventDefault(); const fd = new FormData(e.target); const values = Object.fromEntries(fd.entries()); if (await act({ action: 'set_settings', values })) setTimeout(() => location.reload(), 400); });
-  </script>
+      document.getElementById('copy-media')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget; btn.disabled = true;
+      const flash = document.getElementById('flash');
+      let cursor = '', copied = 0, skipped = 0;
+      for (let round = 0; round < 500; round++) {
+        const r = await fetch('/api/admin/action', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'copy_media', value: cursor }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { flash.textContent = d.error || 'Copy failed.'; break; }
+        copied += d.copied || 0; skipped += d.skipped || 0;
+        flash.textContent = `Images: ${copied} copied to R2, ${skipped} already there${d.done ? '. Done.' : '…'}`;
+        if (d.done) break;
+        cursor = d.cursor || '';
+      }
+      btn.disabled = false;
+    });
+</script>
 </BaseLayout>

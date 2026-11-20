@@ -12,11 +12,12 @@ import { applyDecision, logStep } from '../../../lib/moderation';
 import { purgePostCaches } from '../../../lib/cache';
 import { runHourly } from '../../../cron/hourly';
 import { audit } from '../../../lib/audit';
+import { copyKvToR2 } from '../../../lib/media-store';
 
 export const prerender = false;
 
 const Body = z.object({
-  action: z.enum(['publish_post', 'reject_post', 'request_changes', 'restore_post', 'unpublish_post', 'publish_comment', 'reject_comment', 'resolve_report', 'set_role', 'ban_user', 'unban_user', 'invite', 'set_settings', 'run_cron']),
+  action: z.enum(['publish_post', 'reject_post', 'request_changes', 'restore_post', 'unpublish_post', 'publish_comment', 'reject_comment', 'resolve_report', 'set_role', 'ban_user', 'unban_user', 'invite', 'set_settings', 'run_cron', 'copy_media']),
   id: z.string().optional(),
   value: z.string().optional(),
   reason: z.string().max(300).optional(),
@@ -150,6 +151,11 @@ async function run(me: { id: string }, action: z.infer<typeof Body>['action'], i
       const keys = Object.keys(SETTING_DEFAULTS) as SettingKey[];
       for (const k of keys) if (k in values) await setSetting(k, String(values[k]).trim());
       return json({ message: 'Settings saved.' });
+    }
+    case 'copy_media': {
+      // One batch of old KV images into R2; the admin page repeats it with the returned cursor until done.
+      const r = await copyKvToR2(value || null);
+      return json({ message: r.done ? 'All old images are in R2.' : `Copied ${r.copied}, ${r.skipped} were already there. Continuing…`, ...r });
     }
     case 'run_cron': {
       await runHourly(new Date());

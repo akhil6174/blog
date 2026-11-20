@@ -27,7 +27,15 @@ export const GET: APIRoute = async () => {
     checks.kv = `error: ${(e as Error).message}`;
   }
 
-  // R2 (MEDIA) is deferred to Phase 3; its check is re-added together with the binding (see D-013).
+  // R2 (MEDIA): uploaded images (D-037).
+  try {
+    const bucket = (env as unknown as { MEDIA?: R2Bucket }).MEDIA;
+    if (!bucket) throw new Error('MEDIA binding missing');
+    await bucket.head('health-ping');
+    checks.r2 = true;
+  } catch (e) {
+    checks.r2 = `error: ${(e as Error).message}`;
+  }
 
   checks.ai = Boolean(env.AI);
   checks.workflow = Boolean(env.MODERATION);

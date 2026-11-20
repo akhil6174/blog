@@ -1,7 +1,7 @@
 /**
  * POST /api/media?kind=cover|body|avatar  (body: the image bytes)
- * Signed-in writers (profile photos: any signed-in account). Validates the real file type and size, enforces a
- * daily limit, stores the file in KV and returns its public path. Compression and cropping already happened in the browser (no image work here,
+ * Signed-in writers only. Validates the real file type and size, enforces a daily limit, stores the file in R2
+ * (KV if R2 is not bound; src/lib/media-store.ts) and returns its public path. Compression and cropping already happened in the browser (no image work here,
  * so the Worker stays far below its CPU limit).
  */
 import type { APIRoute } from 'astro';
@@ -9,6 +9,7 @@ import { env } from 'cloudflare:workers';
 import { canWrite, hasRole } from '../../lib/auth';
 import { newId, todayUTC } from '../../lib/content';
 import { EXT, MEDIA_DAILY_LIMIT, MEDIA_MAX_BYTES, sniffImage } from '../../lib/media';
+import { putMedia } from '../../lib/media-store';
 
 export const prerender = false;
 const json = (b: unknown, status = 200) => Response.json(b, { status, headers: { 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });
@@ -36,7 +37,7 @@ export const POST: APIRoute = async ({ request, url, locals }) => {
   const kind = avatar ? 'avatar' : url.searchParams.get('kind') === 'cover' ? 'cover' : 'body';
   if (avatar && buf.byteLength > 400_000) return json({ error: 'Profile photo is too large (max 400 KB after compression).' }, 413);
   const id = newId();
-  await env.CACHE.put(`media:${id}`, buf, { metadata: { type, size: buf.byteLength, owner: user.id, kind, at: Date.now() } });
+  await putMedia(id, buf, { type, size: buf.byteLength, owner: user.id, kind, at: Date.now() });
   if (!admin) await env.CACHE.put(countKey, String(used + 1), { expirationTtl: 2 * 86400 });
 
   return json({ id, url: `/media/${id}.${EXT[type]}`, size: buf.byteLength, type });
