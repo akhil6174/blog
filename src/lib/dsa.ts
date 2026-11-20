@@ -1,13 +1,11 @@
 /**
- * DSA sheet storage (D-042): a signed-in student's progress and their "asked at <company>" reports, plus the
- * public company counts. The problem list itself is static (src/lib/dsa-sheet.ts).
+ * DSA sheet storage (D-042): a signed-in student's progress. The problem list itself is static (src/lib/dsa-sheet.ts).
  */
-import { and, eq, sql } from 'drizzle-orm';
-import { db, dsaProgress, dsaReports } from './db';
-import { COMPANIES, PROBLEM_IDS, type Progress } from './dsa-sheet';
+import { and, eq } from 'drizzle-orm';
+import { db, dsaProgress } from './db';
+import { PROBLEM_IDS, type Progress } from './dsa-sheet';
 
 export class DsaError extends Error {}
-const REPORTS_PER_DAY = 40;
 
 export async function getProgress(userId: string): Promise<Progress[]> {
   const rows = await db().select().from(dsaProgress).where(eq(dsaProgress.userId, userId));
@@ -54,30 +52,3 @@ export async function mergeProgress(userId: string, items: Progress[]): Promise<
   return rows.length;
 }
 
-export async function myReports(userId: string): Promise<{ id: string; company: string }[]> {
-  return (await db().select({ id: dsaReports.problemId, company: dsaReports.company }).from(dsaReports).where(eq(dsaReports.userId, userId)));
-}
-
-/** Add or remove "I was asked this at <company>". */
-export async function setReport(userId: string, id: string, company: string, on: boolean): Promise<void> {
-  if (!PROBLEM_IDS.has(id)) throw new DsaError('Unknown problem.');
-  if (!(COMPANIES as readonly string[]).includes(company)) throw new DsaError('Pick a company from the list.');
-  const d = db();
-  const key = and(eq(dsaReports.userId, userId), eq(dsaReports.problemId, id), eq(dsaReports.company, company));
-  if (!on) { await d.delete(dsaReports).where(key); return; }
-  const since = Math.floor(Date.now() / 1000) - 86_400;
-  const [{ n }] = await d.select({ n: sql<number>`count(*)` }).from(dsaReports).where(and(eq(dsaReports.userId, userId), sql`${dsaReports.createdAt} > ${since}`));
-  if (Number(n) >= REPORTS_PER_DAY) throw new DsaError(`You can add up to ${REPORTS_PER_DAY} company reports a day.`);
-  await d.insert(dsaReports).values({ userId, problemId: id, company }).onConflictDoNothing();
-}
-
-/** Public: how many students reported each problem per company, e.g. { 'two-sum': { Amazon: 3 } }. */
-export async function companyCounts(): Promise<Record<string, Record<string, number>>> {
-  const rows = await db()
-    .select({ id: dsaReports.problemId, company: dsaReports.company, n: sql<number>`count(*)` })
-    .from(dsaReports)
-    .groupBy(dsaReports.problemId, dsaReports.company);
-  const out: Record<string, Record<string, number>> = {};
-  for (const r of rows) if (PROBLEM_IDS.has(r.id)) (out[r.id] ??= {})[r.company] = Number(r.n);
-  return out;
-}

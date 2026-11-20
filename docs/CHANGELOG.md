@@ -5,6 +5,19 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-20 · Portfolio website builder with Netlify and Vercel guide (D-043)
+
+- `/students/portfolio-builder/`: build a personal portfolio site in the browser. 12 templates (Minimal, Developer dark, Sidebar, Project cards, Terminal, Split hero, Top menu, Magazine, Neon, Pastel, Professional, Sunset) with different layouts, fonts and heading styles.
+- Customize colours: page background, text, secondary text, buttons and links, cards, top banner background and text. Button text switches between dark and white automatically for contrast. Reset to the template's colours.
+- Reuse details from the resume builder in one click; photo (cropped square, embedded); live preview in a sandboxed frame; saved in the browser.
+- Download a zip (`index.html` + `README.md`, built in the browser, no library) for Netlify Drop or Vercel, or just `index.html`. Optional "Built with TrutiAI" footer line (on by default).
+- Step-by-step launch guide on the page: Netlify Drop, Vercel through GitHub, and `npx vercel`.
+- Tests: `tests/portfolio.test.ts` (6), `tests/e2e/portfolio.e2e.mjs` (28, with a screenshot of every template).
+
+### 2026-11-20 · DSA sheet: company-wise reports removed
+
+- Removed the "Asked at <company>" reports, the company filter and `/api/dsa/companies` (owner decision: not useful). Migration `0009_drop_dsa_reports` drops the `dsa_reports` table.
+
 ### 2026-11-20 · DSA sheet with tracker, charts, badges and company-wise lists (D-042)
 
 - `/students/dsa-sheet/`: 172 must-do problems across 18 topics, easy to hard, each linking to LeetCode (every link, title and difficulty checked against LeetCode; no paid-only problems).

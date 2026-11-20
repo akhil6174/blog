@@ -1,0 +1,1 @@
+DROP TABLE `dsa_reports`;

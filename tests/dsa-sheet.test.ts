@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { badges, COMPANIES, istDay, PROBLEMS, streaks, summarize, TOPICS, weeklySolves } from '../src/lib/dsa-sheet';
+import { badges, istDay, PROBLEMS, streaks, summarize, TOPICS, weeklySolves } from '../src/lib/dsa-sheet';
 
 const DAY = 86_400_000;
 // 20 Nov 2026, 12:00 India time (a Friday).
@@ -15,7 +15,6 @@ describe('DSA sheet data', () => {
       const r = PROBLEMS.filter((p) => p.topic === t).map((p) => rank[p.difficulty]);
       expect(r).toEqual([...r].sort((a, b) => a - b));
     }
-    expect(new Set(COMPANIES).size).toBe(COMPANIES.length);
   });
 });
 

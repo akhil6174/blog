@@ -1,7 +1,7 @@
 ---
 /**
- * /students/dsa-sheet/ : the TrutiAI DSA sheet with tracking, charts, badges and company-wise lists (D-042).
- * Pre-rendered; the island loads progress (device or account) and company counts in the browser.
+ * /students/dsa-sheet/ : the TrutiAI DSA sheet with tracking, charts and badges (D-042).
+ * Pre-rendered; the island loads progress (device or account) in the browser.
  */
 import ToolPage from '../../../components/students/ToolPage.astro';
 import DsaSheet from '../../../islands/students/DsaSheet';
@@ -9,8 +9,7 @@ import { PROBLEMS, TOPICS } from '../../../lib/dsa-sheet';
 
 const n = PROBLEMS.length;
 const faqs = [
-  { q: 'Is this DSA sheet enough for placements?', a: `The ${n} problems cover the patterns that come up again and again in coding rounds: arrays, two pointers, sliding window, binary search, linked lists, trees, graphs and dynamic programming. Solve them topic by topic, understand why each approach works, and revise the starred ones before interviews. For a specific company, also practise the problems students reported for it.` },
-  { q: 'How are company-wise questions decided?', a: 'Students who were asked a problem in an interview or online test mark it with "Asked at" and the company. The company filter shows those reports, most reported first. They are reports from students, not official lists from the companies, so treat them as a guide.' },
+  { q: 'Is this DSA sheet enough for placements?', a: `The ${n} problems cover the patterns that come up again and again in coding rounds: arrays, two pointers, sliding window, binary search, linked lists, trees, graphs and dynamic programming. Solve them topic by topic, understand why each approach works, and revise the starred ones before interviews.` },
   { q: 'Where is my progress saved?', a: 'Without signing in, your ticks stay in this browser. Sign in with Google and they are saved to your account, appear on your dashboard with charts, and work on every device. Ticks made before signing in are added to your account automatically.' },
   { q: 'Do I need a LeetCode account?', a: 'The problems link to LeetCode, where you can read and submit them for free. Every problem on this sheet is free on LeetCode; none needs a premium plan.' },
   { q: 'In what order should I solve the sheet?', a: 'Go topic by topic from the top: each topic starts with easy problems and ends with hard ones. If a problem takes more than 45 minutes, read one hint, solve it, and star it to revise later. Keeping a daily streak matters more than solving many problems in one day.' },
@@ -20,8 +19,8 @@ const faqs = [
 <ToolPage
   title="DSA sheet with tracker"
   seoTitle={`DSA Sheet for Placements: ${n} Problems with Progress Tracker`}
-  description={`Free DSA sheet for placements: ${n} must-do LeetCode problems across ${TOPICS.length} topics, with progress tracking, streaks, badges and company-wise lists reported by students.`}
-  intro={`${n} must-do problems across ${TOPICS.length} topics, easy to hard. Tick what you solve, star what to revise, keep a streak and earn badges. Filter by company to see what students were actually asked.`}
+  description={`Free DSA sheet for placements: ${n} must-do LeetCode problems across ${TOPICS.length} topics, with progress tracking, streaks and badges.`}
+  intro={`${n} must-do problems across ${TOPICS.length} topics, easy to hard. Tick what you solve, star what to revise, keep a streak and earn badges.`}
   faqs={faqs}
 >
   <DsaSheet client:load />
@@ -31,7 +30,6 @@ const faqs = [
       <li><strong>Tick</strong> a problem when you have solved it yourself, without looking at the solution.</li>
       <li><strong>Star</strong> problems you struggled with, then use the "Starred to revise" filter the week before an interview.</li>
       <li><strong>Keep a streak</strong>: one problem a day for a month beats thirty in a weekend.</li>
-      <li><strong>Report</strong> problems you were asked in an interview, so the company lists get better for everyone.</li>
     </ul>
     <h3>Topics covered</h3>
     <p>{TOPICS.join(', ')}.</p>

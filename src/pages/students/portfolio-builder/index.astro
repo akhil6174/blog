@@ -1,0 +1,72 @@
+---
+/**
+ * /students/portfolio-builder/ : build a personal portfolio website in the browser and download it ready to host,
+ * with step-by-step guides for Netlify and Vercel (D-043). Pre-rendered; the builder is a Preact island.
+ */
+import ToolPage from '../../../components/students/ToolPage.astro';
+import PortfolioBuilder from '../../../islands/students/PortfolioBuilder';
+
+const faqs = [
+  { q: 'Is hosting really free?', a: 'Yes. Netlify and Vercel both have free plans that are more than enough for a personal portfolio, and you get an address like yourname.netlify.app or yourname.vercel.app. You only pay if you want your own domain such as yourname.dev.' },
+  { q: 'Netlify or Vercel: which should I choose?', a: 'Netlify is the quickest: drag the zip onto a web page and it is live in seconds, no GitHub needed. Vercel works through GitHub, which takes a few minutes more but shows recruiters an active GitHub account and updates the site every time you change the file.' },
+  { q: 'Can I edit the website later?', a: 'Yes. Your details stay saved in this browser, so you can come back, change them and download again. Or open index.html in any code editor such as VS Code and edit it directly; it is plain HTML and CSS.' },
+  { q: 'Do recruiters actually look at portfolios?', a: 'For developer roles, a short page with two or three real projects, each with a live link or a GitHub repository and one line on what you built, is often looked at more than a long resume. Put the link at the top of your resume and on LinkedIn.' },
+  { q: 'Is my data uploaded to TrutiAI?', a: 'No. The builder runs in your browser; your details and photo are saved only in this browser until you download the files.' },
+];
+---
+
+<ToolPage
+  title="Portfolio website builder"
+  seoTitle="Free Portfolio Website Builder for Students (Host on Netlify or Vercel)"
+  description="Build a personal portfolio website in minutes: 12 templates with your own colours, your photo, projects and links. Download it and put it online free on Netlify or Vercel with our step-by-step guide."
+  intro="Fill in your details or reuse your resume, pick one of 12 templates, change its colours, and download a ready website. Then follow the guide below to put it online free on Netlify or Vercel in about five minutes."
+  faqs={faqs}
+>
+  <PortfolioBuilder client:load />
+  <Fragment slot="explain">
+    <h2 id="launch">Put your portfolio online: step by step</h2>
+    <p>First press <strong>Download for Netlify / Vercel</strong> above. You get a zip with two files: <code>index.html</code> (your whole website) and <code>README.md</code> (these instructions in short). Then choose one option.</p>
+
+    <h3>Option 1: Netlify (fastest, about 2 minutes, no GitHub)</h3>
+    <ol>
+      <li>Open <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a>.</li>
+      <li>Drag the downloaded <strong>.zip file</strong> onto the page (or unzip it and drag the folder). Wait a few seconds.</li>
+      <li>Your site is live at an address like <code>random-name-123.netlify.app</code>. Open it to check.</li>
+      <li><strong>Sign up free</strong> (Google or GitHub) when Netlify asks, so the site is saved to your account. Sites dropped without an account are deleted after a short time.</li>
+      <li>Change the address: open your site in Netlify, go to <strong>Site configuration → Change site name</strong>, and type something like <code>yourname</code>. It becomes <code>yourname.netlify.app</code>.</li>
+      <li>To update later: in your site's <strong>Deploys</strong> tab, drag the new zip onto the drop area.</li>
+    </ol>
+
+    <h3>Option 2: Vercel with GitHub (about 5 minutes, updates itself)</h3>
+    <ol>
+      <li>Unzip the download. You now have <code>index.html</code> and <code>README.md</code>.</li>
+      <li>Sign in to <a href="https://github.com" target="_blank" rel="noopener">GitHub</a> (create a free account if needed). Click <strong>+ → New repository</strong>, name it <code>portfolio</code>, keep it <strong>Public</strong>, and click <strong>Create repository</strong>.</li>
+      <li>On the new repository page click <strong>uploading an existing file</strong>, drag in both files, and click <strong>Commit changes</strong>.</li>
+      <li>Go to <a href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a> and choose <strong>Continue with GitHub</strong>. Allow Vercel to see your <code>portfolio</code> repository.</li>
+      <li>Next to <code>portfolio</code> click <strong>Import</strong>. Leave <strong>Framework Preset</strong> as <strong>Other</strong> and the build settings empty, then click <strong>Deploy</strong>.</li>
+      <li>After about a minute you get an address like <code>portfolio-yourname.vercel.app</code>. To pick a nicer one, open the project's <strong>Settings → Domains</strong> and add <code>yourname.vercel.app</code> if it is free.</li>
+      <li>To update later: edit or re-upload <code>index.html</code> in the GitHub repository. Vercel puts the new version online by itself.</li>
+    </ol>
+
+    <h3>Option 3: Vercel from the command line (if you have Node.js)</h3>
+    <ol>
+      <li>Unzip the download and open a terminal in that folder.</li>
+      <li>Run <code>npx vercel</code>, log in when asked, and press Enter to accept the defaults.</li>
+      <li>Run <code>npx vercel --prod</code> to publish. The terminal prints your live address.</li>
+    </ol>
+
+    <h3>After it is live</h3>
+    <ul>
+      <li>Open it on your phone: the templates work on small screens, but check your photo and long project names.</li>
+      <li>Put the link at the top of your resume, in your LinkedIn <strong>Contact info</strong> and in your GitHub profile.</li>
+      <li>Want your own domain (yourname.dev)? Buy it from any registrar and add it under <strong>Domain management</strong> (Netlify) or <strong>Settings → Domains</strong> (Vercel); both walk you through the DNS steps.</li>
+    </ul>
+
+    <h2>What makes a good student portfolio</h2>
+    <ul>
+      <li><strong>Two or three strong projects</strong> beat ten tutorials. For each: what it does, the tech, and a live link or repository.</li>
+      <li><strong>A clear headline</strong>: "Final-year CSE student, backend and AI" tells a recruiter more than "Passionate learner".</li>
+      <li><strong>Working links</strong>: click every one after you publish.</li>
+    </ul>
+  </Fragment>
+</ToolPage>

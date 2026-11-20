@@ -1,6 +1,6 @@
 /**
  * DSA sheet: renders every topic, ticks and stars saved in the browser when signed out, merged into the account
- * on sign-in, saved to the account, filters, company reports and counts, badges, /me dashboard section, phone width.
+ * on sign-in, saved to the account, filters, badges, /me dashboard section, phone width.
  * Run against `npm run preview` with dev login:  node tests/e2e/dsa.e2e.mjs
  */
 import { chromium } from '@playwright/test';
@@ -55,27 +55,7 @@ await p.waitForTimeout(500);
 api = await (await ctx.request.get(`${BASE}/api/me/dsa`)).json();
 check('ticks and unticks are saved to the account', api.progress.some((x) => x.id === 'binary-search' && x.solvedAt) && !api.progress.some((x) => x.id === 'two-sum'), JSON.stringify(api.progress));
 
-// Company reports
-await row(p, 'number-of-islands').locator('[data-testid=asked]').click();
-await row(p, 'number-of-islands').locator('button:has-text("Amazon")').click();
-await p.waitForTimeout(500);
-const counts = await (await ctx.request.get(`${BASE}/api/dsa/companies`)).json();
-check('report counted publicly', counts.counts['number-of-islands']?.Amazon >= 1, JSON.stringify(counts));
-const before = counts.counts['number-of-islands'].Amazon;
-const second = await b.newContext();
-await second.request.post(`${BASE}/api/auth/sign-up/email`, { headers: H, data: { email: `dsa2-${RUN}@example.com`, password: 'localtest-password-1', name: 'Other' } });
-await second.request.post(`${BASE}/api/me/dsa`, { headers: H, data: { action: 'report', id: 'number-of-islands', company: 'Amazon', on: true } });
-const twice = await ctx.request.post(`${BASE}/api/me/dsa`, { headers: H, data: { action: 'report', id: 'number-of-islands', company: 'Amazon', on: true } });
-const after = (await (await ctx.request.get(`${BASE}/api/dsa/companies`)).json()).counts['number-of-islands'].Amazon;
-check('another student adds one; repeating a report does not', twice.ok() && after === before + 1, `${before} -> ${after}`);
-check('unknown companies refused', (await ctx.request.post(`${BASE}/api/me/dsa`, { headers: H, data: { action: 'report', id: 'two-sum', company: 'Fake Corp', on: true } })).status() === 400);
-check('unknown problems refused', (await ctx.request.post(`${BASE}/api/me/dsa`, { headers: H, data: { action: 'set', id: 'nope', solved: true } })).status() === 400);
-check('signed-out writes refused', (await (await b.newContext()).request.post(`${BASE}/api/me/dsa`, { headers: H, data: { action: 'set', id: 'two-sum', solved: true } })).status() === 401);
-await p.goto(`${BASE}/students/dsa-sheet/?company=Amazon`); await hydrated(p); await ready(p);
-check('company-wise list shows reported problems', (await p.locator('li[data-id="number-of-islands"]').count()) === 1 && (await p.textContent('body')).includes('Asked at Amazon'));
-await p.selectOption('[data-testid=company]', 'Wipro');
-check('empty company explains how to help', (await p.locator('[data-testid=company-empty]').count()) === 1);
-await p.selectOption('[data-testid=company]', '');
+check('company-wise section removed', !(await p.textContent('body')).includes('Asked at') && (await p.locator('#dsa-company').count()) === 0);
 await p.screenshot({ path: 'test-results/dsa-sheet.png', fullPage: false });
 
 // Dashboard

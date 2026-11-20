@@ -444,16 +444,4 @@ export const dsaProgress = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.problemId] })],
 );
 
-/** "I was asked this at <company>" reports; one per user, problem and company. Powers company-wise lists. */
-export const dsaReports = sqliteTable(
-  'dsa_reports',
-  {
-    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
-    problemId: text('problem_id').notNull(),
-    company: text('company').notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
-  },
-  (t) => [primaryKey({ columns: [t.userId, t.problemId, t.company] }), index('dsa_reports_company_idx').on(t.company)],
-);
-
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, dsaReports };
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress };

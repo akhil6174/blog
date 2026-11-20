@@ -1,14 +1,13 @@
 /**
  * The DSA sheet with tracking (D-042). Signed out: progress lives in this browser (localStorage). Signed in:
  * progress is saved to the account (/api/me/dsa) and anything saved on the device is merged in once.
- * Shows overall and per-difficulty progress, streaks, weekly solves, badges, filters, and company-wise lists built
- * from students' "asked at" reports (/api/dsa/companies). Data and maths: src/lib/dsa-sheet.ts.
+ * Shows overall and per-difficulty progress, streaks, weekly solves, badges and filters. Data and maths:
+ * src/lib/dsa-sheet.ts.
  */
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { badges, COMPANIES, PROBLEMS, type Problem, type Progress, streaks, summarize, TOPICS, topicSlug, weeklySolves } from '../../lib/dsa-sheet';
+import { badges, PROBLEMS, type Problem, type Progress, streaks, summarize, TOPICS, topicSlug, weeklySolves } from '../../lib/dsa-sheet';
 
 type Map_ = Record<string, { solvedAt: number | null; revise: boolean }>;
-type Counts = Record<string, Record<string, number>>;
 const KEY = 'trutiai-dsa-v1';
 const DIFF_CLS = { Easy: 'text-emerald-700', Medium: 'text-amber-700', Hard: 'text-red-700' } as const;
 
@@ -63,22 +62,16 @@ function Weekly({ data }: { data: { label: string; value: number }[] }) {
 export default function DsaSheet() {
   const [prog, setProg] = useState<Map_>({});
   const [mode, setMode] = useState<'loading' | 'local' | 'account'>('loading');
-  const [counts, setCounts] = useState<Counts>({});
-  const [mine, setMine] = useState<Set<string>>(new Set());
   const [q, setQ] = useState('');
   const [topic, setTopic] = useState('all');
   const [diff, setDiff] = useState('all');
   const [status, setStatus] = useState<'all' | 'todo' | 'solved' | 'revise'>('all');
-  const [company, setCompany] = useState('');
-  const [picker, setPicker] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
     const u = new URLSearchParams(location.search);
-    if (u.get('company') && (COMPANIES as readonly string[]).includes(u.get('company')!)) setCompany(u.get('company')!);
     const t = TOPICS.find((x) => topicSlug(x) === u.get('topic'));
     if (t) setTopic(t);
-    fetch('/api/dsa/companies').then((r) => (r.ok ? r.json() : { counts: {} })).then((d) => setCounts(d.counts ?? {})).catch(() => {});
     (async () => {
       const local = readLocal();
       try {
@@ -95,7 +88,6 @@ export default function DsaSheet() {
           }
         }
         setProg(Object.fromEntries((d.progress as Progress[]).map((p) => [p.id, { solvedAt: p.solvedAt, revise: p.revise }])));
-        setMine(new Set((d.reports as { id: string; company: string }[]).map((x) => `${x.id}|${x.company}`)));
         setMode('account');
       } catch {
         setProg(local);
@@ -123,22 +115,6 @@ export default function DsaSheet() {
     if (!r?.ok) { setProg(prog); setMsg('Could not save. Check your connection and try again.'); }
   }
 
-  async function report(id: string, c: string) {
-    const key = `${id}|${c}`;
-    const on = !mine.has(key);
-    const r = await post({ action: 'report', id, company: c, on }).catch(() => null);
-    const d = await r?.json().catch(() => ({}));
-    if (!r?.ok) { setMsg(d?.error || 'Could not save the report.'); return; }
-    const m = new Set(mine); on ? m.add(key) : m.delete(key); setMine(m);
-    setCounts((old) => {
-      const forP = { ...(old[id] ?? {}) };
-      forP[c] = Math.max(0, (forP[c] ?? 0) + (on ? 1 : -1));
-      if (!forP[c]) delete forP[c];
-      return { ...old, [id]: forP };
-    });
-    setMsg(on ? `Thanks! Marked as asked at ${c}.` : `Removed your ${c} report.`);
-  }
-
   const match = (p: Problem) => {
     const s = prog[p.id];
     if (topic !== 'all' && p.topic !== topic) return false;
@@ -150,14 +126,9 @@ export default function DsaSheet() {
     return true;
   };
 
-  const companyList = company
-    ? PROBLEMS.filter((p) => counts[p.id]?.[company] && match(p)).sort((a, b) => counts[b.id][company] - counts[a.id][company])
-    : [];
-
   // A plain function (not a component) so rows keep focus and state across re-renders.
   function row(p: Problem) {
     const s = prog[p.id];
-    const top = Object.entries(counts[p.id] ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
     return (
       <li key={p.id} class="border-b border-line py-2.5 last:border-0" data-id={p.id}>
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -165,26 +136,7 @@ export default function DsaSheet() {
           <a href={p.url} target="_blank" rel="noopener" class={`min-w-0 flex-1 font-medium hover:text-accent hover:underline ${s?.solvedAt ? 'text-muted line-through decoration-1' : 'text-ink'}`}>{p.title}</a>
           <span class={`w-16 text-xs font-semibold ${DIFF_CLS[p.difficulty]}`}>{p.difficulty}</span>
           <button type="button" class={`rounded px-1.5 text-lg leading-none ${s?.revise ? 'text-amber-500' : 'text-muted hover:text-ink'}`} aria-pressed={!!s?.revise} aria-label={`${s?.revise ? 'Remove' : 'Add'} ${p.title} ${s?.revise ? 'from' : 'to'} revision`} title="Revise later" onClick={() => change(p.id, 'revise')} data-testid="revise">{s?.revise ? '★' : '☆'}</button>
-          {mode === 'account'
-            ? <button type="button" class="rounded border border-line px-2 py-0.5 text-xs text-muted hover:border-accent hover:text-ink" aria-expanded={picker === p.id} onClick={() => setPicker(picker === p.id ? null : p.id)} data-testid="asked">Asked at…</button>
-            : <a href={`/signin/?next=${encodeURIComponent('/students/dsa-sheet/')}`} class="text-xs text-muted underline">Asked in an interview?</a>}
         </div>
-        {top.length > 0 && (
-          <p class="ml-8 mt-1 flex flex-wrap gap-1.5 text-xs">
-            {top.map(([c, n]) => <span class="rounded-full bg-tint px-2 py-0.5 text-ink">{c} · {n}</span>)}
-          </p>
-        )}
-        {picker === p.id && (
-          <div class="ml-8 mt-2 rounded-lg border border-line bg-page p-3 text-xs">
-            <p class="mb-2 text-muted">Were you asked <strong class="text-ink">{p.title}</strong> (or a close variant) in an interview or online test? Tap the company. Tap again to undo.</p>
-            <div class="flex flex-wrap gap-1.5">
-              {COMPANIES.map((c) => {
-                const on = mine.has(`${p.id}|${c}`);
-                return <button type="button" class={`rounded-full border px-2 py-0.5 ${on ? 'border-accent bg-accent text-white' : 'border-line hover:border-accent'}`} aria-pressed={on} onClick={() => report(p.id, c)}>{c}</button>;
-              })}
-            </div>
-          </div>
-        )}
       </li>
     );
   }
@@ -218,7 +170,7 @@ export default function DsaSheet() {
 
       {mode === 'local' && (
         <p class="mt-3 rounded-lg border border-line bg-tint px-4 py-3 text-sm">
-          Your ticks are saved in this browser only. <a href={`/signin/?next=${encodeURIComponent('/students/dsa-sheet/')}`} class="font-semibold text-accent underline">Sign in</a> to keep them on every device, see charts on your dashboard and report interview questions by company.
+          Your ticks are saved in this browser only. <a href={`/signin/?next=${encodeURIComponent('/students/dsa-sheet/')}`} class="font-semibold text-accent underline">Sign in</a> to keep them on every device, and see charts on your dashboard.
         </p>
       )}
       <p class="mt-2 min-h-5 text-sm text-accent" role="status">{msg}</p>
@@ -239,25 +191,9 @@ export default function DsaSheet() {
         <select id="dsa-status" value={status} onChange={(e) => setStatus((e.target as HTMLSelectElement).value as typeof status)} class="rounded-full border border-line bg-surface px-3 py-1.5" data-testid="status">
           <option value="all">All problems</option><option value="todo">Not solved</option><option value="solved">Solved</option><option value="revise">Starred to revise</option>
         </select>
-        <label class="sr-only" for="dsa-company">Company</label>
-        <select id="dsa-company" value={company} onChange={(e) => setCompany((e.target as HTMLSelectElement).value)} class="rounded-full border border-line bg-surface px-3 py-1.5" data-testid="company">
-          <option value="">Company-wise: any</option>
-          {COMPANIES.map((c) => <option value={c}>{c}</option>)}
-        </select>
       </div>
 
-      {company ? (
-        <section class="mt-4" aria-labelledby="co-title">
-          <h2 id="co-title" class="text-xl font-bold">Asked at {company}</h2>
-          <p class="mt-1 text-sm text-muted">Problems students reported being asked at {company}, most reported first. Reports come from students, not from the company.</p>
-          {companyList.length ? (
-            <ul class="mt-3 rounded-xl border border-line bg-surface px-4">{companyList.map(row)}</ul>
-          ) : (
-            <p class="mt-4 rounded-xl border border-dashed border-line p-5 text-sm text-muted" data-testid="company-empty">No reports for {company} yet. Interviewed there? Find the problem below the filters (clear the company first) and tap <strong>Asked at…</strong> to help the next student.</p>
-          )}
-        </section>
-      ) : (
-        <div class="mt-4 grid gap-4">
+      <div class="mt-4 grid gap-4">
           {TOPICS.map((t) => {
             const ps = PROBLEMS.filter((p) => p.topic === t && match(p));
             if (!ps.length) return null;
@@ -274,8 +210,7 @@ export default function DsaSheet() {
               </details>
             );
           })}
-        </div>
-      )}
+      </div>
 
       <section class="mt-10 grid gap-6 lg:grid-cols-2">
         <div class="rounded-2xl border border-line bg-surface p-5">

@@ -245,13 +245,16 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
 | `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
 | `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
-| `src/lib/dsa-sheet.ts` | DSA sheet problem list, companies, progress summary, streaks, badges, weekly counts (pure) |
+| `src/lib/portfolio.ts` | Portfolio templates, colour palettes, HTML generator, zip writer (pure) |
+| `src/islands/students/PortfolioBuilder.tsx` | Portfolio builder: form, templates, colours, preview, downloads |
+| `src/pages/students/portfolio-builder/index.astro` | Portfolio builder page with Netlify and Vercel launch guide |
+| `tests/portfolio.test.ts`, `tests/e2e/portfolio.e2e.mjs` | Portfolio builder tests |
+| `src/lib/dsa-sheet.ts` | DSA sheet problem list, progress summary, streaks, badges, weekly counts (pure) |
 | `src/lib/dsa.ts` | DSA progress and company reports in D1 |
-| `src/islands/students/DsaSheet.tsx` | The DSA sheet: ticks, stars, filters, charts, badges, company reports |
+| `src/islands/students/DsaSheet.tsx` | The DSA sheet: ticks, stars, filters, charts, badges |
 | `src/pages/students/dsa-sheet/index.astro` | DSA sheet page with guide and FAQs |
 | `src/pages/api/me/dsa.ts` | Save and read a student's DSA progress and reports |
-| `src/pages/api/dsa/companies.ts` | Public company report counts |
-| `drizzle/0008_dsa_sheet.sql` | Migration: `dsa_progress`, `dsa_reports` |
+| `drizzle/0008_dsa_sheet.sql`, `0009_drop_dsa_reports.sql` | Migrations: DSA progress table (the reports table was added, then dropped) |
 | `tests/dsa-sheet.test.ts`, `tests/e2e/dsa.e2e.mjs` | DSA sheet tests |
 | `tests/e2e/theme.e2e.mjs` | Sign-in lands on home; editor light by default; dark-theme hover contrast |
 | `tests/profile.test.ts`, `tests/e2e/dashboard.e2e.mjs` | Tests for profile links, the dashboard, codes and photo upload |

@@ -1,8 +1,7 @@
 /**
  * The TrutiAI DSA sheet (D-042): problems grouped by topic, easy to hard within each topic, linking to LeetCode.
  * Only titles and links are listed (problem statements belong to LeetCode). Pure data and helpers: safe for
- * pre-rendered pages, islands and unit tests. Company tags come from student reports (dsa_company_reports), not
- * from this file, because there is no public, reliable company list to copy.
+ * pre-rendered pages, islands and unit tests.
  */
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 export type Problem = { id: string; title: string; topic: string; difficulty: Difficulty; url: string };
@@ -228,14 +227,6 @@ export const TOPICS: string[] = RAW.map(([t]) => t);
 export const PROBLEM_IDS = new Set(PROBLEMS.map((p) => p.id));
 export const topicSlug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-/** Companies students can report. A fixed list keeps the data clean (no spelling variants, no spam names). */
-export const COMPANIES = [
-  'Amazon', 'Microsoft', 'Google', 'Meta', 'Apple', 'Adobe', 'Flipkart', 'Walmart', 'Uber', 'Oracle', 'Samsung', 'Atlassian',
-  'Salesforce', 'Goldman Sachs', 'JP Morgan', 'Morgan Stanley', 'Intuit', 'Cisco', 'Qualcomm', 'ServiceNow', 'Paytm',
-  'PhonePe', 'Swiggy', 'Zomato', 'Razorpay', 'TCS', 'Infosys', 'Wipro', 'Accenture', 'Cognizant', 'Capgemini', 'Deloitte',
-  'HCLTech', 'Tech Mahindra', 'Other startup',
-] as const;
-export const companySlug = topicSlug;
 
 export type Progress = { id: string; solvedAt: number | null; revise: boolean };
 

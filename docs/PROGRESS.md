@@ -187,6 +187,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] Writer dashboard with monthly charts, ambassador codes and students-joined counts, profile photo/GitHub/LinkedIn (2026-11-20; 24 browser checks)
 - [ ] Owner: apply migrations `0006_colleges` and `0007_profiles_codes` remotely before pushing; add colleges on /admin/ambassadors
 - [x] DSA sheet: 172 problems, tracking, charts, badges, company-wise reports (2026-11-20; 5 unit + 24 browser checks)
+- [x] Portfolio website builder: 12 templates, custom colours, zip download, Netlify/Vercel guide (2026-11-20; 6 unit + 28 browser checks)
 - [ ] Next ideas: more universities' conversion rules (after checking official sources), placement prep hub, AI helpers
 
 ## Verification log
