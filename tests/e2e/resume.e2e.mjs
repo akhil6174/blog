@@ -41,10 +41,23 @@ check('download is a real PDF', bytes.subarray(0, 5).toString() === '%PDF-' && b
 const parsed = await PDFDocument.load(bytes);
 check('the name is in the PDF', parsed.getTitle() === 'Asha Verma – Resume' && parsed.getPageCount() === 1, parsed.getTitle());
 
-for (const t of ['modern', 'compact', 'classic']) {
+const ids = await p.$$eval('[data-testid^="tpl-"]', (els) => els.map((e) => e.getAttribute('data-testid').slice(4)));
+check('ten templates to choose from', ids.length === 10, ids.join(','));
+for (const t of [...ids.filter((x) => x !== 'classic'), 'classic']) {
   await p.click(`label:has([data-testid="tpl-${t}"])`);
-  check(`template "${t}" builds`, await waitStatus(/^1 page$/), await status());
+  await p.waitForTimeout(150);
+  check(`template "${t}" builds a one-page PDF`, await waitStatus(/^1 page$/), await status());
 }
+await p.click('label:has([data-testid="tpl-engineer"])');
+check('colour swatches appear for colour templates', await p.isVisible('[data-testid="accent-navy"]'));
+await p.click('[data-testid="accent-navy"]');
+await p.check('[data-testid="experience-first"]');
+check('colour and section order still build', await waitStatus(/^1 page$/), await status());
+await p.click('label:has([data-testid="tpl-classic"])');
+check('black-and-white templates explain there is no colour', await p.isVisible('text=This template is black and white'));
+await p.reload(); await ready();
+check('template, colour and order are remembered', (await p.isChecked('[data-testid="experience-first"]')) && (await p.isChecked('[data-testid="tpl-classic"]')));
+await p.uncheck('[data-testid="experience-first"]');
 
 // Long resume: many projects push it to two pages.
 await p.locator('summary:has-text("Projects")').click();

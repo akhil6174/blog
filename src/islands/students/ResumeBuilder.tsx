@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import {
-  EMPTY_RESUME, normalizeResume, resumeFileName, SAMPLE_RESUME, TEMPLATES,
+  ACCENTS, EMPTY_RESUME, normalizeResume, resumeFileName, SAMPLE_RESUME, TEMPLATES,
   type Education, type Experience, type Project, type ResumeData, type SkillGroup, type TemplateId,
 } from '../../lib/resume';
 
@@ -62,6 +62,8 @@ function Repeat<T>({ items, render, onChange, blank, addLabel, max = 10 }: { ite
 export default function ResumeBuilder() {
   const [data, setData] = useState<ResumeData>(SAMPLE_RESUME);
   const [template, setTemplate] = useState<TemplateId>('classic');
+  const [accent, setAccent] = useState(ACCENTS[0].hex);
+  const [experienceFirst, setExperienceFirst] = useState(false);
   const [pdf, setPdf] = useState<{ url: string; pages: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -75,6 +77,8 @@ export default function ResumeBuilder() {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null');
       if (saved?.data) setData(normalizeResume(saved.data));
       if (saved?.template && TEMPLATES.some((t) => t.id === saved.template)) setTemplate(saved.template);
+      if (saved?.accent && ACCENTS.some((a) => a.hex === saved.accent)) setAccent(saved.accent);
+      if (typeof saved?.experienceFirst === 'boolean') setExperienceFirst(saved.experienceFirst);
     } catch { /* storage unavailable */ }
     const nav = navigator as Navigator & { pdfViewerEnabled?: boolean };
     setInline(nav.pdfViewerEnabled !== false && !/Android|iPhone|iPad/i.test(navigator.userAgent));
@@ -82,8 +86,8 @@ export default function ResumeBuilder() {
   }, []);
   useEffect(() => {
     if (!loaded.current) return;
-    try { localStorage.setItem(KEY, JSON.stringify({ data, template })); } catch { /* ignore */ }
-  }, [data, template]);
+    try { localStorage.setItem(KEY, JSON.stringify({ data, template, accent, experienceFirst })); } catch { /* ignore */ }
+  }, [data, template, accent, experienceFirst]);
 
   // Rebuild the PDF shortly after typing stops.
   useEffect(() => {
@@ -91,7 +95,7 @@ export default function ResumeBuilder() {
       setBusy(true);
       try {
         const { buildResumePdf } = await import('../../lib/resume-pdf');
-        const out = await buildResumePdf(data, template);
+        const out = await buildResumePdf(data, template, { accent, experienceFirst });
         const url = URL.createObjectURL(new Blob([out.bytes], { type: 'application/pdf' }));
         if (lastUrl.current) URL.revokeObjectURL(lastUrl.current);
         lastUrl.current = url;
@@ -104,7 +108,7 @@ export default function ResumeBuilder() {
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [data, template]);
+  }, [data, template, accent, experienceFirst]);
 
   const set = <K extends keyof ResumeData>(k: K, v: ResumeData[K]) => setData((d) => ({ ...d, [k]: v }));
   const nonLatin = useMemo(() => NON_LATIN.test(JSON.stringify(data)), [data]);
@@ -123,8 +127,8 @@ export default function ResumeBuilder() {
     <div class="grid gap-6 font-sans lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" data-tool="resume">
       <div class="grid content-start gap-4">
         <fieldset class="grid gap-2">
-          <legend class="mb-2 text-sm font-semibold">Template</legend>
-          <div class="grid gap-2 sm:grid-cols-3">
+          <legend class="mb-2 text-sm font-semibold">Template <span class="font-normal text-muted">({TEMPLATES.length} designs, all ATS-friendly)</span></legend>
+          <div class="grid max-h-[22rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
             {TEMPLATES.map((t) => (
               <label class={`cursor-pointer rounded-xl border bg-surface p-3 ${template === t.id ? 'border-accent ring-2 ring-accent/20' : 'border-line hover:border-accent'}`}>
                 <input type="radio" name="template" value={t.id} checked={template === t.id} onChange={() => setTemplate(t.id)} class="sr-only" data-testid={`tpl-${t.id}`} />
@@ -134,6 +138,25 @@ export default function ResumeBuilder() {
             ))}
           </div>
         </fieldset>
+
+        <div class="grid gap-3 rounded-xl border border-line bg-surface p-3 text-sm sm:grid-cols-2">
+          <div>
+            <p class="font-semibold">Colour</p>
+            {TEMPLATES.find((t) => t.id === template)?.colour ? (
+              <div class="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Accent colour">
+                {ACCENTS.map((a) => (
+                  <button type="button" role="radio" aria-checked={accent === a.hex} title={a.name} aria-label={a.name} data-testid={`accent-${a.id}`} onClick={() => setAccent(a.hex)} class={`h-7 w-7 rounded-full ring-offset-2 ${accent === a.hex ? 'ring-2 ring-ink' : ''}`} style={{ background: a.hex }} />
+                ))}
+              </div>
+            ) : (
+              <p class="mt-1 text-xs text-muted">This template is black and white. Pick Modern, Executive, Developer, Engineer, Elegant or Bold to choose a colour.</p>
+            )}
+          </div>
+          <label class="flex items-start gap-2">
+            <input type="checkbox" checked={experienceFirst} onChange={(e) => setExperienceFirst((e.target as HTMLInputElement).checked)} class="mt-1 accent-[var(--color-accent)]" data-testid="experience-first" />
+            <span><span class="font-semibold">Experience before projects</span><span class="block text-xs text-muted">Turn on if you have internships or work experience. Freshers usually lead with education and projects.</span></span>
+          </label>
+        </div>
 
         <div class="flex flex-wrap gap-2 text-sm">
           <button type="button" class="rounded-full border border-line px-3 py-1.5 hover:border-accent" onClick={() => { if (confirm('Replace everything with the example resume?')) setData(SAMPLE_RESUME); }}>Load example</button>

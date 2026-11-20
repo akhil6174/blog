@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib';
-import { dateRange, EMPTY_RESUME, lines, normalizeResume, prettyUrl, resumeFileName, SAMPLE_RESUME, TEMPLATES } from '../src/lib/resume';
+import { ACCENTS, dateRange, EMPTY_RESUME, lines, normalizeResume, prettyUrl, resumeFileName, SAMPLE_RESUME, TEMPLATES } from '../src/lib/resume';
 import { buildResumePdf } from '../src/lib/resume-pdf';
 
 describe('resume helpers', () => {
@@ -35,6 +35,13 @@ describe('resume PDF', () => {
       expect(doc.getTitle()).toBe('Your Name – Resume');
     });
   }
+  it('has ten templates and builds every one with each accent and with experience first', async () => {
+    expect(TEMPLATES.length).toBe(10);
+    for (const t of TEMPLATES) for (const a of ACCENTS) {
+      const { pages } = await buildResumePdf(SAMPLE_RESUME, t.id, { accent: a.hex, experienceFirst: a.id === 'navy' });
+      expect(pages).toBe(1);
+    }
+  });
   it('handles an empty form', async () => {
     const { pages } = await buildResumePdf(EMPTY_RESUME, 'classic');
     expect(pages).toBe(1);

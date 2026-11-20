@@ -1,5 +1,5 @@
 ---
-/** /students/resume-builder/ : free resume builder with three single-column templates and a real PDF download. */
+/** /students/resume-builder/ : free resume builder with ten single-column templates and a real PDF download. */
 import ToolPage from '../../../components/students/ToolPage.astro';
 import ResumeBuilder from '../../../islands/students/ResumeBuilder';
 
@@ -8,15 +8,16 @@ const faqs = [
   { q: 'Is the resume ATS-friendly?', a: 'All three templates are single-column with real, selectable text, standard section headings and no tables, columns or images, which is the layout applicant tracking systems read most reliably. Many online builders export a picture of your resume, which these systems cannot read.' },
   { q: 'Should a fresher’s resume be one page?', a: 'Yes, for internships and entry-level roles one page is the norm. The builder tells you when your resume runs onto a second page; shorten the bullet points or switch to the Compact template.' },
   { q: 'Where is my resume saved?', a: 'Only in this browser, on this device. If you clear your browser data or switch devices, it is gone, so keep the downloaded PDF.' },
-  { q: 'Which template should I choose?', a: 'Classic is the safest choice for most tech roles. Modern is a little more colourful and still scans well. Compact fits more on one page when you have many projects.' },
+  { q: 'Which template should I choose?', a: 'Classic is the safest choice for most tech roles. Developer suits software jobs, Academic suits research and higher-studies applications, and Compact fits more on one page when you have many projects. All ten use one column and real text, so every one of them is ATS-friendly.' },
+  { q: 'Can I change the colour or the order of sections?', a: 'Yes. Six templates let you pick an accent colour (purple, navy, teal, green, maroon or charcoal), and any template can put experience before projects if you already have internships.' },
 ];
 ---
 
 <ToolPage
   title="Resume builder"
   seoTitle="Free Resume Builder for Freshers and BTech Students (ATS-Friendly PDF)"
-  description="Free resume builder for BTech students and freshers: fill in your details, pick a Classic, Modern or Compact template and download an ATS-friendly PDF. No sign-up, nothing uploaded."
-  intro="Fill in your details, choose a template and download your resume as a PDF. The preview updates as you type. Nothing leaves your browser, and there is no sign-up or watermark."
+  description="Free resume builder for BTech students and freshers: fill in your details, pick from ten templates (Classic, Modern, Developer, Executive and more) and download an ATS-friendly PDF. No sign-up, nothing uploaded."
+  intro="Fill in your details, choose one of ten templates and a colour, and download your resume as a PDF. The preview updates as you type. Nothing leaves your browser, and there is no sign-up or watermark."
   faqs={faqs}
 >
   <ResumeBuilder client:load />

@@ -25,13 +25,33 @@ export type ResumeData = {
   certifications: string;
 };
 
-export type TemplateId = 'classic' | 'modern' | 'compact';
+export type TemplateId = 'classic' | 'modern' | 'compact' | 'executive' | 'minimal' | 'developer' | 'engineer' | 'academic' | 'elegant' | 'bold';
 
-export const TEMPLATES: { id: TemplateId; name: string; description: string }[] = [
-  { id: 'classic', name: 'Classic', description: 'Serif type, centred name, thin lines between sections. The traditional look most tech students use.' },
-  { id: 'modern', name: 'Modern', description: 'Clean sans-serif with purple section headings. Easy to scan.' },
-  { id: 'compact', name: 'Compact', description: 'Tighter spacing and smaller type to fit everything on one page.' },
+/** Every template is single-column with real text (ATS-friendly). `colour` marks templates that use the accent colour. */
+export const TEMPLATES: { id: TemplateId; name: string; description: string; colour: boolean }[] = [
+  { id: 'classic', name: 'Classic', description: 'Serif, centred name, lines between sections. The traditional look most tech students use.', colour: false },
+  { id: 'modern', name: 'Modern', description: 'Clean sans-serif with coloured headings and links.', colour: true },
+  { id: 'compact', name: 'Compact', description: 'Smaller type and tight spacing to fit a lot on one page.', colour: false },
+  { id: 'executive', name: 'Executive', description: 'Serif with a capitalised name and a double line under the header. Formal and confident.', colour: true },
+  { id: 'minimal', name: 'Minimal', description: 'No lines, lots of white space, quiet headings. Calm and modern.', colour: false },
+  { id: 'developer', name: 'Developer', description: 'Monospace headings like code comments, sans-serif text. Made for software roles.', colour: true },
+  { id: 'engineer', name: 'Engineer', description: 'Bold headings with a coloured bar on the left. Strong and structured.', colour: true },
+  { id: 'academic', name: 'Academic', description: 'Serif, left-aligned, short underlines. Suits research and higher-studies applications.', colour: false },
+  { id: 'elegant', name: 'Elegant', description: 'Serif with centred headings and a coloured name.', colour: true },
+  { id: 'bold', name: 'Bold', description: 'Large name and headings on a light coloured band. Stands out while staying readable.', colour: true },
 ];
+
+/** Accent colours students can pick for the templates that use colour (all dark enough to print and read). */
+export const ACCENTS: { id: string; name: string; hex: string }[] = [
+  { id: 'purple', name: 'Purple', hex: '#6a5cb1' },
+  { id: 'navy', name: 'Navy', hex: '#1f3a68' },
+  { id: 'teal', name: 'Teal', hex: '#0f6b6b' },
+  { id: 'green', name: 'Green', hex: '#2f6b2f' },
+  { id: 'maroon', name: 'Maroon', hex: '#8a2b3d' },
+  { id: 'charcoal', name: 'Charcoal', hex: '#333740' },
+];
+
+export type ResumeOptions = { accent?: string; experienceFirst?: boolean };
 
 /** Example content shown the first time, clearly an example (the name says so). */
 export const SAMPLE_RESUME: ResumeData = {
