@@ -1,0 +1,34 @@
+---
+/** /students/resume-builder/ : free resume builder with three single-column templates and a real PDF download. */
+import ToolPage from '../../../components/students/ToolPage.astro';
+import ResumeBuilder from '../../../islands/students/ResumeBuilder';
+
+const faqs = [
+  { q: 'Is this resume builder free?', a: 'Yes. There is no sign-up, no watermark and no limit on downloads. The PDF is made in your browser and your details are not uploaded to our server.' },
+  { q: 'Is the resume ATS-friendly?', a: 'All three templates are single-column with real, selectable text, standard section headings and no tables, columns or images, which is the layout applicant tracking systems read most reliably. Many online builders export a picture of your resume, which these systems cannot read.' },
+  { q: 'Should a fresher’s resume be one page?', a: 'Yes, for internships and entry-level roles one page is the norm. The builder tells you when your resume runs onto a second page; shorten the bullet points or switch to the Compact template.' },
+  { q: 'Where is my resume saved?', a: 'Only in this browser, on this device. If you clear your browser data or switch devices, it is gone, so keep the downloaded PDF.' },
+  { q: 'Which template should I choose?', a: 'Classic is the safest choice for most tech roles. Modern is a little more colourful and still scans well. Compact fits more on one page when you have many projects.' },
+];
+---
+
+<ToolPage
+  title="Resume builder"
+  seoTitle="Free Resume Builder for Freshers and BTech Students (ATS-Friendly PDF)"
+  description="Free resume builder for BTech students and freshers: fill in your details, pick a Classic, Modern or Compact template and download an ATS-friendly PDF. No sign-up, nothing uploaded."
+  intro="Fill in your details, choose a template and download your resume as a PDF. The preview updates as you type. Nothing leaves your browser, and there is no sign-up or watermark."
+  faqs={faqs}
+>
+  <ResumeBuilder client:load />
+  <Fragment slot="explain">
+    <h2>What makes a good tech resume for freshers</h2>
+    <ul>
+      <li><strong>Projects first.</strong> Without much work experience, projects show what you can build. Put two or three of your best ones near the top, each with a link to the code.</li>
+      <li><strong>Start every point with a verb and add a number.</strong> "Built", "reduced", "designed"; then the result: users, speed, accuracy, time saved.</li>
+      <li><strong>Group your skills.</strong> Languages, frameworks and tools on separate lines are easier to scan than one long list.</li>
+      <li><strong>Keep it to one page</strong>, in one column, with your name, phone, email, GitHub and LinkedIn at the top.</li>
+      <li><strong>Match the job post.</strong> Use the same words for skills the job asks for, but only skills you can talk about in an interview.</li>
+    </ul>
+    <p>Want projects worth putting on it? Browse the <a href="/articles/?category=careers-in-tech">careers articles</a>, or check your <a href="/students/cgpa-to-percentage/">CGPA as a percentage</a> for application forms.</p>
+  </Fragment>
+</ToolPage>

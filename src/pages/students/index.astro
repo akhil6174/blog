@@ -1,7 +1,7 @@
 ---
 /**
- * /students/ : the Students section hub. Free tools for college students (attendance, SGPA/CGPA, CGPA to
- * percentage), articles for students by topic, and how to write for TrutiAI. Static page.
+ * /students/ : the Students section hub. Free tools for college students (resume builder, attendance, SGPA/CGPA,
+ * CGPA to percentage), articles for students by topic, and how to write for TrutiAI. Static page.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { STUDENT_TOOLS } from '../../lib/students';
@@ -16,12 +16,12 @@ const jsonLd = [
 const learn = CATEGORIES.filter((c) => ['careers-in-tech', 'ai-for-developers', 'web-development'].includes(c.slug));
 ---
 
-<BaseLayout title="Free tools and guides for engineering students" description="Free tools for BTech and college students: attendance calculator, SGPA and CGPA calculator, CGPA to percentage converter, plus practical tech articles and a place to publish your own." jsonLd={jsonLd} full>
+<BaseLayout title="Free tools and guides for engineering students" description="Free tools for BTech and college students: resume builder, attendance calculator, SGPA and CGPA calculator, CGPA to percentage converter, plus practical tech articles and a place to publish your own." jsonLd={jsonLd} full>
   <section class="border-b border-line bg-tint">
     <div class="mx-auto max-w-6xl px-4 py-14 md:py-20">
       <p class="font-sans text-sm font-semibold text-accent">For BTech and college students</p>
       <h1 class="mt-3 max-w-3xl font-sans text-4xl font-bold leading-tight tracking-tight md:text-5xl">Tools and guides for <span class="text-accent">engineering students</span></h1>
-      <p class="mt-5 max-w-2xl font-serif text-lg text-muted md:text-xl">Check your attendance before you skip a class, work out your SGPA and CGPA, convert them to a percentage for placement forms, and learn from practical articles written by developers and students.</p>
+      <p class="mt-5 max-w-2xl font-serif text-lg text-muted md:text-xl">Build an ATS-friendly resume, check your attendance before you skip a class, work out your SGPA and CGPA, convert them to a percentage for placement forms, and learn from practical articles written by developers and students.</p>
       <p class="mt-6 flex flex-wrap gap-3 font-sans text-sm">
         {STUDENT_TOOLS.map((t) => <a href={t.href} class="rounded-full border border-line bg-surface px-4 py-2 font-semibold text-ink hover:border-accent hover:text-accent">{t.name}</a>)}
       </p>
@@ -32,7 +32,7 @@ const learn = CATEGORIES.filter((c) => ['careers-in-tech', 'ai-for-developers', 
     <section class="py-14" aria-labelledby="tools-title">
       <h2 id="tools-title" class="font-sans text-2xl font-bold tracking-tight md:text-3xl">Free student tools</h2>
       <p class="mt-2 max-w-2xl font-sans text-muted">They run in your browser, need no sign-in and work on your phone.</p>
-      <div class="mt-8 grid gap-4 md:grid-cols-3">
+      <div class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {STUDENT_TOOLS.map((t) => (
           <a href={t.href} class="group flex flex-col rounded-2xl border border-line bg-surface p-6 font-sans transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg">
             <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-tint text-accent transition group-hover:bg-accent group-hover:text-white">
