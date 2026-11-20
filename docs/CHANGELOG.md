@@ -5,6 +5,53 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-20 · Writer dashboard, ambassador codes, profile links and photo (D-041)
+
+- `/me` is now a dashboard: this month's articles published, views, upvotes and comments (with all-time totals), and four bar charts for the last 12 months (India time). Charts are plain SVG drawn on the server (`BarChart.astro`), with a hidden table for screen readers.
+- Campus ambassadors see their college, how many students from it have joined (profile college matches, any letter case, not counting themselves), how many joined this month, and a joins-per-month chart.
+- Ambassador codes: on `/admin/ambassadors` the editor creates a one-time `AMB-XXXX-XXXX` code for an open college (copy button, replace). The student enters it under "Have a Campus Ambassador code?" on `/me` and becomes the ambassador; a reader becomes a writer straight away (the cached session cookie is cleared). Assigning by email still works. The admin table shows students joined per college.
+- Edit profile: change or remove the profile photo (cropped to a square and shrunk to 400 px in the browser, uploaded as an avatar, any signed-in user, max 400 KB), GitHub and LinkedIn (username or URL, saved as a clean link), and college picked from the college list. An ambassador's college is locked to the college they represent. GitHub and LinkedIn show on the public writer page.
+- Migration `0007_profiles_codes`: `colleges.ambassador_code` (unique), `user.github`, `user.linkedin`.
+- `src/pages/api/me.ts` moved to `src/pages/api/me/index.ts`; new `POST /api/me/ambassador`.
+- Tests: `tests/profile.test.ts`, `tests/e2e/dashboard.e2e.mjs` (24 browser checks).
+
+### 2026-11-20 · Campus ambassadors (D-040)
+
+- `/admin/ambassadors` (linked from `/admin` and the account menu): add colleges one per line (optionally `Name | City | State`, up to 1,000 at a time), assign one ambassador per college by their Google email, mark certificates sent, remove ambassadors, delete open colleges. One ambassador per college and one college per ambassador are enforced by the database.
+- Ambassadors get a **Campus Ambassador · college** badge on their public writer page and on `/me`, a notification, and their profile college filled in.
+- Public `/students/campus-ambassadors/`: the role, benefits (certificate, name on the site, internship priority), how to get in touch (email; recruitment is on LinkedIn), current ambassadors with their colleges, and colleges still looking for one, grouped by state. Linked from the Students hub.
+- Migration `drizzle/0006_colleges.sql`. Tests: `tests/ambassadors.test.ts` (2), `tests/e2e/ambassadors.e2e.mjs` (22).
+
+### 2026-11-20 · Resume builder: ten templates, colours and section order
+
+- Seven new templates: **Executive** (serif, capitalised name, double rule), **Minimal** (no rules, airy), **Developer** (monospace `// headings`), **Engineer** (coloured bar beside headings), **Academic** (serif, short underlines), **Elegant** (serif, centred headings, coloured name) and **Bold** (large name, headings on a light colour band), plus Classic, Modern and Compact. All single-column with real text.
+- Students can pick an accent colour (purple, navy, teal, green, maroon, charcoal) for the six colour templates, and put experience before projects. Choices are saved with the resume.
+- The renderer is now a set of style options (`src/lib/resume-pdf.ts`); tests cover every template with every colour (unit 19, browser 29).
+
+### 2026-11-20 · Resume builder (D-039)
+
+- `/students/resume-builder/`: fill in a form, see the real PDF update as you type, pick **Classic** (serif, centred), **Modern** (sans-serif, purple headings) or **Compact** (tighter, fits more on one page), and download the PDF. Single-column layouts with selectable text and clickable links (ATS-friendly). No sign-up; the resume is saved only in the browser and never uploaded.
+- Warns when the resume runs past one page, and when it contains characters the PDF fonts cannot show (for example Hindi). Phones get an "Open preview" link instead of an inline viewer.
+- New dependency `pdf-lib` (loaded only when a preview or download is made); lock file regenerated.
+- Added to the Students hub and the tool side panel. Tests: `tests/resume.test.ts` (10), `tests/e2e/resume.e2e.mjs` (17).
+
+### 2026-11-20 · Students section with free tools (D-038)
+
+- New `/students/` hub (linked as "Students" in the header and footer) with three free tools that run in the browser, need no sign-in and work on phones:
+  - `/students/attendance-calculator/`: attendance, classes you can miss at a target (75% by default), classes needed to recover, and a plan for the classes left this semester.
+  - `/students/cgpa-calculator/`: credit-weighted SGPA from subjects (UGC 10-point grades) and CGPA from semesters; entries are remembered in the browser.
+  - `/students/cgpa-to-percentage/`: CGPA × 10, VTU's (CGPA − 0.75) × 10, CGPA × 9.5 and a custom multiplier, with a note to use the university's own rule.
+- Each tool page has a worked example, visible FAQs and FAQ, tool and breadcrumb structured data. The maths is in `src/lib/student-tools.ts` with unit tests.
+- New tests: `tests/student-tools.test.ts` (12) and `tests/e2e/students.e2e.mjs` (21).
+
+### 2026-11-20 · Docs: how TrutiAI was built
+
+- New `docs/HOW-IT-WAS-BUILT.md`: what was built from 12 to 19 November, how each Cloudflare service, GitHub and every framework is used, the main flows (reading, community publishing, editorial publishing, images, deploys, internships) and the free-tier limits.
+
+### 2026-11-19 · robots.txt no longer blocks writer profiles
+
+- `Disallow: /write` matched every path starting with "write", so Google could not crawl writer profiles (`/writer/<handle>/`), which Search Console reported as "Blocked by robots.txt". Rules now end in `/` or `$` (`/write/`, `/write$`, `/search/`, `/search$`).
+
 ### 2026-11-17 · Search engine fixes: redirects for removed pages, clean sitemap
 
 - Permanent (301) redirects for addresses Google still has: `/blog/welcome-to-trutiai/` → `/about/`, `/og/welcome-to-trutiai.png` → `/og-default.png`, `/tag/meta/` and `/tag/announcements/` → `/articles/` (`src/lib/legacy.ts`; add a line there whenever a public page is removed).

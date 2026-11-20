@@ -1,7 +1,7 @@
 /**
- * POST /api/media?kind=cover|body  (body: the image bytes)
- * Signed-in writers only. Validates the real file type and size, enforces a daily limit, stores the file in KV
- * and returns its public path. Compression and cropping already happened in the browser (no image work here,
+ * POST /api/media?kind=cover|body|avatar  (body: the image bytes)
+ * Signed-in writers (profile photos: any signed-in account). Validates the real file type and size, enforces a
+ * daily limit, stores the file in KV and returns its public path. Compression and cropping already happened in the browser (no image work here,
  * so the Worker stays far below its CPU limit).
  */
 import type { APIRoute } from 'astro';
@@ -16,7 +16,9 @@ const json = (b: unknown, status = 200) => Response.json(b, { status, headers: {
 export const POST: APIRoute = async ({ request, url, locals }) => {
   const user = locals.user;
   if (!user) return json({ error: 'Please sign in.' }, 401);
-  if (!(await canWrite(user))) return json({ error: 'Your account cannot upload images yet.' }, 403);
+  // Profile photos: any signed-in account (readers too); article images: writers only.
+  const avatar = url.searchParams.get('kind') === 'avatar';
+  if (!avatar && !(await canWrite(user))) return json({ error: 'Your account cannot upload images yet.' }, 403);
 
   const declared = Number(request.headers.get('content-length') ?? 0);
   if (declared > MEDIA_MAX_BYTES) return json({ error: 'Image is too large (max 2 MB after compression).' }, 413);
@@ -31,7 +33,8 @@ export const POST: APIRoute = async ({ request, url, locals }) => {
   const used = Number((await env.CACHE.get(countKey)) ?? 0);
   if (!admin && used >= MEDIA_DAILY_LIMIT) return json({ error: `Upload limit reached (${MEDIA_DAILY_LIMIT} images per day).` }, 429);
 
-  const kind = url.searchParams.get('kind') === 'cover' ? 'cover' : 'body';
+  const kind = avatar ? 'avatar' : url.searchParams.get('kind') === 'cover' ? 'cover' : 'body';
+  if (avatar && buf.byteLength > 400_000) return json({ error: 'Profile photo is too large (max 400 KB after compression).' }, 413);
   const id = newId();
   await env.CACHE.put(`media:${id}`, buf, { metadata: { type, size: buf.byteLength, owner: user.id, kind, at: Date.now() } });
   if (!admin) await env.CACHE.put(countKey, String(used + 1), { expirationTtl: 2 * 86400 });

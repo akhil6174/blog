@@ -1,22 +1,35 @@
 ---
 /**
- * /me : the writer's dashboard. Totals, articles grouped by stage (needs attention, drafts, in review, scheduled,
+ * /me : the writer's dashboard. This month and all-time numbers with monthly charts (views, upvotes, comments,
+ * articles published), the Campus Ambassador section (students from their college who joined), articles grouped by stage (needs attention, drafts, in review, scheduled,
  * published, closed, trash), withdraw / trash / restore, profile editing, sign out, delete account.
  * Links to notifications and saved articles. When the Campus Writers Programme is on: earnings ledger, the
- * remaining reward allowance and this month's standing.
+ * remaining reward allowance and this month's standing. Profile editor: photo, name, bio, college (from the list),
+ * interests, website, GitHub, LinkedIn; ambassador code.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { db, notifications, posts, raises, user as userTable } from '../../lib/db';
 import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { ledgerFor, monthLabel, monthOf, monthRange, programmeConfig } from '../../lib/programme';
+import BarChart from '../../components/charts/BarChart.astro';
+import { writerStats } from '../../lib/dashboard';
+import { lastMonths, monthShort } from '../../lib/months';
+import { ambassadorStats, collegeNames } from '../../lib/ambassadors';
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
 const d = db();
 const mine = await d.select().from(posts).where(eq(posts.authorId, user.id)).orderBy(desc(posts.updatedAt)).limit(200);
-const profile = await d.query.user.findFirst({ where: eq(userTable.id, user.id), columns: { name: true, bio: true, website: true, handle: true, college: true, interests: true } });
+const profile = await d.query.user.findFirst({ where: eq(userTable.id, user.id), columns: { name: true, bio: true, website: true, handle: true, college: true, interests: true, github: true, linkedin: true, image: true, role: true } });
 const [{ unread }] = await d.select({ unread: sql<number>`count(*)` }).from(notifications).where(and(eq(notifications.userId, user.id), isNull(notifications.readAt)));
+const stats = await writerStats(mine);
+const amb = await ambassadorStats(user.id);
+const ambassadorOf = amb?.college ?? null;
+const months = lastMonths(12);
+const ambSeries = amb ? months.map((key) => ({ key, label: monthShort(key), value: amb.byMonth.get(key) ?? 0 })) : [];
+const colleges = await collegeNames();
+const photo = profile?.image ?? user.image;
 const cfg = await programmeConfig();
 const isAdmin = user.role === 'admin';
 const showProgramme = (cfg.open || isAdmin) && mine.some((p) => p.kind === 'community');
@@ -41,26 +54,19 @@ const GROUPS: { id: string; title: string; hint: string; statuses: string[] }[] 
 ];
 const grouped = GROUPS.map((g) => ({ ...g, items: mine.filter((p) => g.statuses.includes(p.status)) })).filter((g) => g.items.length > 0);
 const label: Record<string, string> = { scheduled: 'Scheduled', draft: 'Draft', submitted: 'Checking', checking: 'Checking', pending_review: 'Awaiting editor', changes_requested: 'Changes requested', published: 'Published', rejected: 'Declined', hidden: 'Hidden', unpublished: 'Unpublished', trashed: 'In trash' };
-const published = mine.filter((p) => p.status === 'published');
-const totals = {
-  published: published.length,
-  views: published.reduce((n, p) => n + p.viewsCount, 0),
-  raises: published.reduce((n, p) => n + p.raisesCount, 0),
-  comments: published.reduce((n, p) => n + p.commentsCount, 0),
-  words: published.reduce((n, p) => n + p.wordCount, 0),
-};
 const viewUrl = (p: Row) => (p.kind === 'editorial' ? `/blog/${p.slug}/` : `/p/${p.slug}/`);
 const fmt = (n: number) => n.toLocaleString('en-IN');
 ---
 
-<BaseLayout title="My articles" description="Your articles on TrutiAI." noindex>
-  <div class="mx-auto max-w-3xl font-sans">
+<BaseLayout title="My dashboard" description="Your articles and numbers on TrutiAI." noindex>
+  <div class="mx-auto max-w-4xl font-sans">
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        {user.image && <img src={user.image} alt="" width="40" height="40" class="h-10 w-10 rounded-full" referrerpolicy="no-referrer" />}
+        {photo ? <img src={photo} alt="" width="48" height="48" class="h-12 w-12 rounded-full object-cover" referrerpolicy="no-referrer" /> : <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent text-lg font-bold text-white">{(profile?.name ?? user.name).charAt(0).toUpperCase()}</span>}
         <div>
           <h1 class="text-xl font-bold">{profile?.name ?? user.name}</h1>
-          <p class="text-sm text-muted">{user.email} · role: {user.role}</p>
+          {ambassadorOf && <a href="/students/campus-ambassadors/" class="mt-1 inline-block rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent-strong">Campus Ambassador · {ambassadorOf}</a>}
+          <p class="text-sm text-muted">{user.email} · role: {profile?.role ?? user.role}</p>
         </div>
       </div>
       <div class="flex gap-2 text-sm">
@@ -73,17 +79,61 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
       <a href="/me/notifications/" class="rounded border border-line px-3 py-1.5">Notifications{Number(unread) > 0 && <span class="ml-1.5 rounded-full bg-accent px-1.5 text-xs font-semibold text-white">{Number(unread)}</span>}</a>
       <a href="/me/saved/" class="rounded border border-line px-3 py-1.5">Saved articles</a>
       {showProgramme && <a href="#programme" class="rounded border border-line px-3 py-1.5">Earnings</a>}
-      <a href="#profile-title" class="rounded border border-line px-3 py-1.5">Profile</a>
+      {amb && <a href="#ambassador" class="rounded border border-line px-3 py-1.5">Ambassador</a>}
+      <a href="#articles" class="rounded border border-line px-3 py-1.5">Articles</a>
+      <a href="#profile-title" class="rounded border border-line px-3 py-1.5">Edit profile</a>
     </nav>
 
     <p id="flash" class="mt-4 min-h-5 text-sm text-accent" role="status"></p>
 
-    <section class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5" aria-label="Your totals">
-      {[['Published', totals.published], ['Views', totals.views], ['Raises', totals.raises], ['Comments', totals.comments], ['Words published', totals.words]].map(([k, v]) => (
-        <div class="rounded-lg border border-line bg-surface p-3"><p class="text-xl font-bold">{fmt(Number(v))}</p><p class="text-xs text-muted">{k}</p></div>
-      ))}
+    <section class="mt-2" aria-labelledby="month-title">
+      <h2 id="month-title" class="text-xs font-semibold uppercase tracking-wide text-muted">This month</h2>
+      <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="month-tiles">
+        {[['Articles published', stats.thisMonth.articles, stats.totals.articles], ['Views', stats.thisMonth.views, stats.totals.views], ['Upvotes', stats.thisMonth.upvotes, stats.totals.upvotes], ['Comments', stats.thisMonth.comments, stats.totals.comments]].map(([k, v, all]) => (
+          <div class="rounded-xl border border-line bg-surface p-4">
+            <p class="text-2xl font-bold tabular-nums">{fmt(Number(v))}</p>
+            <p class="text-xs text-muted">{k}</p>
+            <p class="mt-1 text-xs text-muted"><span class="font-semibold text-ink tabular-nums">{fmt(Number(all))}</span> all time</p>
+          </div>
+        ))}
+      </div>
     </section>
 
+    <section class="mt-6 grid gap-4 sm:grid-cols-2" aria-label="Last 12 months" data-testid="charts">
+      <BarChart title="Views" data={stats.months.views} total={stats.totals.views} note="Last 12 months" />
+      <BarChart title="Upvotes" data={stats.months.upvotes} total={stats.totals.upvotes} note="Last 12 months" />
+      <BarChart title="Comments" data={stats.months.comments} total={stats.totals.comments} note="Last 12 months" />
+      <BarChart title="Articles published" data={stats.months.articles} total={stats.totals.articles} note="Last 12 months" />
+    </section>
+
+    {amb ? (
+      <section id="ambassador" class="mt-10 rounded-2xl border border-accent/30 bg-tint p-5" aria-labelledby="amb-title">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="amb-title" class="text-lg font-bold">Campus Ambassador · {amb.college}</h2>
+          <p class="text-xs text-muted">{amb.since && `Since ${amb.since.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'long', year: 'numeric' })}`}{amb.certificateSentAt && ' · certificate sent'}</p>
+        </div>
+        <div class="mt-4 grid gap-4 sm:grid-cols-[14rem_1fr]">
+          <div class="grid content-start gap-3">
+            <div class="rounded-xl border border-line bg-surface p-4"><p class="text-3xl font-bold tabular-nums" data-testid="amb-students">{fmt(amb.students)}</p><p class="text-xs text-muted">students from {amb.college} on TrutiAI</p></div>
+            <div class="rounded-xl border border-line bg-surface p-4"><p class="text-2xl font-bold tabular-nums">{fmt(amb.byMonth.get(months[months.length - 1]) ?? 0)}</p><p class="text-xs text-muted">joined this month</p></div>
+          </div>
+          <BarChart title="Students who joined" data={ambSeries} note="Students whose profile names your college, by the month they joined" />
+        </div>
+        <p class="mt-3 text-xs text-muted">Students are counted when they sign in and choose {amb.college} as their college in their profile. Share the <a href="/students/" class="underline">student tools</a> and ask classmates to add their college.</p>
+      </section>
+    ) : (
+      <details id="ambassador" class="mt-8 rounded-xl border border-line bg-surface p-4 text-sm">
+        <summary class="cursor-pointer font-semibold">Have a Campus Ambassador code?</summary>
+        <form id="amb-code" class="mt-3 flex flex-wrap gap-2">
+          <label class="sr-only" for="amb-code-input">Ambassador code</label>
+          <input id="amb-code-input" name="code" required placeholder="AMB-XXXX-XXXX" class="w-48 rounded border border-line bg-page px-3 py-2 font-mono uppercase" data-testid="amb-code" />
+          <button class="rounded bg-accent px-4 py-2 font-semibold text-white">Become ambassador</button>
+        </form>
+        <p class="mt-2 text-xs text-muted">Codes are sent by TrutiAI to the student chosen for each college. <a href="/students/campus-ambassadors/" class="underline">About the programme</a></p>
+      </details>
+    )}
+
+    <h2 id="articles" class="mt-12 text-lg font-bold">Your articles</h2>
     {mine.length === 0 ? (
       <p class="mt-10 font-serif text-muted">Nothing yet. <a href="/write/" class="underline">Start writing</a>, or pick a template in the editor.</p>
     ) : grouped.map((g) => (
@@ -155,11 +205,27 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
       <h2 id="profile-title" class="text-xs font-semibold uppercase tracking-wide text-muted">Public profile</h2>
       <p class="mt-1 text-xs text-muted">Shown on {profile?.handle ? <a href={`/writer/${profile.handle}/`} class="underline">your writer page</a> : 'your writer page'} and next to your articles.</p>
       <form id="profile" class="mt-3 grid gap-3 rounded-lg border border-line bg-surface p-4 text-sm">
+        <div class="flex flex-wrap items-center gap-4">
+          <span id="photo-preview">{photo ? <img src={photo} alt="Your profile photo" width="72" height="72" class="h-18 w-18 rounded-full object-cover" style="width:72px;height:72px" referrerpolicy="no-referrer" /> : <span class="inline-flex items-center justify-center rounded-full bg-accent text-2xl font-bold text-white" style="width:72px;height:72px">{(profile?.name ?? user.name).charAt(0).toUpperCase()}</span>}</span>
+          <div class="grid gap-1">
+            <div class="flex flex-wrap gap-2">
+              <label class="cursor-pointer rounded border border-line px-3 py-1.5 font-semibold hover:border-accent">Change photo<input id="photo-file" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" data-testid="photo-file" /></label>
+              {photo && <button type="button" id="photo-remove" class="rounded border border-line px-3 py-1.5 text-red-700">Remove</button>}
+            </div>
+            <span id="photo-msg" class="text-xs text-muted">JPG, PNG or WebP. Cropped to a square and saved when you press Save profile.</span>
+          </div>
+          <input type="hidden" name="image" id="photo-value" />
+        </div>
         <label class="grid gap-1"><span class="font-semibold">Name</span><input name="name" required minlength="2" maxlength="60" value={profile?.name ?? user.name} class="rounded border border-line bg-page px-3 py-2" /></label>
         <label class="grid gap-1"><span class="font-semibold">Short bio</span><textarea name="bio" maxlength="300" rows="3" class="rounded border border-line bg-page px-3 py-2" placeholder="What you work on and write about, in one or two sentences.">{profile?.bio ?? ''}</textarea></label>
-        <label class="grid gap-1"><span class="font-semibold">College <span class="font-normal text-muted">(optional)</span></span><input name="college" maxlength="100" value={profile?.college ?? ''} class="rounded border border-line bg-page px-3 py-2" /></label>
+        <label class="grid gap-1"><span class="font-semibold">College <span class="font-normal text-muted">{amb ? '(set by your ambassador role)' : '(optional; pick from the list so your college’s ambassador counts you)'}</span></span><input name="college" maxlength="100" list="college-list" value={profile?.college ?? ''} readonly={!!amb} class="rounded border border-line bg-page px-3 py-2" data-testid="college" /></label>
+        <datalist id="college-list">{colleges.map((c) => <option value={c} />)}</datalist>
         <label class="grid gap-1"><span class="font-semibold">Interests <span class="font-normal text-muted">(comma-separated, up to 8)</span></span><input name="interests" maxlength="200" value={profile?.interests ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="Python, RAG, web development" /></label>
-        <label class="grid gap-1"><span class="font-semibold">Website or portfolio</span><input name="website" type="url" maxlength="200" value={profile?.website ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="https://github.com/you" /></label>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1"><span class="font-semibold">GitHub</span><input name="github" maxlength="200" value={profile?.github ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="username or github.com/username" data-testid="github" /></label>
+          <label class="grid gap-1"><span class="font-semibold">LinkedIn</span><input name="linkedin" maxlength="200" value={profile?.linkedin ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="linkedin.com/in/your-name" data-testid="linkedin" /></label>
+        </div>
+        <label class="grid gap-1"><span class="font-semibold">Website or portfolio</span><input name="website" type="url" maxlength="200" value={profile?.website ?? ''} class="rounded border border-line bg-page px-3 py-2" placeholder="https://your-portfolio.dev" /></label>
         <div><button class="rounded bg-accent px-4 py-2 font-semibold text-white">Save profile</button></div>
       </form>
     </section>
@@ -182,12 +248,49 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
       if (!r.ok) { say(d.error || 'Could not do that.', true); b.disabled = false; return; }
       say(d.message || 'Done.'); setTimeout(() => location.reload(), 500);
     }));
+    // Profile photo: crop to a centred square, shrink to 400 px, upload, then save with the profile.
+    const photoValue = document.getElementById('photo-value');
+    const photoMsg = document.getElementById('photo-msg');
+    document.getElementById('photo-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      photoMsg.textContent = 'Preparing photo…';
+      try {
+        const bmp = await createImageBitmap(file);
+        const side = Math.min(bmp.width, bmp.height);
+        const c = document.createElement('canvas'); c.width = c.height = 400;
+        c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 400, 400);
+        const blob = await new Promise((res) => c.toBlob(res, 'image/webp', 0.85));
+        const r = await fetch('/api/media?kind=avatar', { method: 'POST', headers: { 'content-type': blob.type }, body: blob });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { photoMsg.textContent = d.error || 'Could not upload the photo.'; return; }
+        photoValue.value = d.url;
+        document.getElementById('photo-preview').innerHTML = `<img src="${d.url}" alt="Your new profile photo" style="width:72px;height:72px" class="rounded-full object-cover">`;
+        photoMsg.textContent = 'Photo ready. Press Save profile to keep it.';
+      } catch { photoMsg.textContent = 'That image could not be read. Try a JPG or PNG.'; }
+    });
+    document.getElementById('photo-remove')?.addEventListener('click', () => {
+      photoValue.value = '__remove__';
+      document.getElementById('photo-preview').innerHTML = '<span class="inline-flex items-center justify-center rounded-full bg-page text-muted" style="width:72px;height:72px">–</span>';
+      photoMsg.textContent = 'Photo will be removed when you press Save profile.';
+    });
+    document.getElementById('amb-code')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await fetch('/api/me/ambassador', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: new FormData(e.target).get('code') }) });
+      const d = await r.json().catch(() => ({}));
+      say(r.ok ? d.message : d.error || 'Could not use that code.', !r.ok);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (r.ok) setTimeout(() => location.reload(), 1200);
+    });
     document.getElementById('profile')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = Object.fromEntries(new FormData(e.target).entries());
+      if (body.image === '') delete body.image; else if (body.image === '__remove__') body.image = '';
       const r = await fetch('/api/me', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
       say(r.ok ? d.message || 'Saved.' : d.error || 'Could not save.', !r.ok);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (r.ok && body.image !== undefined) setTimeout(() => location.reload(), 800);
     });
     document.getElementById('delete-account')?.addEventListener('click', async () => {
       if (!confirm('Delete your account and unpublish your articles? This cannot be undone.')) return;

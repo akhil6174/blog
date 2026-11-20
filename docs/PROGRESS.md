@@ -177,6 +177,17 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] 301 redirects for removed pages; sitemap cleaned to indexable pages (2026-11-17)
 - [ ] Owner: in Google Search Console, submit both sitemaps and request indexing for the home page and each article (SETUP-GUIDE §6)
 
+## Students section (D-038)
+
+- [x] Hub page and three tools: attendance, SGPA/CGPA, CGPA to percentage (2026-11-20)
+- [x] Tests: unit 40/40 (12 new), students 21/21, essentials 33/33
+- [x] Resume builder with Classic, Modern and Compact templates and PDF download (2026-11-20; resume 10 unit + 17 browser checks)
+- [x] Resume builder: 10 templates, accent colours, experience-first order (2026-11-20)
+- [x] Campus ambassadors: colleges list, one per college, badge, public page, certificates (2026-11-20; 22 browser checks)
+- [x] Writer dashboard with monthly charts, ambassador codes and students-joined counts, profile photo/GitHub/LinkedIn (2026-11-20; 24 browser checks)
+- [ ] Owner: apply migrations `0006_colleges` and `0007_profiles_codes` remotely before pushing; add colleges on /admin/ambassadors
+- [ ] Next ideas: more universities' conversion rules (after checking official sources), placement prep hub, AI helpers
+
 ## Verification log
 
 | Date | Check | Result |

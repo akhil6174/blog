@@ -69,6 +69,7 @@ await p.click('.rail-btn[aria-label^="Image"]');
 await p.waitForSelector('[role="dialog"]');
 await p.keyboard.press('Escape');
 await p.waitForSelector('[role="dialog"]', { state: 'detached' });
+await p.waitForFunction(() => window.__editor.isFocused);
 await p.keyboard.type('AFTER-CANCEL');
 const cancelled = await p.evaluate(() => window.__editor.getJSON().content[10]?.content?.map((x) => x.text).join('') ?? '');
 check('cancel: cursor stays at the end of paragraph 11', cancelled.endsWith('AFTER-CANCEL'), cancelled);

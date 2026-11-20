@@ -136,7 +136,8 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/sitemap-community.xml.ts` | Sitemap for indexable community posts |
 | `src/pages/admin/index.astro` | Editor dashboard |
 | `src/pages/api/auth/[...all].ts` | Better Auth routes |
-| `src/pages/api/me.ts` | Profile editing (name, bio, website) and account deletion |
+| `src/pages/api/me/index.ts` | Profile editing (name, bio, college, links, GitHub, LinkedIn, photo) and account deletion |
+| `src/pages/api/me/ambassador.ts` | Redeem a Campus Ambassador code |
 | `src/pages/api/posts.ts` | Save draft / submit |
 | `src/pages/api/posts/[id]/status.ts` | Submission status JSON |
 | `src/pages/api/posts/[id]/revisions.ts` | Saved versions of an article (list, or one for restoring); owner or admin only |
@@ -217,6 +218,40 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/pages/api/search.ts` | Live search for the header box: up to 6 matches as JSON |
 | `src/components/LatestCommunity.astro` | Home page server island: latest community articles while the community is open |
 | `src/lib/legacy.ts` | Removed public URLs and where they now redirect (301) |
+
+## Students section (D-038)
+
+| File | Purpose |
+|---|---|
+| `src/lib/student-tools.ts` | Attendance, SGPA, CGPA and CGPA-to-percentage maths (pure, unit tested) |
+| `src/lib/students.ts` | The list of student tools (hub, side panel) |
+| `src/lib/seo.ts` | Also: FAQ and web-tool structured data helpers |
+| `src/components/students/ToolPage.astro` | Shared frame for tool pages: breadcrumb, intro, tool, explanation, FAQs, other tools |
+| `src/islands/students/AttendanceCalculator.tsx` | Attendance calculator |
+| `src/islands/students/GpaCalculator.tsx` | SGPA and CGPA calculator (remembers entries in the browser) |
+| `src/islands/students/PercentConverter.tsx` | CGPA to percentage converter |
+| `src/islands/students/ResumeBuilder.tsx` | Resume builder form, live PDF preview and download |
+| `src/lib/resume.ts` | Resume data model, templates list, example resume, helpers |
+| `src/lib/resume-pdf.ts` | Draws the Classic, Modern and Compact templates into a PDF with pdf-lib |
+| `src/pages/students/resume-builder/index.astro` | Resume builder page with tips and FAQs |
+| `tests/resume.test.ts` | Unit tests for the resume helpers and PDFs |
+| `tests/e2e/resume.e2e.mjs` | Browser test of the resume builder |
+| `drizzle/0006_colleges.sql` | Migration: `colleges` table (one ambassador per college) |
+| `src/lib/ambassadors.ts` | Colleges and ambassadors: add (pasted lists), assign, remove, certificates, public list, badge |
+| `src/pages/admin/ambassadors.astro` | Admin page for colleges and ambassadors |
+| `src/pages/api/admin/ambassadors.ts` | Admin actions for colleges and ambassadors |
+| `drizzle/0007_profiles_codes.sql` | Migration: ambassador codes, GitHub and LinkedIn on the user |
+| `src/lib/months.ts` | India-time month keys and labels for charts |
+| `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
+| `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
+| `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
+| `tests/profile.test.ts`, `tests/e2e/dashboard.e2e.mjs` | Tests for profile links, the dashboard, codes and photo upload |
+| `src/pages/students/campus-ambassadors/index.astro` | Public Campus Ambassadors page |
+| `tests/ambassadors.test.ts`, `tests/e2e/ambassadors.e2e.mjs` | Tests for the college list parser and the ambassador flow |
+| `src/pages/students/index.astro` | Students hub |
+| `src/pages/students/attendance-calculator/index.astro`, `cgpa-calculator/index.astro`, `cgpa-to-percentage/index.astro` | Tool pages |
+| `tests/student-tools.test.ts` | Unit tests for the maths |
+| `tests/e2e/students.e2e.mjs` | Browser test of the hub and all three tools |
 | `src/pages/blog/welcome-to-trutiai/index.ts`, `src/pages/tag/meta/index.ts`, `src/pages/tag/announcements/index.ts`, `src/pages/og/welcome-to-trutiai.png.ts` | 301 redirects for removed pages (see `src/lib/legacy.ts`) |
 
 ## `scripts/`
@@ -239,6 +274,7 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 
 | File | What it does |
 |---|---|
+| `docs/HOW-IT-WAS-BUILT.md` | Plain-language tour: what was built day by day, how Cloudflare, GitHub and each framework are used, main flows, free-tier limits |
 | `docs/ARCHITECTURE.md` | How the system works: layers, rendering rule, bindings, request flows, data model |
 | `docs/DECISIONS.md` | Architecture decision records D-001 onward, including rejected suggestions and why |
 | `docs/CHANGELOG.md` | Dated history of changes, grouped Added / Changed / Verified / Known limitations |

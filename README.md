@@ -3,6 +3,7 @@
 A Medium-style tech blog on Cloudflare's free plan: Astro for the site, D1 for data, R2 for images, Workers AI and the OpenAI Moderation API for community-post screening, Google AdSense for income. The only recurring cost is the domain.
 
 - **Plan:** `../Tech Blog Build Plan v2.md` (architecture, 5-phase roadmap, AdSense playbook)
+- **Plain-language tour of what was built and how each tool is used:** [docs/HOW-IT-WAS-BUILT.md](docs/HOW-IT-WAS-BUILT.md)
 - **How it works:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Why it is built this way:** [docs/DECISIONS.md](docs/DECISIONS.md)
 - **What is done and what is next:** [docs/PROGRESS.md](docs/PROGRESS.md)

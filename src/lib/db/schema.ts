@@ -31,6 +31,9 @@ export const user = sqliteTable(
     college: text('college'),
     /** Comma-separated interests, shown on the writer page. */
     interests: text('interests'),
+    /** Public profile links (full https URLs), shown on the writer page. */
+    github: text('github'),
+    linkedin: text('linkedin'),
     trustScore: integer('trust_score').notNull().default(0),
     bannedAt: integer('banned_at', { mode: 'timestamp' }),
     shadowBanned: integer('shadow_banned', { mode: 'boolean' }).notNull().default(false),
@@ -404,4 +407,27 @@ export const internCodes = sqliteTable(
   (t) => [index('intern_codes_email_idx').on(t.email)],
 );
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes };
+// ---------- Campus ambassadors (src/lib/ambassadors.ts, D-040) ----------
+/**
+ * Colleges the owner recruits ambassadors for. One ambassador per college and one college per ambassador
+ * (both enforced by unique indexes). Ambassadors are found off-site (LinkedIn, email) and assigned here by the
+ * Google email they signed in with.
+ */
+export const colleges = sqliteTable(
+  'colleges',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    city: text('city'),
+    state: text('state'),
+    ambassadorId: text('ambassador_id').references(() => user.id, { onDelete: 'set null' }),
+    ambassadorSince: integer('ambassador_since', { mode: 'timestamp' }),
+    certificateSentAt: integer('certificate_sent_at', { mode: 'timestamp' }),
+    /** One-time code the editor sends to the chosen student; entering it on /me makes them this college's ambassador. */
+    ambassadorCode: text('ambassador_code'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [uniqueIndex('colleges_code_idx').on(t.ambassadorCode), uniqueIndex('colleges_name_idx').on(t.name), uniqueIndex('colleges_ambassador_idx').on(t.ambassadorId)],
+);
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges };

@@ -299,3 +299,33 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Decision:** Keep a map of removed public URLs in `src/lib/legacy.ts`, each with a small on-demand route returning 301 to the closest live page (the welcome article → About, which covers the same ground). Filter the sitemap to indexable pages only; the programme pages rejoin it when the programme opens; author pages join once editorial articles exist.
 - **Why:** 301 tells Google to replace the old address; a 404 keeps it as an error until it is recrawled several times. Sitemaps that list redirects, 404s or noindex pages lower the trust Search Console gives the rest of the sitemap.
 
+## D-038 · Students section: browser-only tools with explained formulas
+
+- **Date:** 2026-11-20 · **Status:** accepted
+- **Context:** Traffic is near zero with one article. Tools that students search for every semester (attendance, SGPA/CGPA, CGPA to percentage) bring repeat visits and suit AdSense, and the owner asked for a students page with several tools.
+- **Decision:** A `/students/` hub with tools that run entirely in the browser (static pages plus Preact islands): no Worker CPU, no database, no sign-in. Each page explains the formula with a worked example and FAQs, so it is useful content, not a bare widget.
+- **Accuracy:** formulas are shared code with unit tests. The CGPA to percentage converter lists only formulas we can state with confidence (×10, VTU's (CGPA − 0.75) × 10, ×9.5) plus a custom multiplier, and tells students to use their own university's printed rule when it differs. More universities are added only after checking their official regulations.
+- **Not yet:** AI tools (answer checker, error explainer, resume checker) and the placement prep hub, which need sign-in, daily limits and human-written question banks.
+
+## D-039 · Resume builder: PDF made in the browser with pdf-lib and standard fonts
+
+- **Date:** 2026-11-20 · **Status:** accepted
+- **Context:** The owner asked for a resume builder in the Students section with classic templates popular with tech students, producing a PDF.
+- **Decision:** Build the PDF in the browser with pdf-lib, loaded on first preview. Three single-column templates using the PDF standard fonts (Times, Helvetica), real text and clickable links. Data stays in localStorage; nothing is sent to the server.
+- **Why not print-to-PDF or an image export:** the browser print dialog differs on every phone and adds page headers; HTML-to-image libraries produce a picture of the resume, which applicant tracking systems cannot read. pdf-lib gives the same file everywhere with selectable text, at no server cost.
+- **Trade-offs:** standard fonts cover Latin characters only, so Hindi or emoji show as "?" (the page warns). Typography is limited to Times and Helvetica; embedding other fonts would add 100–300 KB per font.
+
+## D-041 · Writer dashboard from existing counters; ambassador codes; students counted by profile college
+
+- **Date:** 2026-11-20 · **Status:** accepted
+- **Context:** The owner asked for a per-writer dashboard (upvotes, comments, views, articles per month) with charts, an ambassador view of how many students from their college joined "with no code", a code ambassadors enter to become ambassadors, and profile editing (GitHub, LinkedIn, photo).
+- **Decision:** Monthly numbers come from the existing `post_stats` daily rows and post publish dates, read in chunks of 100 ids; no new writes per view. Charts are server-drawn SVG bars, so no chart library ships to the browser. Students "joined" are users whose profile college equals the ambassador's college (case-insensitive), so students need no code; the college field suggests names from the college list to keep spellings matching. Ambassador codes are one per open college, random, one-time, and stored on the college row.
+- **Trade-offs:** a student who types their college differently is not counted; the datalist reduces this, and the admin can see counts per college. Avatar photos are resized in the browser to stay within the Worker CPU limit.
+
+## D-040 · Campus ambassadors: one per college, recruited off-site, badge on the profile
+
+- **Date:** 2026-11-20 · **Status:** accepted
+- **Context:** The owner wants one ambassador per college, found through LinkedIn and email, with a profile badge, a certificate, their name on the site and internship priority.
+- **Decision:** A `colleges` table the owner fills (pasted lists are accepted), with a nullable `ambassador_id` and unique indexes so a college has at most one ambassador and a person represents at most one college. No application form on the site (same as internships, D-032); the public page lists the email address instead and shows the colleges still open, which helps recruiting.
+- **Not done:** generating a list of "all colleges". India has thousands of engineering colleges and a made-up list would contain errors; the owner can paste an official list (for example AICTE's approved institutions). Referral tracking was offered and not chosen.
+

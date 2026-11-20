@@ -1,0 +1,94 @@
+---
+/**
+ * /students/campus-ambassadors/ : the Campus Ambassador role, benefits, current ambassadors (name and college) and
+ * colleges still looking for one. Ambassadors are recruited off-site (LinkedIn, email), so there is no form.
+ * On-demand: the list changes when the editor assigns someone on /admin/ambassadors.
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { publicAmbassadors } from '../../../lib/ambassadors';
+import { breadcrumbJsonLd } from '../../../lib/seo';
+import { SITE } from '../../../lib/site';
+
+export const prerender = false;
+const { people, open } = await publicAmbassadors();
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const byState = new Map<string, typeof open>();
+for (const c of open) byState.set(c.state || 'Other', [...(byState.get(c.state || 'Other') ?? []), c]);
+const fmt = (d: Date | null) => (d ? d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', year: 'numeric' }) : '');
+const benefits = [
+  ['Certificate', 'A TrutiAI Campus Ambassador certificate at the end of your term, for your resume and LinkedIn.'],
+  ['Your name on the site', 'Listed on this page with your college, and a Campus Ambassador badge on your writer profile.'],
+  ['Internship priority', 'First consideration for TrutiAI technical writing internships.'],
+];
+const duties = [
+  'Share TrutiAI’s free student tools and articles with students at your college',
+  'Tell us what students at your college need: tools, topics, placement help',
+  'Encourage classmates who build projects to write about them on TrutiAI',
+  'One ambassador per college, so you represent your campus',
+];
+---
+
+<BaseLayout title="Campus Ambassadors" description="Become TrutiAI's Campus Ambassador for your college: one student per college, with a certificate, your name on the site and internship priority. See current ambassadors and open colleges." jsonLd={[breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: 'Students', url: `${siteUrl}students/` }, { name: 'Campus Ambassadors', url: `${siteUrl}students/campus-ambassadors/` }])]} full>
+  <section class="border-b border-line bg-tint">
+    <div class="mx-auto max-w-6xl px-4 py-14 md:py-16">
+      <nav aria-label="Breadcrumb" class="font-sans text-sm text-muted"><a href="/students/" class="hover:text-accent">Students</a> / <span class="text-ink">Campus Ambassadors</span></nav>
+      <h1 class="mt-3 max-w-3xl font-sans text-4xl font-bold leading-tight tracking-tight md:text-5xl">Campus <span class="text-accent">Ambassadors</span></h1>
+      <p class="mt-4 max-w-2xl font-serif text-lg text-muted md:text-xl">One student per college represents TrutiAI on campus: sharing free tools and practical tech articles with classmates, and bringing their college’s needs to us.</p>
+      <p class="mt-6 font-sans text-sm text-muted"><strong class="text-ink">{people.length}</strong> {people.length === 1 ? 'ambassador' : 'ambassadors'} so far{open.length > 0 && <> · <strong class="text-ink">{open.length}</strong> {open.length === 1 ? 'college' : 'colleges'} looking for one</>}</p>
+    </div>
+  </section>
+
+  <div class="mx-auto max-w-6xl px-4 font-sans">
+    <section class="grid gap-4 py-12 md:grid-cols-3" aria-label="What you get">
+      {benefits.map(([t, d]) => (
+        <div class="rounded-2xl border border-line p-6"><p class="text-lg font-semibold">{t}</p><p class="mt-2 text-sm leading-relaxed text-muted">{d}</p></div>
+      ))}
+    </section>
+
+    <section class="grid gap-10 border-t border-line py-12 md:grid-cols-2">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">What an ambassador does</h2>
+        <ul class="mt-4 grid gap-2 font-serif text-base">{duties.map((d) => <li class="flex gap-2"><span class="text-accent" aria-hidden="true">✓</span>{d}</li>)}</ul>
+      </div>
+      <div class="rounded-2xl bg-accent p-6 text-white">
+        <h2 class="text-2xl font-bold tracking-tight">Want to represent your college?</h2>
+        <p class="mt-2 text-white/85">We pick ambassadors through LinkedIn and email. Write to us with your name, college, year and a line on why you would be a good fit.</p>
+        <p class="mt-4 select-all rounded-lg bg-white/15 px-3 py-2 font-semibold">{SITE.contactEmail}</p>
+        <p class="mt-3 text-sm text-white/80">Sign in once at trutiai.in with your Google account first, so we can add your badge.</p>
+      </div>
+    </section>
+
+    <section class="border-t border-line py-12" aria-labelledby="current">
+      <h2 id="current" class="text-2xl font-bold tracking-tight">Our ambassadors</h2>
+      {people.length === 0 ? <p class="mt-3 text-muted">The first ambassadors are being selected now.</p> : (
+        <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {people.map((p) => (
+            <li class="flex items-center gap-3 rounded-2xl border border-line p-4">
+              {p.image ? <img src={p.image} alt="" width="48" height="48" class="h-12 w-12 rounded-full object-cover" referrerpolicy="no-referrer" /> : <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-accent text-lg font-bold text-white">{p.name.charAt(0).toUpperCase()}</span>}
+              <div class="min-w-0">
+                <p class="truncate font-semibold">{p.handle ? <a href={`/writer/${p.handle}/`} class="hover:underline">{p.name}</a> : p.name}</p>
+                <p class="truncate text-sm text-muted">{p.college}</p>
+                <p class="text-xs text-muted">{[p.city, p.state].filter(Boolean).join(', ')}{p.since && ` · since ${fmt(p.since)}`}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    {open.length > 0 && (
+      <section class="mb-16 border-t border-line py-12" aria-labelledby="open">
+        <h2 id="open" class="text-2xl font-bold tracking-tight">Colleges looking for an ambassador</h2>
+        <p class="mt-2 text-muted">Study at one of these? Write to {SITE.contactEmail}.</p>
+        <div class="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...byState.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([state, list]) => (
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-muted">{state}</p>
+              <ul class="mt-2 grid gap-1 text-sm">{list.map((c) => <li>{c.name}{c.city && <span class="text-muted"> · {c.city}</span>}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+</BaseLayout>

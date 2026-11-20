@@ -1,0 +1,119 @@
+---
+/**
+ * /admin/ambassadors : the college list and campus ambassadors (admin only, via middleware). Linked from /admin.
+ * Add colleges (one per line), assign one ambassador per college by their Google email or a one-time code they
+ * enter on /me, track certificates and how many students from each college have joined.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { joinedCounts, listColleges } from '../../lib/ambassadors';
+
+export const prerender = false;
+
+const q = Astro.url.searchParams.get('q') ?? '';
+const status = (['open', 'filled'].includes(Astro.url.searchParams.get('status') ?? '') ? Astro.url.searchParams.get('status') : 'all') as 'all' | 'open' | 'filled';
+const { rows, total, filled } = await listColleges({ q, status });
+const joined = await joinedCounts();
+const joinedFor = (c: { name: string; ambassadorId: string | null }) => Math.max(0, (joined.get(c.name.trim().toLowerCase()) ?? 0) - (c.ambassadorId ? 1 : 0));
+const fmt = (d: Date | null) => (d ? d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const tab = (id: string, label: string) => `?status=${id}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
+---
+
+<BaseLayout title="Campus ambassadors" description="Colleges and campus ambassadors." noindex wide>
+  <div class="mx-auto max-w-6xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Campus ambassadors</h1>
+        <p class="text-sm text-muted">One ambassador per college. Find them on LinkedIn or by email, ask them to sign in once with Google, then assign them here. Public page: <a href="/students/campus-ambassadors/" class="underline" target="_blank">/students/campus-ambassadors/</a></p>
+      </div>
+      <p id="flash" class="max-w-xl text-sm text-accent" role="status"></p>
+    </div>
+
+    <section class="mt-6 grid grid-cols-3 gap-3 md:max-w-xl">
+      {[['Colleges', total], ['With an ambassador', filled], ['Still open', total - filled]].map(([k, v]) => (
+        <div class="rounded-lg border border-line bg-surface p-3"><p class="text-2xl font-bold">{v}</p><p class="text-xs text-muted">{k}</p></div>
+      ))}
+    </section>
+
+    <details class="mt-6 rounded-lg border border-line bg-surface p-4" open={total === 0}>
+      <summary class="cursor-pointer font-semibold">Add colleges</summary>
+      <p class="mt-2 text-sm text-muted">One college per line. Optional city and state after a "|", for example <code>Government College of Engineering | Pune | Maharashtra</code>. Paste up to 1,000 at once (for example from AICTE's approved list); names already in the list are skipped.</p>
+      <form id="add" class="mt-3 grid gap-2">
+        <textarea name="text" rows="6" required class="rounded border border-line px-3 py-2 font-mono text-sm" placeholder={'College of Engineering | Pune | Maharashtra\nNational Institute of Technology | Tiruchirappalli | Tamil Nadu'}></textarea>
+        <div><button class="rounded bg-accent px-4 py-1.5 text-sm font-semibold text-white">Add colleges</button></div>
+      </form>
+    </details>
+
+    <div class="mt-8 flex flex-wrap items-center gap-3 text-sm">
+      {[['all', 'All'], ['open', 'Still open'], ['filled', 'With ambassador']].map(([id, label]) => <a href={tab(id, label)} class:list={['rounded-full px-3 py-1', status === id ? 'bg-ink text-white' : 'border border-line']}>{label}</a>)}
+      <form method="get" class="ml-auto flex gap-2">
+        <input type="hidden" name="status" value={status} />
+        <input name="q" value={q} placeholder="Search college, city, state or name" class="w-72 rounded border border-line px-3 py-1.5" />
+        <button class="rounded border border-line px-3 py-1.5">Search</button>
+      </form>
+    </div>
+
+    {rows.length === 0 ? <p class="mt-6 text-sm text-muted">{total === 0 ? 'No colleges yet. Add some above.' : 'Nothing matches.'}</p> : (
+      <div class="mt-4 overflow-x-auto rounded-lg border border-line bg-surface">
+        <table class="w-full text-left text-sm">
+          <thead class="text-xs text-muted"><tr><th class="p-3">College</th><th class="p-3">Ambassador</th><th class="p-3 text-right">Students joined</th><th class="p-3">Certificate</th><th class="p-3"></th></tr></thead>
+          <tbody class="divide-y divide-line">
+            {rows.map((c) => (
+              <tr data-id={c.id} class="align-top">
+                <td class="p-3"><strong>{c.name}</strong>{(c.city || c.state) && <span class="block text-xs text-muted">{[c.city, c.state].filter(Boolean).join(', ')}</span>}</td>
+                <td class="p-3">
+                  {c.ambassador ? (
+                    <>
+                      <span class="font-semibold">{c.ambassador.handle ? <a href={`/writer/${c.ambassador.handle}/`} target="_blank" class="hover:underline">{c.ambassador.name}</a> : c.ambassador.name}</span>
+                      <span class="block text-xs text-muted">{c.ambassador.email} · since {fmt(c.ambassadorSince)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <form class="assign flex gap-2" data-id={c.id}>
+                        <input name="email" type="email" required placeholder="their Google email" class="w-56 rounded border border-line px-2 py-1" />
+                        <button class="rounded bg-accent px-3 py-1 font-semibold text-white">Assign</button>
+                      </form>
+                      <p class="mt-2 text-xs text-muted">
+                        or give a code:{' '}
+                        {c.ambassadorCode
+                          ? <><code class="rounded bg-page px-1.5 py-0.5 font-mono font-semibold text-ink" data-testid="code">{c.ambassadorCode}</code> <button type="button" class="copy underline" data-code={c.ambassadorCode}>Copy</button> · <button class="act underline" data-body={JSON.stringify({ action: 'create_code', id: c.id })} data-confirm="Replace the code? The old one stops working.">New code</button></>
+                          : <button class="act underline" data-body={JSON.stringify({ action: 'create_code', id: c.id })}>Create code</button>}
+                      </p>
+                    </>
+                  )}
+                </td>
+                <td class="p-3 text-right tabular-nums" data-testid="joined">{joinedFor(c)}</td>
+                <td class="p-3 text-xs">
+                  {c.ambassador && (c.certificateSentAt
+                    ? <><span class="text-accent-strong">Sent {fmt(c.certificateSentAt)}</span> <button class="act underline" data-body={JSON.stringify({ action: 'certificate', id: c.id, sent: false })}>Undo</button></>
+                    : <button class="act rounded border border-line px-2 py-1" data-body={JSON.stringify({ action: 'certificate', id: c.id, sent: true })} data-confirm="Mark the certificate as emailed?">Mark certificate sent</button>)}
+                </td>
+                <td class="whitespace-nowrap p-3 text-right text-xs">
+                  {c.ambassador
+                    ? <button class="act text-red-700 underline" data-body={JSON.stringify({ action: 'remove', id: c.id })} data-confirm={`Remove ${c.ambassador.name} as ambassador for ${c.name}? Their badge disappears.`}>Remove ambassador</button>
+                    : <button class="act text-red-700 underline" data-body={JSON.stringify({ action: 'delete', id: c.id })} data-confirm={`Delete ${c.name} from the list?`}>Delete college</button>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    {rows.length >= 300 && <p class="mt-2 text-xs text-muted">Showing the first 300. Search to narrow the list.</p>}
+  </div>
+  <script is:inline>
+    const flash = document.getElementById('flash');
+    async function post(body) {
+      const r = await fetch('/api/admin/ambassadors', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      flash.textContent = r.ok ? d.message || 'Done.' : d.error || 'Failed.';
+      flash.className = 'max-w-xl text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (r.ok) setTimeout(() => location.reload(), 900);
+    }
+    document.getElementById('add')?.addEventListener('submit', (e) => { e.preventDefault(); post({ action: 'add_colleges', text: new FormData(e.target).get('text') }); });
+    document.querySelectorAll('form.assign').forEach((f) => f.addEventListener('submit', (e) => { e.preventDefault(); post({ action: 'assign', id: Number(f.dataset.id), email: new FormData(f).get('email') }); }));
+    document.querySelectorAll('button.copy').forEach((b) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.code); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy'; } }));
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', () => { if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; post(JSON.parse(b.dataset.body)); }));
+  </script>
+</BaseLayout>
