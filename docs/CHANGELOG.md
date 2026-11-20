@@ -5,6 +5,15 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-20 · DSA sheet with tracker, charts, badges and company-wise lists (D-042)
+
+- `/students/dsa-sheet/`: 172 must-do problems across 18 topics, easy to hard, each linking to LeetCode (every link, title and difficulty checked against LeetCode; no paid-only problems).
+- Tick solved, star to revise, search and filter by topic, level and status. Progress ring, Easy/Medium/Hard bars, current and best streak (India time), solves per week (12 weeks), per-topic bars and 25 badges (milestones, hard problems, topic masters, streaks), all computed from progress.
+- Signed out, progress stays in the browser; after signing in it is merged into the account once and saved there (`/api/me/dsa`).
+- Company-wise: signed-in students mark "Asked at <company>" (fixed list of 35 companies, one report per student, problem and company, 40 a day). The company filter lists reported problems, most reported first (`/api/dsa/companies`). No made-up company tags.
+- `/me` dashboard: DSA section with solved count, streak, badges, difficulty bars and a weekly chart.
+- Migration `0008_dsa_sheet` (`dsa_progress`, `dsa_reports`). Tests: `tests/dsa-sheet.test.ts` (5), `tests/e2e/dsa.e2e.mjs` (24).
+
 ### 2026-11-20 · Sign-in goes home; write page light by default; readable dark hovers
 
 - Signing in without a destination now lands on the home page (was the write page). Links that say "Start writing" still go to the editor.

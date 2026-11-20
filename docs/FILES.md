@@ -245,6 +245,14 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
 | `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
 | `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
+| `src/lib/dsa-sheet.ts` | DSA sheet problem list, companies, progress summary, streaks, badges, weekly counts (pure) |
+| `src/lib/dsa.ts` | DSA progress and company reports in D1 |
+| `src/islands/students/DsaSheet.tsx` | The DSA sheet: ticks, stars, filters, charts, badges, company reports |
+| `src/pages/students/dsa-sheet/index.astro` | DSA sheet page with guide and FAQs |
+| `src/pages/api/me/dsa.ts` | Save and read a student's DSA progress and reports |
+| `src/pages/api/dsa/companies.ts` | Public company report counts |
+| `drizzle/0008_dsa_sheet.sql` | Migration: `dsa_progress`, `dsa_reports` |
+| `tests/dsa-sheet.test.ts`, `tests/e2e/dsa.e2e.mjs` | DSA sheet tests |
 | `tests/e2e/theme.e2e.mjs` | Sign-in lands on home; editor light by default; dark-theme hover contrast |
 | `tests/profile.test.ts`, `tests/e2e/dashboard.e2e.mjs` | Tests for profile links, the dashboard, codes and photo upload |
 | `src/pages/students/campus-ambassadors/index.astro` | Public Campus Ambassadors page |

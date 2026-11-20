@@ -15,6 +15,8 @@ import BarChart from '../../components/charts/BarChart.astro';
 import { writerStats } from '../../lib/dashboard';
 import { lastMonths, monthShort } from '../../lib/months';
 import { ambassadorStats, collegeNames } from '../../lib/ambassadors';
+import { getProgress } from '../../lib/dsa';
+import { badges as dsaBadges, streaks as dsaStreaks, summarize as dsaSummary, weeklySolves } from '../../lib/dsa-sheet';
 
 export const prerender = false;
 
@@ -30,6 +32,11 @@ const months = lastMonths(12);
 const ambSeries = amb ? months.map((key) => ({ key, label: monthShort(key), value: amb.byMonth.get(key) ?? 0 })) : [];
 const colleges = await collegeNames();
 const photo = profile?.image ?? user.image;
+const dsa = await getProgress(user.id);
+const dsaTimes = dsa.filter((p) => p.solvedAt).map((p) => p.solvedAt!);
+const dsaSum = dsaSummary(new Set(dsa.filter((p) => p.solvedAt).map((p) => p.id)));
+const dsaStreak = dsaStreaks(dsaTimes);
+const dsaEarned = dsaBadges(dsa).filter((b) => b.earned);
 const cfg = await programmeConfig();
 const isAdmin = user.role === 'admin';
 const showProgramme = (cfg.open || isAdmin) && mine.some((p) => p.kind === 'community');
@@ -80,6 +87,7 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
       <a href="/me/saved/" class="rounded border border-line px-3 py-1.5">Saved articles</a>
       {showProgramme && <a href="#programme" class="rounded border border-line px-3 py-1.5">Earnings</a>}
       {amb && <a href="#ambassador" class="rounded border border-line px-3 py-1.5">Ambassador</a>}
+      <a href="#dsa-title" class="rounded border border-line px-3 py-1.5">DSA sheet</a>
       <a href="#articles" class="rounded border border-line px-3 py-1.5">Articles</a>
       <a href="#profile-title" class="rounded border border-line px-3 py-1.5">Edit profile</a>
     </nav>
@@ -104,6 +112,27 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
       <BarChart title="Upvotes" data={stats.months.upvotes} total={stats.totals.upvotes} note="Last 12 months" />
       <BarChart title="Comments" data={stats.months.comments} total={stats.totals.comments} note="Last 12 months" />
       <BarChart title="Articles published" data={stats.months.articles} total={stats.totals.articles} note="Last 12 months" />
+    </section>
+
+    <section class="mt-10 rounded-2xl border border-line bg-surface p-5" aria-labelledby="dsa-title" data-testid="dsa">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="dsa-title" class="text-lg font-bold">DSA sheet</h2>
+        <a href="/students/dsa-sheet/" class="text-sm font-semibold text-accent underline">{dsa.length ? 'Continue the sheet' : 'Start the DSA sheet'} →</a>
+      </div>
+      <div class="mt-4 grid gap-4 md:grid-cols-[14rem_1fr]">
+        <div class="grid content-start gap-3">
+          <div class="rounded-xl border border-line p-4"><p class="text-3xl font-bold tabular-nums" data-testid="dsa-solved">{dsaSum.done}<span class="text-base font-normal text-muted">/{dsaSum.total}</span></p><p class="text-xs text-muted">problems solved</p></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-xl border border-line p-3"><p class="text-xl font-bold tabular-nums">{dsaStreak.current}</p><p class="text-xs text-muted">day streak</p></div>
+            <div class="rounded-xl border border-line p-3"><p class="text-xl font-bold tabular-nums">{dsaEarned.length}</p><p class="text-xs text-muted">badges</p></div>
+          </div>
+          {dsaSum.byDifficulty.map((d) => (
+            <div class="text-xs"><div class="mb-1 flex justify-between"><span class="font-semibold">{d.difficulty}</span><span class="tabular-nums text-muted">{d.done}/{d.total}</span></div><div class="h-1.5 overflow-hidden rounded-full bg-line"><div class="h-full rounded-full bg-accent" style={`width:${d.total ? Math.round((d.done / d.total) * 100) : 0}%`}></div></div></div>
+          ))}
+        </div>
+        <BarChart title="Problems solved per week" data={weeklySolves(dsaTimes)} total={dsaSum.done} note="Last 12 weeks" />
+      </div>
+      {dsaEarned.length > 0 && <p class="mt-4 flex flex-wrap gap-2 text-xs">{dsaEarned.map((b) => <span class="rounded-full border border-accent bg-tint px-2.5 py-1 font-semibold">🏅 {b.name}</span>)}</p>}
     </section>
 
     {amb ? (

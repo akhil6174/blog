@@ -430,4 +430,30 @@ export const colleges = sqliteTable(
   (t) => [uniqueIndex('colleges_code_idx').on(t.ambassadorCode), uniqueIndex('colleges_name_idx').on(t.name), uniqueIndex('colleges_ambassador_idx').on(t.ambassadorId)],
 );
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges };
+/** DSA sheet progress (D-042): one row per user and problem they touched. Problem ids are slugs from src/lib/dsa-sheet.ts. */
+export const dsaProgress = sqliteTable(
+  'dsa_progress',
+  {
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    problemId: text('problem_id').notNull(),
+    /** When it was marked solved (null: not solved, only starred for revision). */
+    solvedAt: integer('solved_at', { mode: 'timestamp_ms' }),
+    revise: integer('revise', { mode: 'boolean' }).notNull().default(false),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.problemId] })],
+);
+
+/** "I was asked this at <company>" reports; one per user, problem and company. Powers company-wise lists. */
+export const dsaReports = sqliteTable(
+  'dsa_reports',
+  {
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    problemId: text('problem_id').notNull(),
+    company: text('company').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.problemId, t.company] }), index('dsa_reports_company_idx').on(t.company)],
+);
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, dsaReports };

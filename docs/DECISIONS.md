@@ -315,6 +315,14 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why not print-to-PDF or an image export:** the browser print dialog differs on every phone and adds page headers; HTML-to-image libraries produce a picture of the resume, which applicant tracking systems cannot read. pdf-lib gives the same file everywhere with selectable text, at no server cost.
 - **Trade-offs:** standard fonts cover Latin characters only, so Hindi or emoji show as "?" (the page warns). Typography is limited to Times and Helvetica; embedding other fonts would add 100–300 KB per font.
 
+## D-042 · DSA sheet: static problem list, progress in D1, company lists from student reports
+
+- **Date:** 2026-11-20 · **Status:** accepted
+- **Context:** The owner wants the best DSA sheet in the Students section, with tracking, charts, badges and company-wise questions.
+- **Decision:** The problem list is static data in the code (`src/lib/dsa-sheet.ts`), so the page is pre-rendered and Google sees every title. Only titles and links to LeetCode are listed, never problem statements. Progress is one D1 row per user and problem (deleted when cleared); badges and charts are computed from it, so nothing else is stored. Signed-out progress uses localStorage and is merged on sign-in.
+- **Company-wise:** reliable company lists are not public (LeetCode's tags are paid and theirs), and invented tags would mislead students. Students report "asked at" from a fixed company list; counts are shown as student reports, not official lists.
+- **Trade-offs:** company lists start empty and grow with reports; ambassadors can help seed them. One D1 write per tick, well within the free plan.
+
 ## D-041 · Writer dashboard from existing counters; ambassador codes; students counted by profile college
 
 - **Date:** 2026-11-20 · **Status:** accepted
