@@ -5,6 +5,12 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-21 · Portfolio builder: Professional site and Basic templates
+
+- **Professional site**: sticky menu with section links and a Contact button, large "Hi, I'm" intro with "View my work" and "Get in touch" buttons, photo in a soft shape, numbered project cards, experience timeline and a "Let's work together" contact section.
+- **Basic**: plain single column, text links separated by dots, no banner, chips or buttons.
+- The builder now has 14 templates. Browser test 30/30 (each template checked at desktop and phone width).
+
 ### 2026-11-20 · Portfolio website builder with Netlify and Vercel guide (D-043)
 
 - `/students/portfolio-builder/`: build a personal portfolio site in the browser. 12 templates (Minimal, Developer dark, Sidebar, Project cards, Terminal, Split hero, Top menu, Magazine, Neon, Pastel, Professional, Sunset) with different layouts, fonts and heading styles.

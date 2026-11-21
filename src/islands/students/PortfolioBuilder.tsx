@@ -1,5 +1,5 @@
 /**
- * Portfolio builder (D-043): fill in details (or reuse the resume builder's), pick one of 12 templates, change any
+ * Portfolio builder (D-043): fill in details (or reuse the resume builder's), pick one of 14 templates, change any
  * of its colours (background, text, buttons, cards, top banner), see the
  * real site in a live preview, and download a ZIP (index.html + README) ready for Netlify Drop or Vercel.
  * Everything runs in the browser and is saved only in this browser. Generator: src/lib/portfolio.ts.

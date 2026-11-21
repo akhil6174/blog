@@ -23,7 +23,7 @@ describe('portfolio builder', () => {
   it('applies custom colours and ignores invalid ones', () => {
     const p = resolvePalette('minimal', { bg: '#123456', accent: 'red', text: '#zzzzzz' as string });
     expect(p.bg).toBe('#123456');
-    expect(p.accent).toBe(PORTFOLIO_TEMPLATES[0].palette.accent);
+    expect(p.accent).toBe(PORTFOLIO_TEMPLATES.find((t) => t.id === 'minimal')!.palette.accent);
     const html = buildPortfolioHtml(SAMPLE_RESUME, { template: 'neon', colors: { heroBg: '#00ff00', accent: '#ffff00' } });
     expect(html).toContain('--hero:#00ff00');
     expect(html).toContain('--on-a:#111111'); // dark text on a yellow button

@@ -19,7 +19,7 @@ await p.waitForFunction(() => document.querySelectorAll('astro-island[ssr]').len
 const preview = () => p.getAttribute('[data-testid=preview]', 'srcdoc');
 
 check('preview shows the sample portfolio', (await preview()).includes('<title>Your Name'));
-check('12 templates offered', (await p.locator('[data-template]').count()) === 12, String(await p.locator('[data-template]').count()));
+check('14 templates offered', (await p.locator('[data-template]').count()) === 14, String(await p.locator('[data-template]').count()));
 await p.locator('label:has-text("Name") input').first().fill('Asha Verma');
 check('typing updates the preview', (await preview()).includes('<h1>Asha Verma</h1>'));
 

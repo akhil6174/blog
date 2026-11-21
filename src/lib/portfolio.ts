@@ -16,13 +16,15 @@ export const PALETTE_FIELDS: { key: keyof Palette; label: string }[] = [
   { key: 'heroText', label: 'Top banner text' },
 ];
 
-type Layout = 'single' | 'sidebar' | 'hero' | 'split' | 'navbar';
+type Layout = 'single' | 'sidebar' | 'hero' | 'split' | 'navbar' | 'pro' | 'basic';
 type Spec = { id: string; name: string; description: string; layout: Layout; font: 'sans' | 'serif' | 'mono'; projects: 'stack' | 'grid'; heading: 'plain' | 'hash' | 'bar' | 'underline'; radius: number; palette: Palette };
 
 const P = (bg: string, text: string, muted: string, accent: string, card: string, heroBg: string, heroText: string): Palette => ({ bg, text, muted, accent, card, heroBg, heroText });
 
-/** Twelve templates: a layout, font and heading style plus a default palette the student can change. */
+/** Fourteen templates: a layout, font and heading style plus a default palette the student can change. */
 export const PORTFOLIO_TEMPLATES = [
+  { id: 'pro', name: 'Professional site', description: 'Like a real developer site: menu, big intro, numbered projects, timeline, contact.', layout: 'pro', font: 'sans', projects: 'grid', heading: 'plain', radius: 16, palette: P('#ffffff', '#0f172a', '#64748b', '#4f46e5', '#f8fafc', '#eef2ff', '#0f172a') },
+  { id: 'basic', name: 'Basic', description: 'Plain and simple: just text and links.', layout: 'basic', font: 'sans', projects: 'stack', heading: 'plain', radius: 0, palette: P('#ffffff', '#111111', '#555555', '#1a0dab', '#ffffff', '#ffffff', '#111111') },
   { id: 'minimal', name: 'Minimal', description: 'Clean, light, one column.', layout: 'single', font: 'sans', projects: 'stack', heading: 'plain', radius: 12, palette: P('#ffffff', '#1f2328', '#59636e', '#6a5cb1', '#ffffff', '#ffffff', '#1f2328') },
   { id: 'dark', name: 'Developer dark', description: 'GitHub-style dark, # headings.', layout: 'single', font: 'sans', projects: 'stack', heading: 'hash', radius: 10, palette: P('#0d1117', '#e6edf3', '#8b949e', '#58a6ff', '#161b22', '#0d1117', '#e6edf3') },
   { id: 'sidebar', name: 'Sidebar', description: 'Profile fixed on the left.', layout: 'sidebar', font: 'sans', projects: 'stack', heading: 'bar', radius: 12, palette: P('#ffffff', '#1f2328', '#59636e', '#2563eb', '#f8fafc', '#f1f5f9', '#0f172a') },
@@ -83,22 +85,28 @@ function linkList(d: ResumeData): { label: string; href: string }[] {
   return out;
 }
 
-function sections(d: ResumeData, grid: boolean): { html: string; ids: [string, string][] } {
+type SectionStyle = { grid: boolean; plain?: boolean; numbered?: boolean; timeline?: boolean };
+
+function sections(d: ResumeData, st: SectionStyle): { html: string; ids: [string, string][] } {
+  const grid = st.grid;
   const s: string[] = [];
   const ids: [string, string][] = [];
   const add = (id: string, title: string, inner: string) => { ids.push([id, title]); s.push(`<section id="${id}"><h2>${title}</h2>${inner}</section>`); };
   if (d.summary.trim()) add('about', 'About', lines(d.summary).map((p) => `<p>${esc(p)}</p>`).join(''));
-  const chips = (t: string) => `<p class="tech">${t.split(',').map((x) => x.trim()).filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('')}</p>`;
+  const chips = (t: string) => st.plain
+    ? `<p class="muted">${esc(t.split(',').map((x) => x.trim()).filter(Boolean).join(', '))}</p>`
+    : `<p class="tech">${t.split(',').map((x) => x.trim()).filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('')}</p>`;
   const projects = d.projects.filter((p) => p.name.trim());
-  if (projects.length) add('projects', 'Projects', `<div class="${grid ? 'grid' : 'stack'}">${projects.map((p) => {
+  if (projects.length) add('projects', 'Projects', `<div class="${grid ? 'grid' : 'stack'}">${projects.map((p, i) => {
     const href = safeUrl(p.link);
+    const num = st.numbered ? `<span class="num">${String(i + 1).padStart(2, '0')}</span>` : '';
     const pts = lines(p.points);
-    return `<article class="project"><h3>${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</h3>${p.tech.trim() ? chips(p.tech) : ''}${pts.length ? `<ul>${pts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${href ? `<p class="more"><a class="btn" href="${esc(href)}" target="_blank" rel="noopener">View project</a></p>` : ''}</article>`;
+    return `<article class="project">${num}<h3>${href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)}</h3>${p.tech.trim() ? chips(p.tech) : ''}${pts.length ? `<ul>${pts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${href && !st.plain ? `<p class="more"><a class="btn" href="${esc(href)}" target="_blank" rel="noopener">View project</a></p>` : ''}</article>`;
   }).join('')}</div>`);
   const skills = d.skills.filter((g) => g.items.trim());
   if (skills.length) add('skills', 'Skills', skills.map((g) => `<div class="skill"><h3>${esc(g.label)}</h3>${chips(g.items)}</div>`).join(''));
   const exp = d.experience.filter((e) => e.role.trim() || e.org.trim());
-  if (exp.length) add('experience', 'Experience', exp.map((e) => `<article class="item"><div class="row"><h3>${esc(e.role)}${e.org.trim() ? ` · ${esc(e.org)}` : ''}</h3><span class="when">${esc(dateRange(e.start, e.end))}</span></div>${lines(e.points).length ? `<ul>${lines(e.points).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</article>`).join(''));
+  if (exp.length) add('experience', 'Experience', (st.timeline ? '<div class="timeline">' : '<div>') + exp.map((e) => `<article class="item"><div class="row"><h3>${esc(e.role)}${e.org.trim() ? ` · ${esc(e.org)}` : ''}</h3><span class="when">${esc(dateRange(e.start, e.end))}</span></div>${lines(e.points).length ? `<ul>${lines(e.points).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</article>`).join('') + '</div>');
   const edu = d.education.filter((e) => e.school.trim());
   if (edu.length) add('education', 'Education', edu.map((e) => `<article class="item"><div class="row"><h3>${esc(e.degree || e.school)}</h3><span class="when">${esc(dateRange(e.start, e.end))}</span></div><p>${esc([e.degree ? e.school : '', e.location, e.score].filter((x) => x.trim()).join(' · '))}</p></article>`).join(''));
   const ach = lines(d.achievements).concat(lines(d.certifications));
@@ -126,7 +134,7 @@ export function buildPortfolioHtml(d: ResumeData, o: PortfolioOptions): string {
   const sub = [d.headline.trim(), d.location.trim()].filter(Boolean).map((x) => `<p class="sub">${esc(x)}</p>`).join('');
   const description = (d.summary.trim() || d.headline.trim() || `Portfolio of ${name}`).replace(/\s+/g, ' ').slice(0, 155);
   const credit = o.credit !== false ? `<p>Built with the free <a href="https://trutiai.in/students/portfolio-builder/">TrutiAI portfolio builder</a>.</p>` : '';
-  const { html: body, ids } = sections(d, spec.projects === 'grid');
+  const { html: body, ids } = sections(d, { grid: spec.projects === 'grid', plain: spec.layout === 'basic', numbered: spec.layout === 'pro', timeline: spec.layout === 'pro' });
   const footer = `<footer><p>© ${new Date().getFullYear()} ${esc(name)}</p>${credit}</footer>`;
   const intro = `<h1>${esc(name)}</h1>${sub}${linksHtml}`;
 
@@ -164,6 +172,25 @@ ${HEADING[spec.heading]}`;
       css = `nav{position:sticky;top:0;z-index:5;background:var(--hero);color:var(--hero-fg)}nav .in{max-width:1040px;margin:0 auto;padding:.8rem 1.25rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center}nav strong{margin-right:auto}nav a{color:inherit;text-decoration:none;font-size:.9rem;opacity:.85}nav a:hover{opacity:1}header{max-width:1040px;margin:0 auto;padding:3.5rem 1.25rem 1rem;display:flex;flex-wrap:wrap;gap:2rem;align-items:center}main{max-width:1040px;margin:0 auto;padding:2rem 1.25rem}`;
       layout = `<nav class="hero" aria-label="Sections"><div class="in"><strong>${esc(name)}</strong>${ids.map(([id, t]) => `<a href="#${id}">${t}</a>`).join('')}</div></nav><header>${pic}<div>${intro}</div></header><main>${body}${footer}</main>`;
       break;
+    case 'basic':
+      css = `main{max-width:720px;margin:0 auto;padding:2.5rem 1.25rem}header{margin:0 0 2rem;padding:0 0 1.5rem;border-bottom:1px solid var(--line)}header h1{font-size:2rem}.links{gap:0}.links li+li::before{content:"·";margin:0 .6rem;color:var(--muted)}.links a{background:none;color:var(--a);padding:0;border-radius:0;font-weight:400;font-size:1rem;text-decoration:underline}h2{font-size:1.2rem;margin:0 0 .6rem}section{margin:0 0 2rem}.item{padding:0;border:0;background:none;margin:0 0 1rem}.stack .project{padding:0 0 1rem;border:0;margin:0 0 1rem}.project h3,.item h3{font-size:1rem}`;
+      layout = `<main><header><h1>${esc(name)}</h1>${sub}${linksHtml}</header>${body}${footer}</main>`;
+      break;
+    case 'pro': {
+      const email = d.email.trim();
+      const firstName = name.split(/\s+/)[0];
+      const contact = `<section id="contact" class="contact"><p class="eyebrow">What’s next?</p><h2>Let’s work together</h2><p class="muted">I’m open to internships and full-time roles. The fastest way to reach me is email.</p>${email ? `<p><a class="btn big" href="mailto:${esc(email)}">Say hello</a></p>` : ''}${linksHtml}</section>`;
+      css = `.nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}.nav .in{max-width:1120px;margin:0 auto;padding:.9rem 1.25rem;display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap}.nav .logo{margin-right:auto;font-weight:800;font-size:1.15rem;color:var(--fg);text-decoration:none}.nav .logo b{color:var(--a)}.nav a{color:var(--muted);text-decoration:none;font-size:.92rem;font-weight:500}.nav a:hover{color:var(--a)}.nav .cta{color:var(--on-a);background:var(--a);padding:.45rem 1rem;border-radius:999px}
+.intro{max-width:1120px;margin:0 auto;padding:5rem 1.25rem 4rem;display:grid;gap:3rem;align-items:center}@media(min-width:880px){.intro{grid-template-columns:1.4fr 1fr}}
+.eyebrow{color:var(--a);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.85rem;margin:0 0 .6rem}.intro h1{font-size:clamp(2.4rem,7vw,4.2rem);letter-spacing:-.02em}.intro .tag{font-size:clamp(1.15rem,2.6vw,1.5rem);color:var(--muted);margin:.8rem 0 0}.intro .lead{max-width:38rem;margin:1.2rem 0 0;font-size:1.05rem}.ctas{display:flex;flex-wrap:wrap;gap:.8rem;margin:2rem 0 0}.ghost{display:inline-block;padding:.75rem 1.4rem;border-radius:999px;border:1.5px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}.ghost:hover{border-color:var(--a);color:var(--a)}.btn.big{padding:.75rem 1.5rem;border-radius:999px;font-size:1rem}
+.art{position:relative;justify-self:center}.art::before{content:"";position:absolute;inset:-18px;border-radius:40% 60% 55% 45%/50% 45% 55% 50%;background:var(--hero);z-index:0}.art .photo,.art .avatar{position:relative;z-index:1;width:260px;height:260px;font-size:4.5rem;border-radius:40% 60% 55% 45%/50% 45% 55% 50%}
+main{max-width:1120px;margin:0 auto;padding:1rem 1.25rem}main section{padding:3rem 0;border-top:1px solid var(--line)}main h2{font-size:clamp(1.6rem,3.5vw,2.2rem);letter-spacing:-.01em;margin-bottom:1.6rem}
+.grid .project{position:relative;padding:1.6rem;transition:transform .15s,box-shadow .15s}.grid .project:hover{transform:translateY(-3px);box-shadow:0 12px 30px -12px color-mix(in srgb,var(--fg) 30%,transparent)}.num{display:block;font-size:2rem;font-weight:800;color:color-mix(in srgb,var(--a) 35%,var(--bg));line-height:1;margin:0 0 .8rem}
+.timeline{position:relative;padding-left:1.6rem;border-left:2px solid var(--line)}.timeline .item{position:relative;background:none;border:0;padding:0 0 1.8rem}.timeline .item::before{content:"";position:absolute;left:calc(-1.6rem - 7px);top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--a);box-shadow:0 0 0 4px var(--bg)}
+.contact{text-align:center;padding:4rem 0}.contact .links{justify-content:center}.contact .links a{background:transparent;color:var(--fg);border:1.5px solid var(--line)}footer{text-align:center}`;
+      layout = `<nav class="nav" aria-label="Main"><div class="in"><a class="logo" href="#top">${esc(firstName)}<b>.</b></a>${ids.filter(([id]) => id !== 'achievements').map(([id, t]) => `<a href="#${id}">${t}</a>`).join('')}<a class="cta" href="#contact">Contact</a></div></nav><header class="intro" id="top"><div><p class="eyebrow">Hi, I’m</p><h1>${esc(name)}</h1>${d.headline.trim() ? `<p class="tag">${esc(d.headline.trim())}</p>` : ''}${d.summary.trim() ? `<p class="lead">${esc(lines(d.summary)[0] ?? '')}</p>` : ''}<div class="ctas">${body.includes('id="projects"') ? '<a class="btn big" href="#projects">View my work</a>' : ''}<a class="ghost" href="#contact">Get in touch</a></div></div><div class="art">${pic}</div></header><main>${body}${contact}${footer}</main>`;
+      break;
+    }
     default:
       css = `main{max-width:780px;margin:0 auto;padding:4rem 1.25rem 2rem}header{margin:0 0 3.5rem;padding:2rem;border-radius:var(--r)}header h1{margin-top:1.2rem}`;
       layout = `<main><header class="hero">${pic}${intro}</header>${body}${footer}</main>`;
