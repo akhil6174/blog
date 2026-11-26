@@ -1,0 +1,28 @@
+---
+/** One event on /events/: cover, date badge, title, subtitle, when and where. Links to /events/<id>/. */
+import type { EventRow } from '../lib/events';
+import { eventPath } from '../lib/events';
+import { eventBadge, eventWhen } from '../lib/event-time';
+
+interface Props { e: EventRow; past?: boolean }
+const { e, past = false } = Astro.props;
+const badge = past ? '' : eventBadge(e.startsAt, e.endsAt);
+const dayNum = e.startsAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric' });
+const mon = e.startsAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short' });
+---
+
+<a href={eventPath(e.id)} class:list={['group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface font-sans transition hover:-translate-y-0.5 hover:border-accent hover:shadow-lg', past && 'opacity-80']} data-event={e.id}>
+  <div class="relative aspect-[1200/630] bg-tint">
+    {e.coverImage
+      ? <img src={e.coverImage} alt="" loading="lazy" width="1200" height="630" class="h-full w-full object-cover" />
+      : <div class="flex h-full items-center justify-center text-5xl font-bold text-accent/40" aria-hidden="true">{dayNum} {mon}</div>}
+    <span class="absolute left-3 top-3 rounded-xl bg-surface/95 px-3 py-1.5 text-center leading-tight shadow"><span class="block text-lg font-bold text-ink">{dayNum}</span><span class="block text-xs font-semibold uppercase text-accent">{mon}</span></span>
+    {badge && <span class="absolute right-3 top-3 rounded-full bg-surface/95 px-3 py-1 text-xs font-semibold text-accent-strong shadow">{badge}</span>}
+  </div>
+  <div class="flex flex-1 flex-col p-5">
+    <h3 class="text-lg font-bold leading-snug text-ink group-hover:text-accent">{e.title}</h3>
+    {e.subtitle && <p class="mt-1 text-sm text-muted">{e.subtitle}</p>}
+    <p class="mt-3 text-xs text-muted">{eventWhen(e.startsAt, e.endsAt)}</p>
+    {e.location && <p class="text-xs text-muted">{e.location}</p>}
+  </div>
+</a>

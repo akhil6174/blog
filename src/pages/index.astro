@@ -8,7 +8,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
 import LatestCommunity from '../components/LatestCommunity.astro';
-import { CATEGORIES, SITE } from '../lib/site';
+import { MAIN_CATEGORIES, SITE } from '../lib/site';
 import { getPublishedPosts, POSTS_PER_PAGE } from '../lib/posts';
 import { websiteJsonLd } from '../lib/seo';
 
@@ -58,7 +58,7 @@ for (const p of posts) if (p.data.category) counts.set(p.data.category, (counts.
       <a href="/articles/" class="font-sans text-sm font-semibold text-accent hover:underline">All articles →</a>
     </div>
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {CATEGORIES.map((c) => {
+      {MAIN_CATEGORIES.map((c) => {
         const info = TOPIC_INFO[c.slug];
         const n = counts.get(c.slug) ?? 0;
         return (

@@ -315,6 +315,29 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why not print-to-PDF or an image export:** the browser print dialog differs on every phone and adds page headers; HTML-to-image libraries produce a picture of the resume, which applicant tracking systems cannot read. pdf-lib gives the same file everywhere with selectable text, at no server cost.
 - **Trade-offs:** standard fonts cover Latin characters only, so Hindi or emoji show as "?" (the page warns). Typography is limited to Times and Helvetica; embedding other fonts would add 100–300 KB per font.
 
+## D-047 · Events stored in D1, times entered in India time
+
+- **Date:** 2026-11-26 · **Status:** accepted
+- **Decision:** An `events` table managed on /admin/events; pages are on-demand and edge-cached (purged on every change, 10-minute cache so "Today" and "past" stay current). Times are typed in IST and stored as UTC. Event structured data helps Google show the events.
+
+## D-046 · Admin notices to ambassadors and interns through the existing notifications
+
+- **Date:** 2026-11-26 · **Status:** accepted
+- **Decision:** The full message is stored once (`notices`); each recipient gets an ordinary notification (one D1 row) linking to it. Interns are found by the email on their internship code; those without an account are listed but skipped. No email is sent (no paid email service); the notification badge in the header shows new notices.
+
+## D-045 · More categories and a writer's own category
+
+- **Date:** 2026-11-26 · **Status:** accepted
+- **Context:** Writers found 5 categories too few. AdSense prefers a clear site focus.
+- **Decision:** 23 fixed tech categories for writers, but the home page, footer and About keep the 5 main topics. A writer may type their own category (`c:<name>`, 2 to 30 safe characters); moderation still reviews the article itself.
+
+## D-044 · Interns and ambassadors page: admin-curated profiles behind an on/off setting
+
+- **Date:** 2026-11-26 · **Status:** accepted
+- **Context:** The owner wants a public page for interns who completed the internship and for campus ambassadors, profiles added from the admin area, and a way to turn the page off.
+- **Decision:** A `people` table the admin fills (no automatic publishing of interns: completion is the owner's call). Ambassadors already assigned to colleges can be included automatically. The page is on-demand and edge-cached, purged on every change, and returns 404 while `people_page_open` is false.
+- **Trade-off:** settings are cached for up to 60 seconds per Worker instance, so turning the page on or off can take about a minute everywhere.
+
 ## D-043 · Portfolio builder: one self-contained HTML file, hosted by the student
 
 - **Date:** 2026-11-20 · **Status:** accepted

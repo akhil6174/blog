@@ -245,6 +245,26 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
 | `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
 | `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
+| `src/lib/notices.ts` | Admin notices: audience (ambassadors, interns), send, history, read |
+| `src/pages/admin/messages.astro` | Admin: send a message to ambassadors and interns |
+| `src/pages/api/admin/messages.ts` | Admin action: send a notice |
+| `src/pages/me/notices/[id].astro` | The full notice for a recipient |
+| `src/lib/events.ts` | Events: list, upcoming/past, save, hide, delete |
+| `src/lib/event-time.ts` | Event dates in India time, labels like "Tomorrow" (pure) |
+| `src/pages/events/index.astro`, `src/pages/events/[id].astro` | Public events list and event page |
+| `src/components/EventCard.astro` | Event card |
+| `src/pages/admin/events.astro` | Admin: add and edit events |
+| `src/pages/api/admin/events.ts` | Admin actions for events |
+| `drizzle/0011_notices_events.sql` | Migration: `notices`, `events` |
+| `tests/event-time.test.ts`, `tests/e2e/notices-events.e2e.mjs` | Tests for categories, messages and events |
+| `src/lib/people.ts` | Interns and ambassadors page: profiles, public list, automatic ambassadors |
+| `src/pages/people/index.astro` | Public interns and campus ambassadors page (404 while switched off) |
+| `src/components/PersonCard.astro` | Profile card for /people/ |
+| `src/pages/admin/people.astro` | Admin: switch the page on/off, add and edit profiles |
+| `src/components/admin/PersonForm.astro` | Admin add/edit form for a profile |
+| `src/pages/api/admin/people.ts` | Admin actions for the people page |
+| `drizzle/0010_people.sql` | Migration: `people` table |
+| `tests/e2e/people.e2e.mjs` | People page test |
 | `src/lib/portfolio.ts` | Portfolio templates, colour palettes, HTML generator, zip writer (pure) |
 | `src/islands/students/PortfolioBuilder.tsx` | Portfolio builder: form, templates, colours, preview, downloads |
 | `src/pages/students/portfolio-builder/index.astro` | Portfolio builder page with Netlify and Vercel launch guide |

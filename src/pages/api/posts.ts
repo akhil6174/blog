@@ -15,7 +15,7 @@ import { contentHash, excerpt, isTiptapDoc, newId, readingMinutes, renderDoc, sl
 import { tagSlug } from '../../lib/posts';
 import { verifyTurnstile } from '../../lib/turnstile';
 import { isImageSrc } from '../../lib/media';
-import { CATEGORIES } from '../../lib/site';
+import { isValidCategory } from '../../lib/site';
 
 import { checkCode, normaliseCode } from '../../lib/internship';
 export const prerender = false;
@@ -34,7 +34,7 @@ const Body = z.object({
   autosave: z.boolean().default(false),
   turnstileToken: z.string().optional().default(''),
   seoTitle: z.string().max(70).optional().default(''),
-  category: z.string().max(40).optional().default(''),
+  category: z.string().max(40).optional().default('').transform((v) => v.trim().replace(/\s+/g, ' ')),
   /** Requested URL slug; honoured only until the post is first published (links must not break). */
   slug: z.string().max(80).optional().default(''),
   summarySource: z.enum(['ai', 'user', '']).optional().default(''),
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (title.length < 10) problems.push('title too short');
     if (b.description.trim().length < 50) problems.push('summary too short');
     if (b.tags.length < 1) problems.push('add a tag');
-    if (!CATEGORIES.some((c) => c.slug === b.category)) problems.push('choose a category');
+    if (!isValidCategory(b.category)) problems.push('choose a category');
     if (words < minWords) problems.push(`at least ${minWords} words`);
     if (b.coverImage && !b.coverAlt) problems.push('cover alt text');
     if (problems.length) return json({ error: `Fix before submitting: ${problems.join(', ')}.` }, 400);
@@ -162,7 +162,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     internCode,
     version,
     seoTitle: b.seoTitle.trim() || null,
-    category: CATEGORIES.some((c) => c.slug === b.category) ? b.category : null,
+    category: isValidCategory(b.category) ? b.category : null,
     summarySource: b.summarySource || null,
     summaryBasis: b.summarySource === 'ai' ? b.summaryBasis || null : b.summaryBasis || post?.summaryBasis || null,
     featured: hasRole(user, 'admin') && typeof b.featured === 'boolean' ? b.featured : post?.featured ?? false,

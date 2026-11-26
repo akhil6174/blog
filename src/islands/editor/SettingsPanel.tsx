@@ -4,7 +4,7 @@
  */
 import { AlertTriangle, ImagePlus, Lock, RefreshCw, Send, Sparkles } from 'lucide-preact';
 import { isImageSrc } from '../../lib/media';
-import { CATEGORIES } from '../../lib/site';
+import { CATEGORIES, CUSTOM_CATEGORY } from '../../lib/site';
 import { SEO_TITLE_MAX, SUMMARY_IDEAL_MAX, SUMMARY_MIN } from '../../lib/fingerprint';
 import { slugTyping } from '../../lib/slug';
 import { DIFFICULTIES } from '../../lib/tech-labels';
@@ -163,10 +163,17 @@ export default function SettingsPanel(p: Props) {
       {/* Category */}
       <label class="grid min-w-0 grid-cols-1 gap-1.5">
         <span class="font-semibold">Category</span>
-        <select aria-label="Category" value={v.category} onChange={(e) => p.onChange({ category: (e.target as HTMLSelectElement).value })} class="field">
+        <select aria-label="Category" value={v.category.startsWith('c:') ? '__other' : v.category} onChange={(e) => { const x = (e.target as HTMLSelectElement).value; p.onChange({ category: x === '__other' ? 'c:' : x }); }} class="field" data-testid="category">
           <option value="">Choose a category</option>
           {CATEGORIES.map((c) => <option value={c.slug}>{c.name}</option>)}
+          <option value="__other">Other (type your own)</option>
         </select>
+        {v.category.startsWith('c:') && (
+          <>
+            <input value={v.category.slice(2)} maxLength={30} onInput={(e) => p.onChange({ category: `c:${(e.target as HTMLInputElement).value.replace(/^\s+/, '')}` })} class="field" placeholder="Your category, e.g. Robotics" aria-label="Your own category" data-testid="custom-category" />
+            {v.category.length > 2 && !CUSTOM_CATEGORY.test(v.category.trimEnd()) && <span class="text-xs text-red-700" role="alert">2 to 30 characters: letters, numbers, spaces and &amp; + . # / ' -</span>}
+          </>
+        )}
       </label>
 
       <label class="grid min-w-0 grid-cols-1 gap-1.5">

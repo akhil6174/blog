@@ -1,0 +1,126 @@
+---
+/**
+ * /admin/events : add, edit, hide and delete events shown on /events/ (admin only, via middleware).
+ * Fields: title, subtitle, description, cover image, link and its button text, place, start and end (India time).
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { eventPath, listAllEvents, type EventRow } from '../../lib/events';
+import { eventWhen, isUpcoming, toIstInput } from '../../lib/event-time';
+
+export const prerender = false;
+
+const all = await listAllEvents();
+const field = 'rounded border border-line bg-page px-3 py-2';
+const v = (x: string | null | undefined) => x ?? '';
+const forms: (EventRow | null)[] = [null, ...all];
+---
+
+<BaseLayout title="Events" description="Manage events." noindex wide>
+  <div class="mx-auto max-w-4xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <div class="mt-2 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Events</h1>
+        <p class="text-sm text-muted">Shown on <a href="/events/" target="_blank" class="underline">trutiai.in/events/</a>. Times are India time (IST). Ended events move to “Past events” by themselves.</p>
+      </div>
+    </div>
+    <p id="flash" class="mt-3 min-h-5 text-sm text-accent" role="status"></p>
+
+    {forms.map((e) => {
+      const form = (
+        <form class="event-form grid gap-3 text-sm" data-id={e?.id ?? ''}>
+          <label class="grid gap-1"><span class="font-semibold">Title</span><input name="title" required maxlength="120" value={v(e?.title)} placeholder="TrutiAI Build Weekend: AI for your college" class={field} /></label>
+          <label class="grid gap-1"><span class="font-semibold">Subtitle <span class="font-normal text-muted">(one line)</span></span><input name="subtitle" maxlength="200" value={v(e?.subtitle)} placeholder="48-hour online hackathon for students. Teams of up to 4." class={field} /></label>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="grid gap-1"><span class="font-semibold">Starts (IST)</span><input name="startsAt" type="datetime-local" required value={toIstInput(e?.startsAt)} class={field} /></label>
+            <label class="grid gap-1"><span class="font-semibold">Ends (IST) <span class="font-normal text-muted">(optional)</span></span><input name="endsAt" type="datetime-local" value={toIstInput(e?.endsAt)} class={field} /></label>
+          </div>
+          <label class="grid gap-1"><span class="font-semibold">Where</span><input name="location" maxlength="120" value={v(e?.location)} placeholder="Online (Google Meet) or college name, city" class={field} /></label>
+          <div class="grid gap-3 sm:grid-cols-[1fr_12rem]">
+            <label class="grid gap-1"><span class="font-semibold">Link <span class="font-normal text-muted">(registration or details)</span></span><input name="link" maxlength="300" value={v(e?.link)} placeholder="https://forms.gle/…" class={field} /></label>
+            <label class="grid gap-1"><span class="font-semibold">Button text</span><input name="linkLabel" maxlength="40" value={v(e?.linkLabel)} placeholder="Register" class={field} /></label>
+          </div>
+          <div class="grid gap-2">
+            <span class="font-semibold">Cover image <span class="font-normal text-muted">(cropped to 1200 × 630)</span></span>
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="cover-preview">{e?.coverImage ? <img src={e.coverImage} alt="" width="160" height="84" class="h-[84px] w-40 rounded object-cover" /> : <span class="flex h-[84px] w-40 items-center justify-center rounded bg-tint text-xs text-muted">No cover</span>}</span>
+              <label class="cursor-pointer rounded border border-line px-3 py-1.5 font-semibold hover:border-accent">Upload cover<input type="file" accept="image/png,image/jpeg,image/webp" class="cover-file sr-only" /></label>
+              <button type="button" class="cover-clear text-xs text-red-700 underline">Remove cover</button>
+              <span class="cover-msg text-xs text-muted"></span>
+            </div>
+            <input type="hidden" name="coverImage" value={v(e?.coverImage)} />
+          </div>
+          <label class="grid gap-1"><span class="font-semibold">Description <span class="font-normal text-muted">(what, who can join, prizes, rules; new lines are kept)</span></span><textarea name="description" required rows="8" maxlength="5000" class={field}>{v(e?.description)}</textarea></label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="published" checked={e?.published ?? true} /> Show on the events page</label>
+          <div><button class="rounded bg-accent px-4 py-2 font-semibold text-white">{e ? 'Save changes' : 'Add event'}</button></div>
+        </form>
+      );
+      return e ? (
+        <article class="mt-3 rounded-xl border border-line bg-surface p-4" data-row={e.id}>
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">{e.title} {!e.published && <span class="ml-1 rounded bg-page px-1.5 py-0.5 text-xs font-normal text-muted">hidden</span>} {e.published && !isUpcoming(e.startsAt, e.endsAt) && <span class="ml-1 rounded bg-page px-1.5 py-0.5 text-xs font-normal text-muted">past</span>}</p>
+              <p class="text-xs text-muted">{eventWhen(e.startsAt, e.endsAt)}{e.location && ` · ${e.location}`}</p>
+            </div>
+            {e.published && <a href={eventPath(e.id)} target="_blank" class="text-sm underline">View</a>}
+            <button class="act rounded border border-line px-3 py-1 text-sm" data-body={JSON.stringify({ action: 'publish', id: e.id, published: !e.published })}>{e.published ? 'Hide' : 'Show'}</button>
+            <button class="act rounded border border-line px-3 py-1 text-sm text-red-700" data-body={JSON.stringify({ action: 'delete', id: e.id })} data-confirm={`Delete “${e.title}”? This cannot be undone.`}>Delete</button>
+          </div>
+          <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold text-accent">Edit</summary><div class="mt-3">{form}</div></details>
+        </article>
+      ) : (
+        <details class="mt-2 rounded-xl border border-line bg-surface p-4" open={all.length === 0}>
+          <summary class="cursor-pointer font-semibold">+ Add an event</summary>
+          <div class="mt-4">{form}</div>
+        </details>
+      );
+    })}
+    {all.length > 0 && <h2 class="sr-only">All events</h2>}
+  </div>
+
+  <script is:inline>
+    const flash = document.getElementById('flash');
+    async function post(body) {
+      const r = await fetch('/api/admin/events', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      flash.textContent = r.ok ? d.message || 'Done.' : d.error || 'Failed.';
+      flash.className = 'mt-3 min-h-5 text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (r.ok) setTimeout(() => location.reload(), 700);
+    }
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', () => { if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; post(JSON.parse(b.dataset.body)); }));
+    document.querySelectorAll('form.event-form').forEach((f) => {
+      const hidden = f.querySelector('input[name=coverImage]');
+      const msg = f.querySelector('.cover-msg');
+      const preview = f.querySelector('.cover-preview');
+      f.querySelector('.cover-file').addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        msg.textContent = 'Uploading…';
+        try {
+          const bmp = await createImageBitmap(file);
+          const W = 1200, H = 630, r = Math.max(W / bmp.width, H / bmp.height);
+          const sw = W / r, sh = H / r;
+          const c = document.createElement('canvas'); c.width = W; c.height = H;
+          c.getContext('2d').drawImage(bmp, (bmp.width - sw) / 2, (bmp.height - sh) / 2, sw, sh, 0, 0, W, H);
+          const blob = await new Promise((res) => c.toBlob(res, 'image/webp', 0.82));
+          const res = await fetch('/api/media?kind=cover', { method: 'POST', headers: { 'content-type': blob.type }, body: blob });
+          const d = await res.json().catch(() => ({}));
+          if (!res.ok) { msg.textContent = d.error || 'Upload failed.'; return; }
+          hidden.value = d.url;
+          preview.innerHTML = `<img src="${d.url}" alt="" width="160" height="84" class="h-[84px] w-40 rounded object-cover">`;
+          msg.textContent = 'Uploaded. Save to keep it.';
+        } catch { msg.textContent = 'That image could not be read.'; }
+      });
+      f.querySelector('.cover-clear').addEventListener('click', () => { hidden.value = ''; preview.innerHTML = '<span class="flex h-[84px] w-40 items-center justify-center rounded bg-tint text-xs text-muted">No cover</span>'; msg.textContent = 'Cover removed. Save to keep the change.'; });
+      f.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(f);
+        const ev = Object.fromEntries([...fd.entries()].filter(([k]) => k !== 'published'));
+        ev.published = fd.get('published') === 'on';
+        if (f.dataset.id) ev.id = Number(f.dataset.id);
+        post({ action: 'save', event: ev });
+      });
+    });
+  </script>
+</BaseLayout>

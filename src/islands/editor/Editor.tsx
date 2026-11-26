@@ -611,7 +611,7 @@ export default function Editor({ initial = {}, authorName, minWords, maxTags, tu
     if (title.trim().length < 10) p.push('Give the article a title of at least 10 characters.');
     if (settings.description.trim().length < 50) p.push('Add a summary of at least 50 characters: click "Generate with AI" or write it (right panel).');
     if (tagList.length < 1) p.push('Add at least one tag.');
-    if (!settings.category) p.push('Choose a category (right panel).');
+    if (!settings.category || settings.category === 'c:') p.push('Choose a category (right panel).');
     if (words < minWords) p.push(`Write at least ${minWords} words (now ${words}).`);
     if (settings.coverImage && !isImageSrc(settings.coverImage)) p.push('The cover image address is not valid. Upload the image or use a full https:// address.');
     if (settings.coverImage && !settings.coverAlt.trim()) p.push('Describe the cover image (alt text).');

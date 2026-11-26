@@ -1,0 +1,47 @@
+---
+/** /events/<id>/ : one event with cover, dates, place, description and the sign-up link (D-047). Event structured data for Google. */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getEvent } from '../../lib/events';
+import { eventBadge, eventWhen, isUpcoming } from '../../lib/event-time';
+import { breadcrumbJsonLd } from '../../lib/seo';
+
+export const prerender = false;
+
+const id = Number(Astro.params.id);
+const e = Number.isInteger(id) && id > 0 ? await getEvent(id) : null;
+if (!e || !e.published) return new Response('Not found', { status: 404 });
+const upcoming = isUpcoming(e.startsAt, e.endsAt);
+const badge = upcoming ? eventBadge(e.startsAt, e.endsAt) : 'This event has ended';
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const url = new URL(Astro.url.pathname, siteUrl).href;
+const online = !e.location || /online|virtual|zoom|meet|discord/i.test(e.location);
+const jsonLd = [
+  breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: 'Events', url: `${siteUrl}events/` }, { name: e.title, url }]),
+  {
+    '@context': 'https://schema.org', '@type': 'Event', name: e.title, description: (e.subtitle || e.description).slice(0, 300),
+    startDate: e.startsAt.toISOString(), ...(e.endsAt ? { endDate: e.endsAt.toISOString() } : {}),
+    eventAttendanceMode: online ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode',
+    eventStatus: 'https://schema.org/EventScheduled',
+    location: online ? { '@type': 'VirtualLocation', url: e.link?.startsWith('https://') ? e.link : url } : { '@type': 'Place', name: e.location, address: e.location },
+    ...(e.coverImage ? { image: new URL(e.coverImage, siteUrl).href } : {}),
+    organizer: { '@type': 'Organization', name: 'TrutiAI', url: siteUrl },
+  },
+];
+---
+
+<BaseLayout title={e.title} description={(e.subtitle || e.description).replace(/\s+/g, ' ').slice(0, 155)} image={e.coverImage ?? undefined} jsonLd={jsonLd}>
+  <article class="mx-auto max-w-3xl font-sans">
+    <nav aria-label="Breadcrumb" class="text-sm text-muted"><a href="/events/" class="hover:text-accent">Events</a> <span aria-hidden="true">/</span> <span class="text-ink">{e.title}</span></nav>
+    {e.coverImage && <img src={e.coverImage} alt="" width="1200" height="630" class="mt-4 aspect-[1200/630] w-full rounded-2xl object-cover" />}
+    {badge && <p class:list={['mt-5 inline-block rounded-full px-3 py-1 text-xs font-semibold', upcoming ? 'bg-accent text-white' : 'bg-page text-muted']}>{badge}</p>}
+    <h1 class="mt-3 text-3xl font-bold leading-tight tracking-tight md:text-4xl">{e.title}</h1>
+    {e.subtitle && <p class="mt-2 font-serif text-xl text-muted">{e.subtitle}</p>}
+    <dl class="mt-6 grid gap-3 rounded-2xl border border-line bg-surface p-5 text-sm sm:grid-cols-2">
+      <div><dt class="text-xs font-semibold uppercase tracking-wide text-muted">When</dt><dd class="mt-1 text-ink">{eventWhen(e.startsAt, e.endsAt)}</dd></div>
+      <div><dt class="text-xs font-semibold uppercase tracking-wide text-muted">Where</dt><dd class="mt-1 text-ink">{e.location || 'Online'}</dd></div>
+    </dl>
+    {e.link && upcoming && <p class="mt-6"><a href={e.link} target={e.link.startsWith('/') ? undefined : '_blank'} rel="noopener" class="inline-block rounded-full bg-accent px-6 py-3 font-semibold text-white hover:bg-accent-strong" data-testid="event-link">{e.linkLabel || 'Register'} →</a></p>}
+    <div class="mt-8 whitespace-pre-line font-serif text-lg leading-relaxed text-ink" data-testid="event-description">{e.description}</div>
+    <p class="mt-10 text-sm"><a href="/events/" class="font-semibold text-accent underline">← All events</a></p>
+  </article>
+</BaseLayout>

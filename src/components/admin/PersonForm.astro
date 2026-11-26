@@ -1,0 +1,43 @@
+---
+/** Add/edit form for one /people/ profile on /admin/people. Submitted by the page script as JSON. */
+import type { Person } from '../../lib/people';
+
+interface Props { p?: Person; kind?: 'intern' | 'ambassador' }
+const { p, kind = 'intern' } = Astro.props;
+const v = (x: string | null | undefined) => x ?? '';
+const field = 'rounded border border-line bg-page px-3 py-2';
+---
+
+<form class="person-form grid gap-3 text-sm" data-id={p?.id ?? ''}>
+  <div class="grid gap-3 sm:grid-cols-[10rem_1fr]">
+    <label class="grid gap-1"><span class="font-semibold">Type</span>
+      <select name="kind" class={field}><option value="intern" selected={(p?.kind ?? kind) === 'intern'}>Intern (completed)</option><option value="ambassador" selected={(p?.kind ?? kind) === 'ambassador'}>Campus ambassador</option></select>
+    </label>
+    <label class="grid gap-1"><span class="font-semibold">Name</span><input name="name" required maxlength="80" value={v(p?.name)} class={field} /></label>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
+    <span class="photo-preview">{p?.photo ? <img src={p.photo} alt="" width="56" height="56" class="h-14 w-14 rounded-full object-cover" /> : <span class="flex h-14 w-14 items-center justify-center rounded-full bg-tint text-xs text-muted">Photo</span>}</span>
+    <label class="cursor-pointer rounded border border-line px-3 py-1.5 font-semibold hover:border-accent">Upload photo<input type="file" accept="image/png,image/jpeg,image/webp" class="photo-file sr-only" /></label>
+    <button type="button" class="photo-clear text-xs text-red-700 underline">Remove photo</button>
+    <input type="hidden" name="photo" value={v(p?.photo)} />
+    <span class="photo-msg text-xs text-muted"></span>
+  </div>
+  <div class="grid gap-3 sm:grid-cols-2">
+    <label class="grid gap-1"><span class="font-semibold">Role</span><input name="role" maxlength="100" value={v(p?.role)} placeholder="Technical Content Intern" class={field} /></label>
+    <label class="grid gap-1"><span class="font-semibold">College</span><input name="college" maxlength="120" value={v(p?.college)} class={field} /></label>
+    <label class="grid gap-1"><span class="font-semibold">Period</span><input name="period" maxlength="60" value={v(p?.period)} placeholder="Jun – Aug 2026" class={field} /></label>
+    <label class="grid gap-1"><span class="font-semibold">Order <span class="font-normal text-muted">(lower shows first)</span></span><input name="sort" type="number" min="0" max="9999" value={p?.sort ?? 100} class={field} /></label>
+  </div>
+  <label class="grid gap-1"><span class="font-semibold">Short summary <span class="font-normal text-muted">(what they did, up to 500 characters)</span></span><textarea name="summary" rows="3" maxlength="500" class={field}>{v(p?.summary)}</textarea></label>
+  <div class="grid gap-3 sm:grid-cols-3">
+    <label class="grid gap-1"><span class="font-semibold">GitHub</span><input name="github" maxlength="200" value={v(p?.github)} placeholder="username" class={field} /></label>
+    <label class="grid gap-1"><span class="font-semibold">LinkedIn</span><input name="linkedin" maxlength="200" value={v(p?.linkedin)} placeholder="linkedin.com/in/…" class={field} /></label>
+    <label class="grid gap-1"><span class="font-semibold">Website</span><input name="website" maxlength="300" value={v(p?.website)} placeholder="https://…" class={field} /></label>
+  </div>
+  <div class="grid gap-3 sm:grid-cols-[1fr_14rem]">
+    <label class="grid gap-1"><span class="font-semibold">Highlight link <span class="font-normal text-muted">(project, article or certificate)</span></span><input name="highlightUrl" maxlength="300" value={v(p?.highlightUrl)} placeholder="https://…" class={field} /></label>
+    <label class="grid gap-1"><span class="font-semibold">Link text</span><input name="highlightLabel" maxlength="60" value={v(p?.highlightLabel)} placeholder="Read their article" class={field} /></label>
+  </div>
+  <label class="flex items-center gap-2"><input type="checkbox" name="published" checked={p?.published ?? true} /> Show on the public page</label>
+  <div><button class="rounded bg-accent px-4 py-2 font-semibold text-white">{p ? 'Save changes' : 'Add profile'}</button></div>
+</form>

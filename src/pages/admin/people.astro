@@ -1,0 +1,118 @@
+---
+/**
+ * /admin/people : the public /people/ page (admin only, via middleware). Turn the page on or off, choose whether
+ * assigned ambassadors are listed automatically, and add, edit, hide or delete intern and ambassador profiles.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PersonForm from '../../components/admin/PersonForm.astro';
+import { getSettingBool } from '../../lib/db/settings';
+import { listAll } from '../../lib/people';
+
+export const prerender = false;
+
+const open = await getSettingBool('people_page_open');
+const auto = await getSettingBool('people_auto_ambassadors');
+const all = await listAll();
+const groups = [
+  { kind: 'intern', title: 'Interns', rows: all.filter((p) => p.kind === 'intern') },
+  { kind: 'ambassador', title: 'Campus ambassadors (added here)', rows: all.filter((p) => p.kind === 'ambassador') },
+];
+---
+
+<BaseLayout title="People page" description="Manage interns and ambassadors on the public page." noindex wide>
+  <div class="mx-auto max-w-4xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <h1 class="mt-2 text-2xl font-bold tracking-tight">Interns and ambassadors page</h1>
+    <p class="text-sm text-muted">Profiles for the public page <code>/people/</code>. Add interns when they complete the internship.</p>
+    <p id="flash" class="mt-3 min-h-5 text-sm text-accent" role="status"></p>
+
+    <section class="mt-2 grid gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-[1fr_auto] sm:items-center" aria-label="Page switch">
+      <div>
+        <p class="font-semibold">Public page is <span data-testid="state" class={open ? 'text-green-700' : 'text-red-700'}>{open ? 'ON' : 'OFF'}</span></p>
+        <p class="text-sm text-muted">{open ? <>Anyone can see it at <a href="/people/" target="_blank" class="underline">trutiai.in/people/</a>.</> : 'Visitors get "page not found". Add profiles first, then turn it on.'}</p>
+        <label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" id="auto" checked={auto} /> Also list ambassadors assigned on <a href="/admin/ambassadors/" class="underline">Campus ambassadors</a> automatically</label>
+      </div>
+      <button id="toggle" data-open={open ? '1' : '0'} class={`rounded px-4 py-2 font-semibold ${open ? 'border border-red-300 text-red-700' : 'bg-accent text-white'}`}>{open ? 'Turn page off' : 'Turn page on'}</button>
+    </section>
+
+    <details class="mt-6 rounded-xl border border-line bg-surface p-4" open={all.length === 0}>
+      <summary class="cursor-pointer font-semibold">+ Add a profile</summary>
+      <div class="mt-4"><PersonForm /></div>
+    </details>
+
+    {groups.map((g) => (
+      <section class="mt-8" aria-label={g.title}>
+        <h2 class="text-lg font-bold">{g.title} <span class="font-normal text-muted">· {g.rows.length}</span></h2>
+        {g.rows.length === 0 ? <p class="mt-2 text-sm text-muted">None yet.</p> : (
+          <ul class="mt-3 grid gap-3">
+            {g.rows.map((p) => (
+              <li class="rounded-xl border border-line bg-surface p-4" data-row={p.id}>
+                <div class="flex flex-wrap items-center gap-3">
+                  {p.photo ? <img src={p.photo} alt="" width="40" height="40" class="h-10 w-10 rounded-full object-cover" /> : <span class="flex h-10 w-10 items-center justify-center rounded-full bg-tint text-sm font-bold text-accent-strong">{p.name[0]}</span>}
+                  <div class="min-w-0 flex-1"><p class="font-semibold">{p.name} {!p.published && <span class="ml-1 rounded bg-page px-1.5 py-0.5 text-xs font-normal text-muted">hidden</span>}</p><p class="text-xs text-muted">{[p.role, p.college, p.period].filter(Boolean).join(' · ')}</p></div>
+                  <button class="act rounded border border-line px-3 py-1 text-sm" data-body={JSON.stringify({ action: 'publish', id: p.id, published: !p.published })}>{p.published ? 'Hide' : 'Show'}</button>
+                  <button class="act rounded border border-line px-3 py-1 text-sm text-red-700" data-body={JSON.stringify({ action: 'delete', id: p.id })} data-confirm={`Delete ${p.name}'s profile? This cannot be undone.`}>Delete</button>
+                </div>
+                <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold text-accent">Edit</summary><div class="mt-3"><PersonForm p={p} /></div></details>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    ))}
+  </div>
+
+  <script is:inline>
+    const flash = document.getElementById('flash');
+    async function post(body, reload = true) {
+      const r = await fetch('/api/admin/people', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      flash.textContent = r.ok ? d.message || 'Done.' : d.error || 'Failed.';
+      flash.className = 'mt-3 min-h-5 text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (r.ok && reload) setTimeout(() => location.reload(), 700);
+      return r.ok;
+    }
+    document.getElementById('toggle').addEventListener('click', (e) => {
+      const on = e.currentTarget.dataset.open !== '1';
+      if (!on && !confirm('Turn the public page off? Visitors will get "page not found".')) return;
+      post({ action: 'settings', open: on });
+    });
+    document.getElementById('auto').addEventListener('change', (e) => post({ action: 'settings', auto: e.target.checked }, false));
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', () => { if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; post(JSON.parse(b.dataset.body)); }));
+
+    document.querySelectorAll('form.person-form').forEach((f) => {
+      const hidden = f.querySelector('input[name=photo]');
+      const msg = f.querySelector('.photo-msg');
+      const preview = f.querySelector('.photo-preview');
+      f.querySelector('.photo-file').addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        msg.textContent = 'Uploading…';
+        try {
+          const bmp = await createImageBitmap(file);
+          const side = Math.min(bmp.width, bmp.height);
+          const c = document.createElement('canvas'); c.width = c.height = 400;
+          c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 400, 400);
+          const blob = await new Promise((res) => c.toBlob(res, 'image/webp', 0.85));
+          const r = await fetch('/api/media?kind=avatar', { method: 'POST', headers: { 'content-type': blob.type }, body: blob });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) { msg.textContent = d.error || 'Upload failed.'; return; }
+          hidden.value = d.url;
+          preview.innerHTML = `<img src="${d.url}" alt="" width="56" height="56" class="h-14 w-14 rounded-full object-cover">`;
+          msg.textContent = 'Uploaded. Save to keep it.';
+        } catch { msg.textContent = 'That image could not be read.'; }
+      });
+      f.querySelector('.photo-clear').addEventListener('click', () => { hidden.value = ''; preview.innerHTML = '<span class="flex h-14 w-14 items-center justify-center rounded-full bg-tint text-xs text-muted">Photo</span>'; msg.textContent = 'Photo removed. Save to keep the change.'; });
+      f.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(f);
+        const person = Object.fromEntries([...fd.entries()].filter(([k]) => k !== 'published'));
+        person.published = fd.get('published') === 'on';
+        person.sort = Number(person.sort || 100);
+        if (f.dataset.id) person.id = Number(f.dataset.id);
+        post({ action: 'save', person });
+      });
+    });
+  </script>
+</BaseLayout>

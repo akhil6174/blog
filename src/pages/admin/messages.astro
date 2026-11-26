@@ -1,0 +1,106 @@
+---
+/**
+ * /admin/messages : send a notice to campus ambassadors and interns (admin only, via middleware). Pick whole groups
+ * or individual people; each gets a notification "Notice from Akhilendra: <title>" that opens the full message.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { audience, NOTICE_SENDER, noticeLink, recentNotices } from '../../lib/notices';
+
+export const prerender = false;
+
+const { ambassadors, interns } = await audience();
+const history = await recentNotices();
+const fmt = (d: Date) => d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+const groups = [
+  { id: 'ambassadors', title: 'Campus ambassadors', rows: ambassadors },
+  { id: 'interns', title: 'Interns', rows: interns },
+];
+---
+
+<BaseLayout title="Messages" description="Send notices to ambassadors and interns." noindex wide>
+  <div class="mx-auto max-w-5xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <h1 class="mt-2 text-2xl font-bold tracking-tight">Messages to ambassadors and interns</h1>
+    <p class="text-sm text-muted">They see it in their notifications as <strong>“Notice from {NOTICE_SENDER}: your title”</strong> and can open the full message.</p>
+    <p id="flash" class="mt-3 min-h-5 text-sm text-accent" role="status"></p>
+
+    <form id="msg" class="mt-2 grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div class="grid content-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm">
+        <label class="grid gap-1"><span class="font-semibold">Title</span><input name="title" required maxlength="120" placeholder="Meeting this Saturday" class="rounded border border-line bg-page px-3 py-2" /></label>
+        <label class="grid gap-1"><span class="font-semibold">Message</span><textarea name="body" required rows="9" maxlength="4000" class="rounded border border-line bg-page px-3 py-2" placeholder="Write your message. New lines are kept."></textarea></label>
+        <label class="grid gap-1"><span class="font-semibold">Link <span class="font-normal text-muted">(optional: form, meeting, page)</span></span><input name="link" maxlength="300" placeholder="https://…" class="rounded border border-line bg-page px-3 py-2" /></label>
+        <p class="text-xs text-muted">Recipients: <strong id="count">0</strong></p>
+        <div><button class="rounded bg-accent px-5 py-2 font-semibold text-white">Send message</button></div>
+      </div>
+
+      <div class="grid content-start gap-4">
+        {groups.map((g) => (
+          <fieldset class="rounded-xl border border-line bg-surface p-4 text-sm">
+            <legend class="px-1 font-semibold">{g.title} · {g.rows.length}</legend>
+            {g.rows.length === 0 ? <p class="text-muted">None yet.</p> : (
+              <>
+                <label class="flex items-center gap-2 font-semibold"><input type="checkbox" name="group" value={g.id} data-group={g.id} /> Send to all {g.title.toLowerCase()}</label>
+                <ul class="mt-2 grid max-h-72 gap-1 overflow-y-auto border-t border-line pt-2">
+                  {g.rows.map((r) => (
+                    <li>
+                      <label class:list={['flex items-start gap-2', !r.userId && 'opacity-60']}>
+                        <input type="checkbox" name="key" value={r.key} data-in={g.id} disabled={!r.userId} class="mt-1" />
+                        <span><span class="font-medium">{r.name}</span> <span class="block text-xs text-muted">{r.detail}{!r.userId && ' · not signed in yet'}</span></span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </fieldset>
+        ))}
+      </div>
+    </form>
+
+    <section class="mt-10" aria-labelledby="hist">
+      <h2 id="hist" class="text-lg font-bold">Sent messages</h2>
+      {history.length === 0 ? <p class="mt-2 text-sm text-muted">Nothing sent yet.</p> : (
+        <ul class="mt-3 divide-y divide-line rounded-xl border border-line bg-surface text-sm">
+          {history.map((n) => (
+            <li class="flex flex-wrap items-baseline justify-between gap-2 p-3">
+              <a href={noticeLink(n.id)} class="font-semibold hover:underline">{n.title}</a>
+              <span class="text-xs text-muted">{n.audience} · {n.recipients} received · {fmt(n.createdAt)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>
+
+  <script is:inline>
+    const form = document.getElementById('msg');
+    const count = document.getElementById('count');
+    function update() {
+      const keys = new Set();
+      form.querySelectorAll('input[name=group]:checked').forEach((g) => form.querySelectorAll(`input[data-in="${g.value}"]:not(:disabled)`).forEach((k) => keys.add(k.value)));
+      form.querySelectorAll('input[name=key]:checked').forEach((k) => keys.add(k.value));
+      count.textContent = keys.size;
+    }
+    form.querySelectorAll('input[name=group]').forEach((g) => g.addEventListener('change', () => {
+      form.querySelectorAll(`input[data-in="${g.value}"]:not(:disabled)`).forEach((k) => { k.checked = g.checked; });
+      update();
+    }));
+    form.querySelectorAll('input[name=key]').forEach((k) => k.addEventListener('change', update));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const groups = fd.getAll('group');
+      const keys = fd.getAll('key').filter((k) => !groups.some((g) => form.querySelector(`input[value="${CSS.escape(k)}"]`)?.dataset.in === g));
+      const n = Number(count.textContent);
+      if (!n) { document.getElementById('flash').textContent = 'Choose who should receive it.'; return; }
+      if (!confirm(`Send this message to ${n} ${n === 1 ? 'person' : 'people'}?`)) return;
+      const r = await fetch('/api/admin/messages', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: fd.get('title'), body: fd.get('body'), link: fd.get('link'), groups, keys }) });
+      const d = await r.json().catch(() => ({}));
+      const flash = document.getElementById('flash');
+      flash.textContent = r.ok ? d.message : d.error || 'Failed.';
+      flash.className = 'mt-3 min-h-5 text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (r.ok) setTimeout(() => location.reload(), 1500);
+    });
+  </script>
+</BaseLayout>

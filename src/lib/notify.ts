@@ -4,7 +4,7 @@
  */
 import { db, notifications } from './db';
 
-export type NoticeType = 'article' | 'comment' | 'reply' | 'reward' | 'ranking' | 'announcement';
+export type NoticeType = 'article' | 'comment' | 'reply' | 'reward' | 'ranking' | 'announcement' | 'notice';
 
 export async function notify(userId: string | null | undefined, type: NoticeType, title: string, link?: string | null): Promise<void> {
   if (!userId) return;

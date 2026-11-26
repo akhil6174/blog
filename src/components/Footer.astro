@@ -1,5 +1,5 @@
 ---
-import { CATEGORIES, SITE } from '../lib/site';
+import { MAIN_CATEGORIES, SITE } from '../lib/site';
 const year = new Date().getFullYear();
 const site = [
   { href: '/articles/', label: 'Explore articles' },
@@ -32,7 +32,7 @@ const legal = [
       </div>
       <nav aria-label="Topics">
         <p class="font-semibold text-ink">Topics</p>
-        <ul class="mt-3 grid gap-2">{CATEGORIES.map((c) => <li><a href={`/articles/?category=${c.slug}`} class="hover:text-accent">{c.name}</a></li>)}</ul>
+        <ul class="mt-3 grid gap-2">{MAIN_CATEGORIES.map((c) => <li><a href={`/articles/?category=${c.slug}`} class="hover:text-accent">{c.name}</a></li>)}</ul>
       </nav>
       <nav aria-label="Site">
         <p class="font-semibold text-ink">{SITE.name}</p>

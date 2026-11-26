@@ -6,7 +6,7 @@
 import { and, eq, isNotNull, lte } from 'drizzle-orm';
 import { db, posts, postTags } from './db';
 import { getSettingInt } from './db/settings';
-import { CATEGORIES, SITE } from './site';
+import { isValidCategory, SITE } from './site';
 import { editorialFile } from './markdown';
 import { parseTech } from './tech';
 import { deleteFile, isDryRun, putFile } from './github';
@@ -26,7 +26,7 @@ export async function editorialProblems(p: Post, tags: string[]): Promise<string
   if (d.length < 50 || d.length > 160) out.push('Summary must be 50 to 160 characters.');
   if (tags.length < 1 || tags.length > 5) out.push('Use 1 to 5 tags.');
   if (tags.some((t) => t.length < 2)) out.push('Each tag needs at least 2 characters.');
-  if (!CATEGORIES.some((c) => c.slug === p.category)) out.push('Choose a category.');
+  if (!isValidCategory(p.category)) out.push('Choose a category.');
   if (p.wordCount < minWords) out.push(`Write at least ${minWords} words (now ${p.wordCount}).`);
   if (p.coverImage && !p.coverAlt) out.push('Describe the cover image (alt text).');
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.slug)) out.push('The URL may only contain lowercase letters, numbers and hyphens.');

@@ -5,6 +5,21 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-26 · More categories, messages to ambassadors and interns, events page (D-045, D-046, D-047)
+
+- **Categories:** writers can pick from 23 categories (the 5 main topics plus Machine learning, Data science, Mobile development, DevOps, Cybersecurity, DSA, System design, Interview preparation and more), or choose "Other (type your own)" for a custom category of 2 to 30 characters (stored as `c:<name>`). The home page and footer keep the 5 main topics.
+- **Messages:** `/admin/messages` sends a notice to all campus ambassadors, all interns (by internship-code email) and/or chosen people. Each recipient gets a notification "Notice from Akhilendra: <title>" that opens the full message at `/me/notices/<id>/` (recipients only). Interns who have not signed in yet are shown and skipped. History of sent messages on the same page.
+- **Events:** `/events/` (in the header) lists upcoming and past events; `/events/<id>/` shows the cover, India-time dates, place, description, a register button and Event structured data for Google. `/admin/events` adds, edits, hides and deletes events (title, subtitle, description, cover image cropped to 1200 × 630, link and button text, place, start and end). Ended events move to "Past events" by themselves.
+- Migration `0011_notices_events`. Tests: `tests/event-time.test.ts` (5), `tests/e2e/notices-events.e2e.mjs` (30).
+
+### 2026-11-26 · Interns and ambassadors page with admin management (D-044)
+
+- Public `/people/`: "Our interns and campus ambassadors", with profile cards (photo, name, role, college, period, summary, highlight link, GitHub, LinkedIn, website). Edge-cached; refreshed on every change.
+- Off by default: while the setting `people_page_open` is false the page returns 404. Turn it on or off from `/admin/people`.
+- `/admin/people` (linked from `/admin` and the account menu): add, edit, hide/show and delete intern and ambassador profiles, upload photos, set the order. Optionally also list ambassadors assigned on `/admin/ambassadors` automatically (setting `people_auto_ambassadors`, on by default; same names are not repeated).
+- Links are checked (https only; GitHub and LinkedIn cleaned up), photos must be uploads, all changes audited.
+- Migration `0010_people`. Test: `tests/e2e/people.e2e.mjs` (22 checks).
+
 ### 2026-11-21 · Portfolio builder: Professional site and Basic templates
 
 - **Professional site**: sticky menu with section links and a Contact button, large "Hi, I'm" intro with "View my work" and "Get in touch" buttons, photo in a soft shape, numbered project cards, experience timeline and a "Let's work together" contact section.

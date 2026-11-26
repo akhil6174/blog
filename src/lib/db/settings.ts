@@ -34,6 +34,9 @@ export const SETTING_DEFAULTS = {
   competition_weights: '30,25,20,15,10',
   // Internships (src/lib/internship.ts). Interns are recruited off-site (LinkedIn, email).
   internship_articles: '3',
+  // Public /people/ page (src/lib/people.ts): off until the owner turns it on.
+  people_page_open: 'false',
+  people_auto_ambassadors: 'true', // also list ambassadors assigned on /admin/ambassadors/
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
@@ -101,4 +104,6 @@ export const SETTING_HELP: Record<SettingKey, string> = {
   reward_cap: 'Most a single writer can receive across the whole programme, in rupees (first-article reward and prizes together).',
   competition_weights: 'Score weights in percent: technical accuracy, quality and depth, originality, clarity, genuine upvotes. Must add up to 100.',
   internship_articles: 'Published articles an intern needs (with their internship code) before the certificate is due. /admin/internships highlights them.',
+  people_page_open: 'true = the public /people/ page (interns and campus ambassadors) is visible. false = it returns 404. Manage it on /admin/people.',
+  people_auto_ambassadors: 'true = /people/ also lists ambassadors assigned on /admin/ambassadors (besides profiles added on /admin/people).',
 };

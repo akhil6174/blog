@@ -444,4 +444,67 @@ export const dsaProgress = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.problemId] })],
 );
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress };
+/** Profiles on the public /people/ page (D-044): interns who completed the internship and campus ambassadors. Admin-managed. */
+export const people = sqliteTable(
+  'people',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    kind: text('kind', { enum: ['intern', 'ambassador'] }).notNull(),
+    name: text('name').notNull(),
+    /** Uploaded /media/... path. */
+    photo: text('photo'),
+    role: text('role'),
+    college: text('college'),
+    /** Free text such as "Jun – Aug 2026". */
+    period: text('period'),
+    summary: text('summary'),
+    github: text('github'),
+    linkedin: text('linkedin'),
+    website: text('website'),
+    /** One highlight link (project, article or certificate). */
+    highlightUrl: text('highlight_url'),
+    highlightLabel: text('highlight_label'),
+    published: integer('published', { mode: 'boolean' }).notNull().default(true),
+    /** Lower comes first. */
+    sort: integer('sort').notNull().default(100),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('people_kind_idx').on(t.kind, t.published, t.sort)],
+);
+
+/** Messages the admin sends to ambassadors and interns (D-046). Each recipient gets a notification linking to /me/notices/<id>/. */
+export const notices = sqliteTable('notices', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  link: text('link'),
+  sender: text('sender').notNull(),
+  /** Who it was sent to, for the admin's history, e.g. "All campus ambassadors (12)". */
+  audience: text('audience').notNull(),
+  recipients: integer('recipients').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+});
+
+/** Events on /events/ (D-047), managed on /admin/events. Times are stored as UTC and shown in India time. */
+export const events = sqliteTable(
+  'events',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    title: text('title').notNull(),
+    subtitle: text('subtitle'),
+    description: text('description').notNull(),
+    coverImage: text('cover_image'),
+    link: text('link'),
+    linkLabel: text('link_label'),
+    location: text('location'),
+    startsAt: integer('starts_at', { mode: 'timestamp' }).notNull(),
+    endsAt: integer('ends_at', { mode: 'timestamp' }),
+    published: integer('published', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('events_starts_idx').on(t.published, t.startsAt)],
+);
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, people, notices, events };

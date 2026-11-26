@@ -1,0 +1,51 @@
+---
+/**
+ * /people/ : interns who completed the TrutiAI internship and campus ambassadors (D-044). On-demand and edge-cached;
+ * returns 404 while the setting people_page_open is false. Managed on /admin/people.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PersonCard from '../../components/PersonCard.astro';
+import { getSettingBool } from '../../lib/db/settings';
+import { publicPeople } from '../../lib/people';
+import { breadcrumbJsonLd } from '../../lib/seo';
+
+export const prerender = false;
+
+if (!(await getSettingBool('people_page_open'))) return new Response('Not found', { status: 404, headers: { 'cache-control': 'no-store' } });
+const { interns, ambassadors } = await publicPeople();
+const siteUrl = (Astro.site ?? new URL('https://trutiai.in/')).href;
+const jsonLd = [breadcrumbJsonLd([{ name: 'Home', url: siteUrl }, { name: 'Interns and ambassadors', url: `${siteUrl}people/` }])];
+---
+
+<BaseLayout title="Our interns and campus ambassadors" description="Meet the students who completed the TrutiAI internship and the campus ambassadors who represent TrutiAI at their colleges." jsonLd={jsonLd}>
+  <header class="max-w-3xl font-sans">
+    <p class="text-sm font-semibold uppercase tracking-wide text-accent">TrutiAI people</p>
+    <h1 class="mt-2 text-3xl font-bold leading-tight tracking-tight md:text-4xl">Our interns and campus ambassadors</h1>
+    <p class="mt-3 font-serif text-lg text-muted">Students who completed the TrutiAI internship by building and writing real projects, and the ambassadors who bring TrutiAI to their colleges.</p>
+    <p class="mt-4 flex flex-wrap gap-2 text-sm">
+      {interns.length > 0 && <a href="#interns" class="rounded-full border border-line px-4 py-1.5 font-semibold hover:border-accent">Interns · {interns.length}</a>}
+      {ambassadors.length > 0 && <a href="#ambassadors" class="rounded-full border border-line px-4 py-1.5 font-semibold hover:border-accent">Campus ambassadors · {ambassadors.length}</a>}
+    </p>
+  </header>
+
+  {interns.length > 0 && (
+    <section id="interns" class="mt-12" aria-labelledby="interns-title">
+      <h2 id="interns-title" class="font-sans text-2xl font-bold">Interns who completed the internship</h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{interns.map((p) => <PersonCard p={p} badge="Internship completed" />)}</div>
+    </section>
+  )}
+
+  {ambassadors.length > 0 && (
+    <section id="ambassadors" class="mt-14" aria-labelledby="amb-title">
+      <h2 id="amb-title" class="font-sans text-2xl font-bold">Campus ambassadors</h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{ambassadors.map((p) => <PersonCard p={p} badge="Campus Ambassador" />)}</div>
+    </section>
+  )}
+
+  {interns.length === 0 && ambassadors.length === 0 && <p class="mt-10 font-sans text-muted">Profiles will appear here soon.</p>}
+
+  <section class="mt-16 grid gap-4 font-sans sm:grid-cols-2">
+    <a href="/join-us/" class="rounded-2xl border border-line p-5 hover:border-accent"><span class="block font-bold text-ink">Become an intern →</span><span class="text-sm text-muted">Build projects, publish on TrutiAI and earn a certificate.</span></a>
+    <a href="/students/campus-ambassadors/" class="rounded-2xl border border-line p-5 hover:border-accent"><span class="block font-bold text-ink">Represent your college →</span><span class="text-sm text-muted">One Campus Ambassador per college: certificate, your name here, internship priority.</span></a>
+  </section>
+</BaseLayout>
