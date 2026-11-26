@@ -483,6 +483,9 @@ export const notices = sqliteTable('notices', {
   /** Who it was sent to, for the admin's history, e.g. "All campus ambassadors (12)". */
   audience: text('audience').notNull(),
   recipients: integer('recipients').notNull().default(0),
+  /** Set for a suggestion or removal notice about one article (D-048). */
+  postId: text('post_id'),
+  kind: text('kind', { enum: ['message', 'suggestion', 'removal'] }).notNull().default('message'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
 });
 

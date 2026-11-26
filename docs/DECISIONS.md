@@ -315,6 +315,11 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why not print-to-PDF or an image export:** the browser print dialog differs on every phone and adds page headers; HTML-to-image libraries produce a picture of the resume, which applicant tracking systems cannot read. pdf-lib gives the same file everywhere with selectable text, at no server cost.
 - **Trade-offs:** standard fonts cover Latin characters only, so Hindi or emoji show as "?" (the page warns). Typography is limited to Times and Helvetica; embedding other fonts would add 100–300 KB per font.
 
+## D-048 · Admin article review: suggestions and removals reuse notices; delete means trash
+
+- **Date:** 2026-11-26 · **Status:** accepted
+- **Decision:** Suggestions and removal notices are rows in `notices` (with `post_id` and `kind`), so the writer reads them like other notices and the admin sees the history per article. "Delete" moves the article to the Trash instead of erasing it, so a mistake can be undone; the writer is always told why. Editorial (admin) articles are not deleted from here.
+
 ## D-047 · Events stored in D1, times entered in India time
 
 - **Date:** 2026-11-26 · **Status:** accepted

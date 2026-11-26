@@ -245,6 +245,11 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
 | `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
 | `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
+| `src/pages/admin/articles/index.astro` | Admin: every article in any state, search and filter |
+| `src/pages/admin/articles/[id].astro` | Admin: read an article, send a suggestion, decide, delete with notice |
+| `src/pages/api/admin/articles.ts` | Admin actions: suggestion and delete-with-notice |
+| `drizzle/0012_notice_posts.sql` | Migration: notices linked to an article |
+| `tests/e2e/admin-articles.e2e.mjs` | Admin article review test |
 | `src/lib/notices.ts` | Admin notices: audience (ambassadors, interns), send, history, read |
 | `src/pages/admin/messages.astro` | Admin: send a message to ambassadors and interns |
 | `src/pages/api/admin/messages.ts` | Admin action: send a notice |

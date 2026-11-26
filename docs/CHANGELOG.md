@@ -5,6 +5,13 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-26 · Admin article review: read any article, send suggestions, delete with notice (D-048)
+
+- `/admin/articles/` (dashboard button and account menu): every article in any state, drafts included, with status filter, search by title or writer, and paging.
+- `/admin/articles/<id>/`: the full article, writer details and numbers, last editor note, and actions: **Send suggestion** (the writer gets "Suggestion from Akhilendra on “…”", opening the full text with an "Edit your article" button; the article does not change), Approve / Request changes / Reject / Unpublish (existing decisions), and **Delete and notify** (moves to the Trash, removes it from the site, sends the writer a removal notice with the reason; restorable from the dashboard Trash). History of everything sent about the article.
+- Review queue titles on the dashboard now open this page.
+- Migration `0012_notice_posts` (`notices.post_id`, `notices.kind`). Test: `tests/e2e/admin-articles.e2e.mjs` (18 checks).
+
 ### 2026-11-26 · Search Console: /people/ out of the static sitemap; events in the sitemap
 
 - `/people/` was listed in the static sitemap while switched off, so Google got a 404. It is now excluded there and listed in `sitemap-community.xml` only while the page is on.

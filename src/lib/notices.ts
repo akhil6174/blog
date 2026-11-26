@@ -43,16 +43,21 @@ export async function audience(): Promise<{ ambassadors: Recipient[]; interns: R
 export class NoticeError extends Error {}
 
 /** Send one message to the chosen user ids. Returns the notice id and how many received it. */
-export async function sendNotice(input: { title: string; body: string; link: string | null; userIds: string[]; audienceLabel: string }): Promise<{ id: number; sent: number }> {
+export async function sendNotice(input: { title: string; body: string; link: string | null; userIds: string[]; audienceLabel: string; notifyTitle?: string; postId?: string; kind?: 'message' | 'suggestion' | 'removal' }): Promise<{ id: number; sent: number }> {
   const ids = [...new Set(input.userIds.filter(Boolean))];
   if (!ids.length) throw new NoticeError('Choose at least one person who has a TrutiAI account.');
-  const [row] = await db().insert(notices).values({ title: input.title, body: input.body, link: input.link, sender: NOTICE_SENDER, audience: input.audienceLabel, recipients: ids.length }).returning({ id: notices.id });
-  const sent = await notifyMany(ids, 'notice', `Notice from ${NOTICE_SENDER}: ${input.title}`, noticeLink(row!.id));
+  const [row] = await db().insert(notices).values({ title: input.title, body: input.body, link: input.link, sender: NOTICE_SENDER, audience: input.audienceLabel, recipients: ids.length, postId: input.postId ?? null, kind: input.kind ?? 'message' }).returning({ id: notices.id });
+  const sent = await notifyMany(ids, 'notice', input.notifyTitle ?? `Notice from ${NOTICE_SENDER}: ${input.title}`, noticeLink(row!.id));
   return { id: row!.id, sent };
 }
 
 export async function recentNotices(limit = 30) {
-  return db().select().from(notices).orderBy(desc(notices.id)).limit(limit);
+  return db().select().from(notices).where(eq(notices.kind, 'message')).orderBy(desc(notices.id)).limit(limit);
+}
+
+/** Suggestions and removal notices sent about one article, newest first. */
+export async function noticesForPost(postId: string) {
+  return db().select().from(notices).where(eq(notices.postId, postId)).orderBy(desc(notices.id));
 }
 
 /** A notice the user received (or any notice for the admin). Marks the matching notification read. */

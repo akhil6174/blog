@@ -1,0 +1,74 @@
+---
+/**
+ * /admin/articles : every article on the site in any state (admin only, via middleware) (D-048). Search by title or
+ * writer, filter by status; each opens /admin/articles/<id>/ to read it, send a suggestion or delete it.
+ */
+import { and, desc, eq, like, or, sql } from 'drizzle-orm';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { db, posts, POST_STATUS, user } from '../../../lib/db';
+
+export const prerender = false;
+
+const q = (Astro.url.searchParams.get('q') ?? '').trim().slice(0, 80);
+const status = (POST_STATUS as readonly string[]).includes(Astro.url.searchParams.get('status') ?? '') ? Astro.url.searchParams.get('status')! : '';
+const page = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+const PER = 50;
+const where = [];
+if (status) where.push(eq(posts.status, status as (typeof POST_STATUS)[number]));
+if (q) { const pat = `%${q.replace(/[%_]/g, '')}%`; where.push(or(like(posts.title, pat), like(user.name, pat), like(user.email, pat))!); }
+const d = db();
+const rows = await d
+  .select({ id: posts.id, title: posts.title, status: posts.status, kind: posts.kind, words: posts.wordCount, views: posts.viewsCount, updatedAt: posts.updatedAt, name: user.name, email: user.email })
+  .from(posts).innerJoin(user, eq(user.id, posts.authorId))
+  .where(where.length ? and(...where) : undefined)
+  .orderBy(desc(posts.updatedAt)).limit(PER + 1).offset((page - 1) * PER);
+const more = rows.length > PER;
+const list = rows.slice(0, PER);
+const counts = new Map((await d.select({ s: posts.status, n: sql<number>`count(*)` }).from(posts).groupBy(posts.status)).map((r) => [r.s, Number(r.n)]));
+const total = [...counts.values()].reduce((a, b) => a + b, 0);
+const fmt = (x: Date) => x.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+const url = (o: Record<string, string | number>) => { const u = new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}) }); for (const [k, v] of Object.entries(o)) v === '' ? u.delete(k) : u.set(k, String(v)); const s = u.toString(); return s ? `?${s}` : '?'; };
+const tone: Record<string, string> = { published: 'text-green-700', rejected: 'text-red-700', trashed: 'text-red-700', hidden: 'text-amber-700', pending_review: 'text-amber-700', changes_requested: 'text-amber-700' };
+---
+
+<BaseLayout title="All articles" description="Every article, any status." noindex wide>
+  <div class="mx-auto max-w-6xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <h1 class="mt-2 text-2xl font-bold tracking-tight">All articles</h1>
+    <p class="text-sm text-muted">Every article by every writer, including drafts. Open one to read it, send the writer a suggestion, or delete it.</p>
+
+    <div class="mt-5 flex flex-wrap items-center gap-2 text-sm">
+      <a href={url({ status: '', page: '' })} class:list={['rounded-full px-3 py-1', !status ? 'bg-ink text-white' : 'border border-line']}>All · {total}</a>
+      {POST_STATUS.filter((s) => counts.get(s)).map((s) => <a href={url({ status: s, page: '' })} class:list={['rounded-full px-3 py-1', status === s ? 'bg-ink text-white' : 'border border-line']}>{s.replace('_', ' ')} · {counts.get(s)}</a>)}
+      <form method="get" class="ml-auto flex gap-2">
+        {status && <input type="hidden" name="status" value={status} />}
+        <input name="q" value={q} placeholder="Title, writer name or email" class="w-64 rounded border border-line px-3 py-1.5" />
+        <button class="rounded border border-line px-3 py-1.5">Search</button>
+      </form>
+    </div>
+
+    {list.length === 0 ? <p class="mt-6 text-sm text-muted">No articles match.</p> : (
+      <div class="mt-4 overflow-x-auto rounded-lg border border-line bg-surface">
+        <table class="w-full text-left text-sm">
+          <thead class="text-xs text-muted"><tr><th class="p-3">Article</th><th class="p-3">Writer</th><th class="p-3">Status</th><th class="p-3 text-right">Words</th><th class="p-3 text-right">Views</th><th class="p-3">Updated</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            {list.map((r) => (
+              <tr data-article={r.id}>
+                <td class="p-3"><a href={`/admin/articles/${r.id}/`} class="font-semibold hover:underline">{r.title || '(untitled)'}</a>{r.kind === 'editorial' && <span class="ml-2 rounded bg-tint px-1.5 py-0.5 text-xs text-accent-strong">editorial</span>}</td>
+                <td class="p-3"><span class="block">{r.name}</span><span class="text-xs text-muted">{r.email}</span></td>
+                <td class:list={['p-3 text-xs font-semibold', tone[r.status] ?? 'text-muted']}>{r.status.replace('_', ' ')}</td>
+                <td class="p-3 text-right tabular-nums">{r.words}</td>
+                <td class="p-3 text-right tabular-nums">{r.views}</td>
+                <td class="whitespace-nowrap p-3 text-xs text-muted">{fmt(r.updatedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    <p class="mt-4 flex gap-4 text-sm">
+      {page > 1 && <a href={url({ page: page - 1 })} class="underline">← Newer</a>}
+      {more && <a href={url({ page: page + 1 })} class="underline">Older →</a>}
+    </p>
+  </div>
+</BaseLayout>

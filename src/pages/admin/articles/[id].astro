@@ -1,0 +1,131 @@
+---
+/**
+ * /admin/articles/<id>/ : read any article in any state (admin only, via middleware) (D-048), see its numbers and
+ * history, send the writer a suggestion (notification), approve / request changes / reject / unpublish, or delete it
+ * (moves to trash, writer notified with the reason).
+ */
+import { eq } from 'drizzle-orm';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { db, posts, user } from '../../../lib/db';
+import { noticeLink, noticesForPost } from '../../../lib/notices';
+import { categoryName } from '../../../lib/site';
+
+export const prerender = false;
+
+const d = db();
+const p = await d.query.posts.findFirst({ where: eq(posts.id, Astro.params.id!) });
+if (!p) return new Response('Not found', { status: 404 });
+const w = await d.query.user.findFirst({ where: eq(user.id, p.authorId), columns: { id: true, name: true, email: true, handle: true, role: true, college: true } });
+const history = await noticesForPost(p.id);
+const fmt = (x: Date | null) => (x ? x.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '–');
+const publicUrl = p.kind === 'editorial' ? `/blog/${p.slug}/` : `/p/${p.slug}/`;
+const isMine = p.authorId === Astro.locals.user!.id;
+const canDecide = p.kind === 'community' && ['submitted', 'checking', 'pending_review', 'hidden', 'changes_requested', 'rejected'].includes(p.status);
+---
+
+<BaseLayout title={`Review: ${p.title}`} description="Read and review an article." noindex wide>
+  <div class="mx-auto grid max-w-6xl gap-8 py-8 font-sans lg:grid-cols-[1fr_22rem]">
+    <article class="min-w-0">
+      <p class="text-sm"><a href="/admin/articles/" class="text-muted underline">← All articles</a></p>
+      <p class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+        <span class="rounded-full bg-tint px-2.5 py-0.5 font-semibold text-accent-strong" data-testid="status">{p.status.replace('_', ' ')}</span>
+        <span class="text-muted">{p.kind}</span>
+        {categoryName(p.category) && <span class="text-muted">· {categoryName(p.category)}</span>}
+        <span class="text-muted">· {p.wordCount} words · {p.readingMinutes} min read</span>
+      </p>
+      <h1 class="mt-3 text-3xl font-bold leading-tight tracking-tight">{p.title || '(untitled)'}</h1>
+      {p.description && <p class="mt-2 font-serif text-lg text-muted">{p.description}</p>}
+      {p.coverImage && <img src={p.coverImage} alt={p.coverAlt ?? ''} class="mt-5 w-full rounded-xl" />}
+      {p.rejectReason && <p class="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"><strong>Last editor note:</strong> {p.rejectReason}</p>}
+      {p.bodyHtml
+        ? <div class="prose prose-article mt-6 max-w-none" set:html={p.bodyHtml} data-testid="body" />
+        : <p class="mt-6 rounded-lg border border-dashed border-line p-5 text-sm text-muted">No text saved yet.</p>}
+    </article>
+
+    <aside class="grid content-start gap-4 lg:sticky lg:top-20 lg:self-start">
+      <p id="flash" class="min-h-5 text-sm text-accent" role="status"></p>
+
+      <section class="rounded-xl border border-line bg-surface p-4 text-sm">
+        <h2 class="font-semibold">Writer</h2>
+        <p class="mt-1">{w?.name} {w?.handle && <a href={`/writer/${w.handle}/`} target="_blank" class="text-xs underline">profile</a>}</p>
+        <p class="text-xs text-muted">{w?.email} · {w?.role}{w?.college && ` · ${w.college}`}</p>
+        <dl class="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div class="rounded bg-page p-2"><dt class="text-xs text-muted">Views</dt><dd class="font-bold tabular-nums">{p.viewsCount}</dd></div>
+          <div class="rounded bg-page p-2"><dt class="text-xs text-muted">Upvotes</dt><dd class="font-bold tabular-nums">{p.raisesCount}</dd></div>
+          <div class="rounded bg-page p-2"><dt class="text-xs text-muted">Reports</dt><dd class="font-bold tabular-nums">{p.reportsCount}</dd></div>
+        </dl>
+        <p class="mt-3 text-xs text-muted">Updated {fmt(p.updatedAt)}{p.publishedAt && ` · published ${fmt(p.publishedAt)}`} · quality {p.qualityScore ?? '–'}</p>
+        {p.status === 'published' && <p class="mt-2"><a href={publicUrl} target="_blank" class="text-xs font-semibold text-accent underline">Open on the site →</a></p>}
+      </section>
+
+      {!isMine && (
+        <section class="rounded-xl border border-line bg-surface p-4 text-sm">
+          <h2 class="font-semibold">Send a suggestion</h2>
+          <p class="text-xs text-muted">The writer gets “Suggestion from Akhilendra on …” in their notifications, with a button to edit this article. The article itself does not change.</p>
+          <form id="suggest" class="mt-2 grid gap-2">
+            <textarea name="text" required rows="6" maxlength="4000" class="rounded border border-line bg-page px-3 py-2" placeholder="For example: The introduction is long; start with the problem. Add a screenshot of the final result and link the GitHub repo." data-testid="suggest-text"></textarea>
+            <button class="justify-self-start rounded bg-accent px-4 py-2 font-semibold text-white">Send suggestion</button>
+          </form>
+        </section>
+      )}
+
+      {(canDecide || p.status === 'published') && p.kind === 'community' && (
+        <section class="rounded-xl border border-line bg-surface p-4 text-sm">
+          <h2 class="font-semibold">Decision</h2>
+          <div class="mt-2 flex flex-wrap gap-2 text-xs">
+            {canDecide && <button class="act rounded bg-accent px-3 py-1.5 font-semibold text-white" data-action="publish_post">Approve and publish</button>}
+            {canDecide && <button class="act rounded border border-line px-3 py-1.5" data-action="request_changes" data-prompt="What should the writer change? (they see this, at least 10 characters)">Request changes</button>}
+            {canDecide && <button class="act rounded border border-line px-3 py-1.5" data-action="reject_post" data-prompt="Why is it declined? (the writer sees this, at least 10 characters)">Reject</button>}
+            {p.status === 'published' && <button class="act rounded border border-line px-3 py-1.5" data-action="unpublish_post" data-confirm="Take this article off the site? The writer keeps it.">Unpublish</button>}
+          </div>
+        </section>
+      )}
+
+      {p.status !== 'trashed' && p.kind === 'community' && (
+        <section class="rounded-xl border border-red-200 bg-surface p-4 text-sm">
+          <h2 class="font-semibold text-red-700">Delete article</h2>
+          <p class="text-xs text-muted">Removes it from the site and moves it to the Trash (you can restore it from the dashboard). {!isMine && 'The writer is notified with your reason.'}</p>
+          <form id="delete" class="mt-2 grid gap-2">
+            <textarea name="reason" required rows="3" maxlength="2000" class="rounded border border-line bg-page px-3 py-2" placeholder="Reason the writer will see (at least 10 characters)" data-testid="delete-reason"></textarea>
+            <button class="justify-self-start rounded border border-red-300 px-4 py-2 font-semibold text-red-700">Delete and notify</button>
+          </form>
+        </section>
+      )}
+
+      <section class="rounded-xl border border-line bg-surface p-4 text-sm">
+        <h2 class="font-semibold">Sent to the writer</h2>
+        {history.length === 0 ? <p class="mt-1 text-xs text-muted">No suggestions or notices yet.</p> : (
+          <ul class="mt-2 grid gap-2" data-testid="history">
+            {history.map((n) => <li class="rounded bg-page p-2"><a href={noticeLink(n.id)} class="font-medium hover:underline">{n.kind === 'removal' ? 'Removal notice' : 'Suggestion'}</a><span class="block text-xs text-muted">{fmt(n.createdAt)}</span><span class="line-clamp-2 block text-xs">{n.body}</span></li>)}
+          </ul>
+        )}
+      </section>
+    </aside>
+  </div>
+
+  <script is:inline define:vars={{ id: p.id }}>
+    const flash = document.getElementById('flash');
+    const say = (ok, text) => { flash.textContent = text; flash.className = 'min-h-5 text-sm ' + (ok ? 'text-accent' : 'text-red-700'); };
+    async function call(url, body) {
+      const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      say(r.ok, r.ok ? d.message || 'Done.' : d.error || 'Failed.');
+      return r.ok;
+    }
+    document.getElementById('suggest')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (await call('/api/admin/articles', { action: 'suggest', id, text: new FormData(e.target).get('text') })) setTimeout(() => location.reload(), 900);
+    });
+    document.getElementById('delete')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!confirm('Delete this article and notify the writer?')) return;
+      if (await call('/api/admin/articles', { action: 'delete', id, reason: new FormData(e.target).get('reason') })) setTimeout(() => location.reload(), 900);
+    });
+    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', async () => {
+      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+      let reason;
+      if (b.dataset.prompt) { reason = prompt(b.dataset.prompt); if (reason === null) return; }
+      if (await call('/api/admin/action', { action: b.dataset.action, id, reason })) setTimeout(() => location.reload(), 900);
+    }));
+  </script>
+</BaseLayout>
