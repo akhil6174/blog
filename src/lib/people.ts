@@ -14,7 +14,7 @@ export type PublicPerson = Pick<Person, 'name' | 'photo' | 'role' | 'college' | 
 export type PersonInput = Omit<Person, 'id' | 'createdAt' | 'updatedAt'> & { id?: number };
 
 export const PEOPLE_PATH = '/people/';
-export const refreshPeoplePage = () => purgePaths([PEOPLE_PATH]).catch(() => {});
+export const refreshPeoplePage = () => purgePaths([PEOPLE_PATH, '/sitemap-community.xml']).catch(() => {});
 
 export async function listAll(): Promise<Person[]> {
   return db().select().from(people).orderBy(asc(people.kind), asc(people.sort), asc(people.name));

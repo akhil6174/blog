@@ -8,7 +8,7 @@ export type EventRow = typeof events.$inferSelect;
 export type EventInput = Omit<EventRow, 'id' | 'createdAt' | 'updatedAt'> & { id?: number };
 
 export const eventPath = (id: number) => `/events/${id}/`;
-const refresh = (id?: number) => purgePaths(['/events/', ...(id ? [eventPath(id)] : [])]).catch(() => {});
+const refresh = (id?: number) => purgePaths(['/events/', '/sitemap-community.xml', ...(id ? [eventPath(id)] : [])]).catch(() => {});
 
 export async function listAllEvents(): Promise<EventRow[]> {
   return db().select().from(events).orderBy(desc(events.startsAt));

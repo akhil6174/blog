@@ -5,6 +5,11 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-26 · Search Console: /people/ out of the static sitemap; events in the sitemap
+
+- `/people/` was listed in the static sitemap while switched off, so Google got a 404. It is now excluded there and listed in `sitemap-community.xml` only while the page is on.
+- Each published event page (`/events/<id>/`) is now in `sitemap-community.xml`; the sitemap refreshes when events or the people page change.
+
 ### 2026-11-26 · More categories, messages to ambassadors and interns, events page (D-045, D-046, D-047)
 
 - **Categories:** writers can pick from 23 categories (the 5 main topics plus Machine learning, Data science, Mobile development, DevOps, Cybersecurity, DSA, System design, Interview preparation and more), or choose "Other (type your own)" for a custom category of 2 to 30 characters (stored as `c:<name>`). The home page and footer keep the 5 main topics.

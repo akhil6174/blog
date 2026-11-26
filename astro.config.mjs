@@ -43,7 +43,7 @@ export default defineConfig({
       // a sitemap that lists redirects, "not found" or noindex pages makes Search Console report errors.
       // When the Campus Writers Programme is switched on, remove its pages from this list.
       filter: (page) =>
-        !/\/(api|admin|write|drafts|search|me|signin|campus-writers|join-us|leaderboard|reward-policy)(\/|$)/.test(new URL(page).pathname) &&
+        !/\/(api|admin|write|drafts|search|me|signin|campus-writers|join-us|leaderboard|reward-policy|people)(\/|$)/.test(new URL(page).pathname) &&
         !/\/(blog\/welcome-to-trutiai|tag\/meta|tag\/announcements)\/?$/.test(new URL(page).pathname) &&
         (HAS_EDITORIAL || !/\/author\//.test(new URL(page).pathname)),
     }),
