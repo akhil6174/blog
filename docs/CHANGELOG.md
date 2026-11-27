@@ -5,6 +5,13 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-27 · Student tool usage counts; ambassador codes without the jump (D-049)
+
+- `/admin/usage` (dashboard button and account menu): visits, uses and key clicks for every student tool (resume PDF downloads, portfolio zip and HTML downloads, DSA problems ticked) for today, 7 days, 30 days and all time, with 30-day charts.
+- Counting: each tool page reports one visit and, on the first typing or click, one use; downloads and ticks report each click (`/api/track`, beacon, never slows the page). Anonymous: one number per India-time day, tool and action, nothing about the visitor stored. Unknown tools/actions refused; a per-address limit stops scripted inflation.
+- `/admin/ambassadors`: "Create code" shows the code in its row without reloading or jumping to the top; other actions reload and return to the same place; messages appear as a pop-up at the bottom.
+- Migration `0013_tool_usage`. Test: `tests/e2e/usage.e2e.mjs` (17 checks).
+
 ### 2026-11-26 · Admin article review: read any article, send suggestions, delete with notice (D-048)
 
 - `/admin/articles/` (dashboard button and account menu): every article in any state, drafts included, with status filter, search by title or writer, and paging.

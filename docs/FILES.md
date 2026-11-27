@@ -245,6 +245,11 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `src/lib/dashboard.ts` | Writer dashboard numbers: this month, all time, 12-month series |
 | `src/lib/profile.ts` | Clean up GitHub and LinkedIn profile links |
 | `src/components/charts/BarChart.astro` | Server-drawn SVG bar chart with a screen-reader table |
+| `src/lib/usage.ts` | Student tool usage: tools and actions, browser tracking helper (pure) |
+| `src/pages/api/track.ts` | Records one anonymous tool usage event |
+| `src/pages/admin/usage.astro` | Admin: tool usage numbers and charts |
+| `drizzle/0013_tool_usage.sql` | Migration: `tool_usage` |
+| `tests/e2e/usage.e2e.mjs` | Usage counting and ambassador code scroll test |
 | `src/pages/admin/articles/index.astro` | Admin: every article in any state, search and filter |
 | `src/pages/admin/articles/[id].astro` | Admin: read an article, send a suggestion, decide, delete with notice |
 | `src/pages/api/admin/articles.ts` | Admin actions: suggestion and delete-with-notice |

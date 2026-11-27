@@ -3,6 +3,7 @@
  * download. Everything happens in the browser; the resume is saved only in this browser (localStorage).
  * The PDF code (pdf-lib) is loaded on first preview, so the page itself stays light.
  */
+import { track } from '../../lib/usage';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import {
@@ -114,6 +115,7 @@ export default function ResumeBuilder() {
   const nonLatin = useMemo(() => NON_LATIN.test(JSON.stringify(data)), [data]);
 
   const download = () => {
+    track('resume-builder', 'download');
     if (!pdf) return;
     const a = document.createElement('a');
     a.href = pdf.url;

@@ -26,7 +26,7 @@ const tab = (id: string, label: string) => `?status=${id}${q ? `&q=${encodeURICo
         <h1 class="text-2xl font-bold tracking-tight">Campus ambassadors</h1>
         <p class="text-sm text-muted">One ambassador per college. Find them on LinkedIn or by email, ask them to sign in once with Google, then assign them here. Public page: <a href="/students/campus-ambassadors/" class="underline" target="_blank">/students/campus-ambassadors/</a></p>
       </div>
-      <p id="flash" class="max-w-xl text-sm text-accent" role="status"></p>
+
     </div>
 
     <section class="mt-6 grid grid-cols-3 gap-3 md:max-w-xl">
@@ -101,19 +101,56 @@ const tab = (id: string, label: string) => `?status=${id}${q ? `&q=${encodeURICo
     )}
     {rows.length >= 300 && <p class="mt-2 text-xs text-muted">Showing the first 300. Search to narrow the list.</p>}
   </div>
+  <p id="flash" role="status" aria-live="polite" class="pointer-events-none fixed bottom-5 left-1/2 z-50 hidden max-w-[90vw] -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg"></p>
   <script is:inline>
+    // Messages show as a small pop-up at the bottom; the page keeps its place (no jump to the top).
     const flash = document.getElementById('flash');
-    async function post(body) {
+    let hideTimer;
+    function say(text, ok = true) {
+      flash.textContent = text;
+      flash.classList.remove('hidden');
+      flash.style.background = ok ? 'var(--color-ink)' : '#b91c1c';
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => flash.classList.add('hidden'), ok ? 5000 : 8000);
+    }
+    // After a reload, come back to the same place and show the message.
+    try {
+      const y = sessionStorage.getItem('amb-scroll'), m = sessionStorage.getItem('amb-msg');
+      if (y) window.scrollTo(0, Number(y));
+      if (m) say(m);
+      sessionStorage.removeItem('amb-scroll'); sessionStorage.removeItem('amb-msg');
+    } catch { /* storage blocked */ }
+    function reloadHere(message) {
+      try { sessionStorage.setItem('amb-scroll', String(window.scrollY)); sessionStorage.setItem('amb-msg', message); } catch { /* ignore */ }
+      location.reload();
+    }
+    const esc = (t) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    async function post(body, origin) {
       const r = await fetch('/api/admin/ambassadors', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
-      flash.textContent = r.ok ? d.message || 'Done.' : d.error || 'Failed.';
-      flash.className = 'max-w-xl text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (r.ok) setTimeout(() => location.reload(), 900);
+      if (!r.ok) { say(d.error || 'Failed.', false); return; }
+      // A new code: show it in its row straight away, no reload.
+      if (body.action === 'create_code' && d.code && origin?.closest('p')) {
+        const code = esc(d.code);
+        origin.closest('p').innerHTML = `or give a code: <code class="rounded bg-page px-1.5 py-0.5 font-mono font-semibold text-ink" data-testid="code">${code}</code> <button type="button" class="copy underline" data-code="${code}">Copy</button> · <button class="act underline" data-body='${JSON.stringify({ action: 'create_code', id: body.id })}' data-confirm="Replace the code? The old one stops working.">New code</button>`;
+        say(`Code created: ${d.code}. Copy it and send it to the student.`);
+        return;
+      }
+      reloadHere(d.message || 'Done.');
     }
     document.getElementById('add')?.addEventListener('submit', (e) => { e.preventDefault(); post({ action: 'add_colleges', text: new FormData(e.target).get('text') }); });
     document.querySelectorAll('form.assign').forEach((f) => f.addEventListener('submit', (e) => { e.preventDefault(); post({ action: 'assign', id: Number(f.dataset.id), email: new FormData(f).get('email') }); }));
-    document.querySelectorAll('button.copy').forEach((b) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.code); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy'; } }));
-    document.querySelectorAll('button.act').forEach((b) => b.addEventListener('click', () => { if (b.dataset.confirm && !confirm(b.dataset.confirm)) return; post(JSON.parse(b.dataset.body)); }));
+    // One listener for copy and action buttons, so buttons added after a new code also work.
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('button.copy, button.act');
+      if (!b) return;
+      e.preventDefault();
+      if (b.classList.contains('copy')) {
+        try { await navigator.clipboard.writeText(b.dataset.code); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy'; }
+        return;
+      }
+      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+      post(JSON.parse(b.dataset.body), b);
+    });
   </script>
 </BaseLayout>

@@ -3,8 +3,8 @@
  * Small monthly bar chart drawn as SVG on the server (no chart library, no JavaScript). The highest bar is
  * labelled with its value, the current month is highlighted, and a hidden table gives screen readers the numbers.
  */
-interface Props { title: string; data: { label: string; value: number }[]; total?: number | string; note?: string }
-const { title, data, total, note } = Astro.props;
+interface Props { title: string; data: { label: string; value: number }[]; total?: number | string; note?: string; /** Label every n-th bar (default: every other one). */ labelEvery?: number }
+const { title, data, total, note, labelEvery } = Astro.props;
 const W = 320, H = 140, top = 18, bottom = 20, left = 4, right = 4;
 const max = Math.max(1, ...data.map((d) => d.value));
 const nice = max <= 5 ? max : Math.ceil(max / 5) * 5;
@@ -21,7 +21,7 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
     {total !== undefined && <span class="text-lg font-bold tabular-nums text-ink">{typeof total === 'number' ? fmt(total) : total}</span>}
   </figcaption>
   {note && <p class="text-xs text-muted">{note}</p>}
-  <svg viewBox={`0 0 ${W} ${H}`} class="mt-2 block h-auto w-full" role="img" aria-label={`${title} by month`}>
+  <svg viewBox={`0 0 ${W} ${H}`} class="mt-2 block h-auto w-full" role="img" aria-label={`${title} chart`}>
     <line x1={left} x2={W - right} y1={H - bottom} y2={H - bottom} stroke="var(--color-line)" stroke-width="1" />
     <line x1={left} x2={W - right} y1={y(nice / 2)} y2={y(nice / 2)} stroke="var(--color-line)" stroke-width="0.6" stroke-dasharray="3 3" />
     {data.map((d, i) => {
@@ -32,7 +32,7 @@ const fmt = (n: number) => n.toLocaleString('en-IN');
         <g>
           <rect x={x} y={H - bottom - h} width={barW} height={h} rx="2" fill={last ? 'var(--color-accent)' : 'var(--color-tint-strong)'} />
           {i === peak && d.value > 0 && <text x={x + barW / 2} y={H - bottom - h - 4} text-anchor="middle" font-size="10" fill="var(--color-ink)" font-weight="600">{fmt(d.value)}</text>}
-          {(data.length <= 6 || i % 2 === data.length % 2 || last) && <text x={x + barW / 2} y={H - 6} text-anchor="middle" font-size="9" fill="var(--color-muted)">{d.label}</text>}
+          {(labelEvery ? (data.length - 1 - i) % labelEvery === 0 : data.length <= 6 || i % 2 === data.length % 2 || last) && <text x={x + barW / 2} y={H - 6} text-anchor="middle" font-size="9" fill="var(--color-muted)">{d.label}</text>}
         </g>
       );
     })}

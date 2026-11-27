@@ -5,6 +5,7 @@
  * src/lib/dsa-sheet.ts.
  */
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { track } from '../../lib/usage';
 import { badges, PROBLEMS, type Problem, type Progress, streaks, summarize, TOPICS, topicSlug, weeklySolves } from '../../lib/dsa-sheet';
 
 type Map_ = Record<string, { solvedAt: number | null; revise: boolean }>;
@@ -107,6 +108,7 @@ export default function DsaSheet() {
   async function change(id: string, field: 'solved' | 'revise') {
     const cur = prog[id] ?? { solvedAt: null, revise: false };
     const next = field === 'solved' ? { ...cur, solvedAt: cur.solvedAt ? null : Date.now() } : { ...cur, revise: !cur.revise };
+    if (field === 'solved' && next.solvedAt) track('dsa-sheet', 'solve');
     const updated = { ...prog };
     if (!next.solvedAt && !next.revise) delete updated[id]; else updated[id] = next;
     setProg(updated);

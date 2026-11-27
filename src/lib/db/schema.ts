@@ -510,4 +510,16 @@ export const events = sqliteTable(
   (t) => [index('events_starts_idx').on(t.published, t.startsAt)],
 );
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, people, notices, events };
+/** Anonymous usage counts for student tools (D-049): one row per India-time day, tool and action. No personal data. */
+export const toolUsage = sqliteTable(
+  'tool_usage',
+  {
+    day: text('day').notNull(),
+    tool: text('tool').notNull(),
+    action: text('action').notNull(),
+    count: integer('count').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.tool, t.action] })],
+);
+
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, people, notices, events, toolUsage };

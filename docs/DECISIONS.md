@@ -315,6 +315,11 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why not print-to-PDF or an image export:** the browser print dialog differs on every phone and adds page headers; HTML-to-image libraries produce a picture of the resume, which applicant tracking systems cannot read. pdf-lib gives the same file everywhere with selectable text, at no server cost.
 - **Trade-offs:** standard fonts cover Latin characters only, so Hindi or emoji show as "?" (the page warns). Typography is limited to Times and Helvetica; embedding other fonts would add 100–300 KB per font.
 
+## D-049 · Tool usage: anonymous daily counters in D1
+
+- **Date:** 2026-11-27 · **Status:** accepted
+- **Decision:** One row per (India-time day, tool, action) with a counter, incremented by `/api/track`. No cookies, user ids or addresses are stored, so the privacy policy needs no change. One D1 write per event, far below the free limit. Cloudflare Web Analytics or Google Analytics were not used because they cannot count clicks inside the tools without extra scripts.
+
 ## D-048 · Admin article review: suggestions and removals reuse notices; delete means trash
 
 - **Date:** 2026-11-26 · **Status:** accepted

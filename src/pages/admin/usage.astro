@@ -1,0 +1,77 @@
+---
+/**
+ * /admin/usage : how much each student tool is used (admin only, via middleware) (D-049). Visits, uses and key
+ * clicks (downloads, problems ticked) for today, 7 days, 30 days and all time, plus 30-day charts.
+ * Counts are anonymous and come from /api/track.
+ */
+import { gte, sql } from 'drizzle-orm';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BarChart from '../../components/charts/BarChart.astro';
+import { db, toolUsage } from '../../lib/db';
+import { ACTION_LABELS, istDayKey, USAGE_TOOLS, type UsageTool } from '../../lib/usage';
+
+export const prerender = false;
+
+const DAY = 86_400_000;
+const today = istDayKey();
+const dayAgo = (n: number) => istDayKey(new Date(Date.now() - n * DAY));
+const d = db();
+const recent = await d.select().from(toolUsage).where(gte(toolUsage.day, dayAgo(29)));
+const allTime = await d.select({ tool: toolUsage.tool, action: toolUsage.action, n: sql<number>`sum(${toolUsage.count})` }).from(toolUsage).groupBy(toolUsage.tool, toolUsage.action);
+const allMap = new Map(allTime.map((r) => [`${r.tool}:${r.action}`, Number(r.n)]));
+const sum = (tool: string, action: string, from: string) => recent.filter((r) => r.tool === tool && r.action === action && r.day >= from).reduce((s, r) => s + r.count, 0);
+const days = Array.from({ length: 30 }, (_, i) => dayAgo(29 - i));
+const series = (filter: (r: (typeof recent)[number]) => boolean) => days.map((day) => ({ label: String(Number(day.slice(8))), value: recent.filter((r) => r.day === day && filter(r)).reduce((s, r) => s + r.count, 0) }));
+const tools = Object.entries(USAGE_TOOLS) as [UsageTool, (typeof USAGE_TOOLS)[UsageTool]][];
+const fmt = (n: number) => n.toLocaleString('en-IN');
+const totalVisits30 = recent.filter((r) => r.action === 'view').reduce((s, r) => s + r.count, 0);
+const totalUses30 = recent.filter((r) => r.action === 'use').reduce((s, r) => s + r.count, 0);
+const keyClicks30 = recent.filter((r) => !['view', 'use'].includes(r.action)).reduce((s, r) => s + r.count, 0);
+---
+
+<BaseLayout title="Tool usage" description="How much each student tool is used." noindex wide>
+  <div class="mx-auto max-w-6xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/" class="text-muted underline">← Editor dashboard</a></p>
+    <h1 class="mt-2 text-2xl font-bold tracking-tight">Student tool usage</h1>
+    <p class="text-sm text-muted"><strong>Visits</strong>: page opened. <strong>Used</strong>: the visitor typed or clicked in the tool. Downloads and ticks count each click. Anonymous counts, India time; counting started when this page was added.</p>
+
+    <section class="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Last 30 days">
+      {[['Visits, 30 days', totalVisits30], ['Times used, 30 days', totalUses30], ['Downloads and ticks, 30 days', keyClicks30]].map(([k, v]) => (
+        <div class="rounded-xl border border-line bg-surface p-4"><p class="text-3xl font-bold tabular-nums">{fmt(Number(v))}</p><p class="text-xs text-muted">{k}</p></div>
+      ))}
+    </section>
+
+    <section class="mt-6 grid gap-4 md:grid-cols-2" aria-label="Daily charts">
+      <BarChart title="Visits per day (all tools)" data={series((r) => r.action === 'view')} total={totalVisits30} note="Last 30 days" labelEvery={5} />
+      <BarChart title="Downloads and ticks per day" data={series((r) => !['view', 'use'].includes(r.action))} total={keyClicks30} note="Resume and portfolio downloads, DSA problems ticked" labelEvery={5} />
+    </section>
+
+    <section class="mt-8" aria-labelledby="by-tool">
+      <h2 id="by-tool" class="text-lg font-bold">By tool</h2>
+      <div class="mt-3 overflow-x-auto rounded-xl border border-line bg-surface">
+        <table class="w-full text-left text-sm" data-testid="usage-table">
+          <thead class="text-xs text-muted"><tr><th class="p-3">Tool</th><th class="p-3">What</th><th class="p-3 text-right">Today</th><th class="p-3 text-right">7 days</th><th class="p-3 text-right">30 days</th><th class="p-3 text-right">All time</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            {tools.flatMap(([id, t]) => t.actions.map((a, i) => (
+              <tr data-row={`${id}:${a}`} class={i === 0 ? 'border-t-2 border-line' : ''}>
+                <td class="p-3 font-semibold">{i === 0 ? t.name : ''}</td>
+                <td class="p-3 text-muted">{ACTION_LABELS[a] ?? a}</td>
+                <td class="p-3 text-right tabular-nums" data-cell="today">{fmt(sum(id, a, today))}</td>
+                <td class="p-3 text-right tabular-nums">{fmt(sum(id, a, dayAgo(6)))}</td>
+                <td class="p-3 text-right tabular-nums">{fmt(sum(id, a, dayAgo(29)))}</td>
+                <td class="p-3 text-right font-semibold tabular-nums" data-cell="all">{fmt(allMap.get(`${id}:${a}`) ?? 0)}</td>
+              </tr>
+            )))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-label="Per tool charts">
+      {tools.map(([id, t]) => {
+        const key = t.actions.find((a) => !['view', 'use'].includes(a));
+        return <BarChart title={t.name} data={series((r) => r.tool === id && r.action === (key ?? 'use'))} total={sum(id, key ?? 'use', dayAgo(29))} note={`${ACTION_LABELS[key ?? 'use']} per day, 30 days`} labelEvery={5} />;
+      })}
+    </section>
+  </div>
+</BaseLayout>

@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { buildPortfolioHtml, isHex, makeZip, PALETTE_FIELDS, type Palette, PORTFOLIO_TEMPLATES, type PortfolioTemplate, README, resolvePalette } from '../../lib/portfolio';
 import { normalizeResume, SAMPLE_RESUME, type ResumeData } from '../../lib/resume';
+import { track } from '../../lib/usage';
 
 const KEY = 'trutiai-portfolio-v1';
 const RESUME_KEY = 'trutiai-resume-v1';
@@ -89,7 +90,10 @@ export default function PortfolioBuilder() {
   }
 
   const base = fileBase(d.name);
-  const zip = () => download(`${base}.zip`, makeZip([{ name: 'index.html', text: html }, { name: 'README.md', text: README(d.name) }]), 'application/zip');
+  const zip = () => {
+    track('portfolio-builder', 'download_zip');
+    download(`${base}.zip`, makeZip([{ name: 'index.html', text: html }, { name: 'README.md', text: README(d.name) }]), 'application/zip');
+  };
 
   return (
     <div class="grid gap-6 font-sans lg:grid-cols-[minmax(0,26rem)_1fr]">
@@ -215,7 +219,7 @@ export default function PortfolioBuilder() {
       <div class="grid content-start gap-3 lg:sticky lg:top-20 lg:self-start">
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" onClick={zip} class="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white hover:bg-accent-strong" data-testid="download-zip">Download for Netlify / Vercel (.zip)</button>
-          <button type="button" onClick={() => download('index.html', html, 'text/html')} class="rounded-full border border-line px-4 py-2 text-sm font-semibold hover:border-accent" data-testid="download-html">Just index.html</button>
+          <button type="button" onClick={() => { track('portfolio-builder', 'download_html'); download('index.html', html, 'text/html'); }} class="rounded-full border border-line px-4 py-2 text-sm font-semibold hover:border-accent" data-testid="download-html">Just index.html</button>
           <a href="#launch" class="text-sm font-semibold text-accent underline">How to put it online ↓</a>
         </div>
         <label class="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={credit} onChange={() => setCredit(!credit)} /> Show a small "Built with TrutiAI" line in the footer</label>
