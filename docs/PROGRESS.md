@@ -192,6 +192,7 @@ Click-by-click instructions for each item are in [SETUP-GUIDE.md](SETUP-GUIDE.md
 - [x] 23 categories plus custom; admin messages to ambassadors/interns; events page with admin (2026-11-26; 5 unit + 30 browser checks)
 - [x] Admin article review: any article, suggestions, delete with notice (2026-11-26; 18 browser checks)
 - [x] Student tool usage counts in /admin/usage; ambassador code without page jump (2026-11-27; 17 browser checks)
+- [x] Replies to admin messages; messages auto-deleted after 30 days (2026-11-28; 21 browser checks)
 - [ ] Next ideas: more universities' conversion rules (after checking official sources), placement prep hub, AI helpers
 
 ## Verification log

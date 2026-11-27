@@ -4,11 +4,13 @@
  *  2. Purge the community listing/sitemap caches so new posts appear even if a purge was missed.
  *  3. Delete drafts untouched for 180 days with no title.
  *  4. Empty the trash: articles trashed more than 30 days ago (revisions and tags cascade).
+ *  5. Delete admin messages (notices) sent more than 30 days ago, with their replies and notifications (D-050).
  */
 import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { env } from 'cloudflare:workers';
 import { db, posts, postStats } from '../lib/db';
 import { purgePaths } from '../lib/cache';
+import { deleteExpiredNotices } from '../lib/notices';
 
 export type TopEntry = { postId: string; views: number; raises: number; comments: number; score: number; slug?: string; title?: string; editorial?: string };
 
@@ -64,4 +66,6 @@ export async function runHourly(now = new Date()): Promise<void> {
 
   const trashCutoff = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
   await db().delete(posts).where(and(eq(posts.status, 'trashed'), lt(posts.updatedAt, trashCutoff)));
+
+  await deleteExpiredNotices(now);
 }

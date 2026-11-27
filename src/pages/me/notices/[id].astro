@@ -1,16 +1,22 @@
 ---
-/** /me/notices/<id>/ : the full message the admin sent (D-046). Only recipients (and the admin) can open it. */
+/**
+ * /me/notices/<id>/ : the full message the admin sent (D-046) and the recipient's private conversation with the
+ * admin about it (D-050). Only recipients (and the admin) can open it. Deleted 30 days after sending.
+ */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { hasRole } from '../../../lib/auth';
-import { noticeFor } from '../../../lib/notices';
+import { adminThreadLink, expiresAt, noticeFor, thread } from '../../../lib/notices';
 
 export const prerender = false;
 
 const user = Astro.locals.user!;
+const isAdmin = hasRole(user, 'admin');
 const id = Number(Astro.params.id);
-const n = Number.isInteger(id) && id > 0 ? await noticeFor(id, user.id, hasRole(user, 'admin')) : null;
+const n = Number.isInteger(id) && id > 0 ? await noticeFor(id, user.id, isAdmin) : null;
 if (!n) return new Response('Not found', { status: 404 });
-const when = n.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'long', timeStyle: 'short' });
+const fmt = (d: Date) => d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+const conversation = await thread(n.id, user.id);
+const expires = expiresAt(n.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'long', year: 'numeric' });
 ---
 
 <BaseLayout title={n.title} description="A notice from TrutiAI." noindex>
@@ -18,9 +24,52 @@ const when = n.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dat
     <p class="text-sm"><a href="/me/notifications/" class="text-muted underline">← Notifications</a></p>
     <p class="mt-4 inline-block rounded-full bg-tint px-3 py-1 text-xs font-semibold text-accent-strong">{n.kind === 'suggestion' ? 'Suggestion' : 'Notice'} from {n.sender}</p>
     <h1 class="mt-3 text-2xl font-bold tracking-tight md:text-3xl">{n.title}</h1>
-    <p class="mt-1 text-sm text-muted">{when}</p>
+    <p class="mt-1 text-sm text-muted">{fmt(n.createdAt)}</p>
     <div class="mt-6 whitespace-pre-line rounded-2xl border border-line bg-surface p-5 font-serif text-lg leading-relaxed" data-testid="notice-body">{n.body}</div>
     {n.link && <p class="mt-5"><a href={n.link} target={n.link.startsWith('/') ? undefined : '_blank'} rel="noopener" class="inline-block rounded-full bg-accent px-5 py-2 font-semibold text-white hover:bg-accent-strong">{n.kind === 'suggestion' ? 'Edit your article' : 'Open the link'} →</a></p>}
-    <p class="mt-8 text-sm text-muted">Questions? Reply by email to akhilendrad@trutiai.in.</p>
+
+    {isAdmin ? (
+      <p class="mt-8 rounded-lg border border-line bg-page p-3 text-sm">You sent this. See everyone’s replies on <a href={adminThreadLink(n.id)} class="font-semibold underline">the message page</a>.</p>
+    ) : (
+      <section class="mt-10" aria-labelledby="conv">
+        <h2 id="conv" class="text-lg font-bold">Your conversation with {n.sender}</h2>
+        <p class="text-xs text-muted">Only you and {n.sender} can see this.</p>
+        {conversation.length > 0 && (
+          <ul class="mt-4 grid gap-3" data-testid="thread">
+            {conversation.map((r) => (
+              <li class:list={['max-w-[85%] rounded-2xl px-4 py-3 text-sm', r.fromAdmin ? 'justify-self-start border border-line bg-surface' : 'justify-self-end bg-tint']}>
+                <p class="text-xs font-semibold text-muted">{r.fromAdmin ? n.sender : 'You'} · {fmt(r.createdAt)}</p>
+                <p class="mt-1 whitespace-pre-line text-ink">{r.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form id="reply" class="mt-4 grid gap-2">
+          <label class="sr-only" for="reply-body">Your reply</label>
+          <textarea id="reply-body" name="body" required rows="4" maxlength="2000" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm" placeholder={`Reply to ${n.sender}…`} data-testid="reply-body"></textarea>
+          <div class="flex flex-wrap items-center gap-3">
+            <button class="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white hover:bg-accent-strong">Send reply</button>
+            <span id="reply-msg" class="text-sm" role="status"></span>
+          </div>
+        </form>
+      </section>
+    )}
+    <p class="mt-8 text-xs text-muted">This message and its replies are deleted automatically on {expires}.</p>
   </article>
+  {!isAdmin && (
+    <script is:inline define:vars={{ noticeId: n.id }}>
+      document.getElementById('reply').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('reply-msg');
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        const r = await fetch('/api/me/notices', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ noticeId, body: new FormData(e.target).get('body') }) });
+        const d = await r.json().catch(() => ({}));
+        msg.textContent = r.ok ? 'Sent.' : d.error || 'Could not send.';
+        msg.className = 'text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+        btn.disabled = false;
+        if (r.ok) setTimeout(() => location.reload(), 500);
+      });
+    </script>
+  )}
 </BaseLayout>

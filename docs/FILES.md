@@ -256,7 +256,12 @@ Every file in the repository (generated folders excluded) with what it does. Upd
 | `drizzle/0012_notice_posts.sql` | Migration: notices linked to an article |
 | `tests/e2e/admin-articles.e2e.mjs` | Admin article review test |
 | `src/lib/notices.ts` | Admin notices: audience (ambassadors, interns), send, history, read |
-| `src/pages/admin/messages.astro` | Admin: send a message to ambassadors and interns |
+| `src/pages/admin/messages/index.astro` | Admin: send a message to ambassadors and interns; sent list with reply counts |
+| `src/pages/admin/messages/[id].astro` | Admin: one message and every recipient's replies, answer each |
+| `src/pages/api/admin/message-reply.ts` | Admin answers a recipient |
+| `src/pages/api/me/notices.ts` | A recipient replies to a message |
+| `drizzle/0014_notice_replies.sql` | Migration: `notice_replies` |
+| `tests/e2e/replies.e2e.mjs` | Replies and 30-day deletion test |
 | `src/pages/api/admin/messages.ts` | Admin action: send a notice |
 | `src/pages/me/notices/[id].astro` | The full notice for a recipient |
 | `src/lib/events.ts` | Events: list, upcoming/past, save, hide, delete |

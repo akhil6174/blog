@@ -489,6 +489,26 @@ export const notices = sqliteTable('notices', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
 });
 
+/**
+ * Replies to a notice (D-050). Each recipient has a private conversation with the admin about one notice:
+ * (noticeId, userId) identifies it; fromAdmin marks the admin's answers. Deleted with the notice.
+ */
+export const noticeReplies = sqliteTable(
+  'notice_replies',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    noticeId: integer('notice_id').notNull().references(() => notices.id, { onDelete: 'cascade' }),
+    /** The recipient this conversation belongs to. */
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    fromAdmin: integer('from_admin', { mode: 'boolean' }).notNull().default(false),
+    body: text('body').notNull(),
+    /** For replies from the recipient: when the admin opened the conversation. */
+    seenAt: integer('seen_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => [index('notice_replies_thread_idx').on(t.noticeId, t.userId, t.id)],
+);
+
 /** Events on /events/ (D-047), managed on /admin/events. Times are stored as UTC and shown in India time. */
 export const events = sqliteTable(
   'events',
@@ -522,4 +542,4 @@ export const toolUsage = sqliteTable(
   (t) => [primaryKey({ columns: [t.day, t.tool, t.action] })],
 );
 
-export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, people, notices, events, toolUsage };
+export const schema = { user, session, account, verification, posts, postRevisions, postStats, raises, tags, postTags, comments, reports, moderationLog, auditLog, settings, bookmarks, notifications, competitions, competitionEntries, rewards, applications, internCodes, colleges, dsaProgress, people, notices, noticeReplies, events, toolUsage };

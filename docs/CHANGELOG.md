@@ -5,6 +5,13 @@ Add entries under **Unreleased** with the date; cut a version when a phase compl
 
 ## [Unreleased]
 
+### 2026-11-28 · Replies to admin messages; messages deleted after 30 days (D-050)
+
+- Recipients (ambassadors, interns, writers who got a suggestion) can reply under the message on `/me/notices/<id>/`. Each person has a private conversation with the admin; others never see it.
+- Admins are notified ("<name> replied to “<title>”"). `/admin/messages/` shows reply counts and a "new" badge; `/admin/messages/<id>/` shows every conversation with a reply box per person. The recipient is notified when the admin answers.
+- Messages, suggestions and removal notices, with their replies and notifications, are deleted automatically 30 days after sending (hourly job). Both sides see the deletion date.
+- `/admin/messages` moved to `src/pages/admin/messages/index.astro`. Migration `0014_notice_replies`. Test: `tests/e2e/replies.e2e.mjs` (21 checks).
+
 ### 2026-11-27 · Student tool usage counts; ambassador codes without the jump (D-049)
 
 - `/admin/usage` (dashboard button and account menu): visits, uses and key clicks for every student tool (resume PDF downloads, portfolio zip and HTML downloads, DSA problems ticked) for today, 7 days, 30 days and all time, with 30-day charts.

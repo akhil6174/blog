@@ -315,6 +315,11 @@ Format: context (the situation), decision (what we do), consequences (what it co
 - **Why not print-to-PDF or an image export:** the browser print dialog differs on every phone and adds page headers; HTML-to-image libraries produce a picture of the resume, which applicant tracking systems cannot read. pdf-lib gives the same file everywhere with selectable text, at no server cost.
 - **Trade-offs:** standard fonts cover Latin characters only, so Hindi or emoji show as "?" (the page warns). Typography is limited to Times and Helvetica; embedding other fonts would add 100–300 KB per font.
 
+## D-050 · Private reply threads per recipient; 30-day retention for messages
+
+- **Date:** 2026-11-28 · **Status:** accepted
+- **Decision:** Replies are rows keyed by (notice, recipient), so a message sent to many people never shows one person's reply to another. Only people whose notification proves they received the message can reply. The hourly job deletes notices older than 30 days with their replies and the notifications that link to them (owner request: keep the database small and conversations short-lived). Suggestion and removal notices about articles follow the same rule, so an article's "sent to the writer" history also clears after 30 days.
+
 ## D-049 · Tool usage: anonymous daily counters in D1
 
 - **Date:** 2026-11-27 · **Status:** accepted

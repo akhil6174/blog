@@ -7,7 +7,7 @@
 import { eq } from 'drizzle-orm';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { db, posts, user } from '../../../lib/db';
-import { noticeLink, noticesForPost } from '../../../lib/notices';
+import { adminThreadLink, noticesForPost } from '../../../lib/notices';
 import { categoryName } from '../../../lib/site';
 
 export const prerender = false;
@@ -96,7 +96,7 @@ const canDecide = p.kind === 'community' && ['submitted', 'checking', 'pending_r
         <h2 class="font-semibold">Sent to the writer</h2>
         {history.length === 0 ? <p class="mt-1 text-xs text-muted">No suggestions or notices yet.</p> : (
           <ul class="mt-2 grid gap-2" data-testid="history">
-            {history.map((n) => <li class="rounded bg-page p-2"><a href={noticeLink(n.id)} class="font-medium hover:underline">{n.kind === 'removal' ? 'Removal notice' : 'Suggestion'}</a><span class="block text-xs text-muted">{fmt(n.createdAt)}</span><span class="line-clamp-2 block text-xs">{n.body}</span></li>)}
+            {history.map((n) => <li class="rounded bg-page p-2"><a href={adminThreadLink(n.id)} class="font-medium hover:underline">{n.kind === 'removal' ? 'Removal notice' : 'Suggestion'}</a><span class="block text-xs text-muted">{fmt(n.createdAt)}</span><span class="line-clamp-2 block text-xs">{n.body}</span></li>)}
           </ul>
         )}
       </section>

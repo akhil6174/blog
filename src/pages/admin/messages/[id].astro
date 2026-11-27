@@ -1,0 +1,64 @@
+---
+/**
+ * /admin/messages/<id>/ : one sent message and every recipient's replies (admin only, via middleware) (D-050).
+ * Each person's conversation is separate; answer them one by one. Opening the page marks replies as seen.
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { db } from '../../../lib/db';
+import { expiresAt, markThreadsSeen, NOTICE_SENDER, threadsFor } from '../../../lib/notices';
+
+export const prerender = false;
+
+const id = Number(Astro.params.id);
+const n = Number.isInteger(id) && id > 0 ? await db().query.notices.findFirst({ where: (t, { eq }) => eq(t.id, id) }) : null;
+if (!n) return new Response('Not found', { status: 404 });
+const threads = await threadsFor(n.id);
+await markThreadsSeen(n.id);
+const fmt = (d: Date) => d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+const expires = expiresAt(n.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'long', year: 'numeric' });
+---
+
+<BaseLayout title={`Message: ${n.title}`} description="A sent message and its replies." noindex wide>
+  <div class="mx-auto max-w-4xl py-8 font-sans">
+    <p class="text-sm"><a href="/admin/messages/" class="text-muted underline">← Messages</a></p>
+    <p class="mt-3 text-xs text-muted">{n.kind === 'message' ? 'Message' : n.kind === 'suggestion' ? 'Suggestion' : 'Removal notice'} · {n.audience} · {n.recipients} received · sent {fmt(n.createdAt)} · deleted automatically on {expires}</p>
+    <h1 class="mt-1 text-2xl font-bold tracking-tight">{n.title}</h1>
+    <div class="mt-4 whitespace-pre-line rounded-xl border border-line bg-surface p-4 text-sm">{n.body}</div>
+    {n.link && <p class="mt-2 text-sm">Link: <a href={n.link} class="underline" target="_blank">{n.link}</a></p>}
+    <p id="flash" role="status" class="mt-4 min-h-5 text-sm text-accent"></p>
+
+    <h2 class="mt-6 text-lg font-bold">Replies <span class="font-normal text-muted">· {threads.length} {threads.length === 1 ? 'person' : 'people'}</span></h2>
+    {threads.length === 0 ? <p class="mt-2 text-sm text-muted">No replies yet. Recipients can reply from the message in their notifications.</p> : (
+      <div class="mt-3 grid gap-5">
+        {threads.map((t) => (
+          <section id={`u-${t.userId}`} class="scroll-mt-24 rounded-xl border border-line bg-surface p-4" data-thread={t.userId}>
+            <p class="font-semibold">{t.name} <span class="text-xs font-normal text-muted">{t.email}</span> {t.unread > 0 && <span class="ml-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-white">{t.unread} new</span>}</p>
+            <ul class="mt-3 grid gap-2">
+              {t.items.map((r) => (
+                <li class:list={['max-w-[85%] rounded-2xl px-4 py-2.5 text-sm', r.fromAdmin ? 'justify-self-end bg-tint' : 'justify-self-start border border-line bg-page']}>
+                  <p class="text-xs font-semibold text-muted">{r.fromAdmin ? `${NOTICE_SENDER} (you)` : t.name} · {fmt(r.createdAt)}</p>
+                  <p class="mt-1 whitespace-pre-line">{r.body}</p>
+                </li>
+              ))}
+            </ul>
+            <form class="answer mt-3 grid gap-2" data-user={t.userId}>
+              <textarea name="body" required rows="3" maxlength="4000" class="rounded border border-line bg-page px-3 py-2 text-sm" placeholder={`Reply to ${t.name}…`}></textarea>
+              <div><button class="rounded bg-accent px-4 py-1.5 text-sm font-semibold text-white">Send reply</button></div>
+            </form>
+          </section>
+        ))}
+      </div>
+    )}
+  </div>
+  <script is:inline define:vars={{ noticeId: n.id }}>
+    document.querySelectorAll('form.answer').forEach((f) => f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const flash = document.getElementById('flash');
+      const r = await fetch('/api/admin/message-reply', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ noticeId, userId: f.dataset.user, body: new FormData(f).get('body') }) });
+      const d = await r.json().catch(() => ({}));
+      flash.textContent = r.ok ? d.message : d.error || 'Failed.';
+      flash.className = 'mt-4 min-h-5 text-sm ' + (r.ok ? 'text-accent' : 'text-red-700');
+      if (r.ok) { location.hash = `u-${f.dataset.user}`; setTimeout(() => location.reload(), 600); }
+    }));
+  </script>
+</BaseLayout>
